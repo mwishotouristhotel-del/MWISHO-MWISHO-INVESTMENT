@@ -82,3 +82,5 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .layout aside .side-menu{display:flex!important;flex-direction:column!important;gap:4px!important}.layout aside .side-menu button{width:100%;min-height:42px;display:flex;align-items:center}.layout aside .division-selector{display:flex!important;flex-direction:column!important}
 .layout main{width:100%;padding:12px!important;min-width:0}.layout header{margin-bottom:10px}
 }
+
+.stock-receipt-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;max-width:850px}.stock-receipt-form label{display:grid;gap:5px;font-weight:600}.stock-receipt-form input,.stock-receipt-form select{width:100%;min-width:0;border:1px solid #b7c3d7;border-radius:9px;padding:11px;background:white;color:#17263a}.stock-receipt-form button{align-self:end}@media(max-width:720px){.stock-receipt-form{grid-template-columns:1fr}}
