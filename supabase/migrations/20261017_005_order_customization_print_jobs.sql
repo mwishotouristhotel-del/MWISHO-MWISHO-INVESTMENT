@@ -14,7 +14,7 @@ alter table public.hotel_print_jobs enable row level security;
 drop function if exists public.hotel_menu();
 create or replace function public.hotel_menu()
 returns table(id uuid,name text,price numeric,preparation_area text,preparation_options jsonb)
-language sql stable security definer set search_path='' as $$
+language sql stable security definer set search_path='' as $mwisho$
  select p.id,p.name,p.price,p.preparation_area,p.preparation_options from public.products p
  join public.departments d on d.id=p.department_id
  where d.code='HOTEL' and p.active=true and p.preparation_area is not null
@@ -23,9 +23,9 @@ language sql stable security definer set search_path='' as $$
  (r.role in ('director_admin','central_manager') or
  (r.department_id=d.id and r.role in ('waiter','head_waiter','cashier','supervisor','department_manager'))))
  order by p.name;
-$$;
+$mwisho$;
 create or replace function public.submit_hotel_order(p_counter uuid,p_table text,p_items jsonb)
-returns bigint language plpgsql security definer set search_path='' as $$
+returns bigint language plpgsql security definer set search_path='' as $mwisho$
 declare v_user uuid:=auth.uid();v_department uuid;v_order uuid;v_number bigint;v_total numeric(14,2);v_count int;
 begin
  select c.department_id into v_department from public.counters c join public.departments d on d.id=c.department_id
@@ -63,10 +63,10 @@ begin
  insert into public.hotel_print_jobs(order_id,destination)
  select distinct v_order,preparation_area from public.hotel_order_items where order_id=v_order;
  return v_number;
-end $$;
+end $mwisho$;
 create or replace function public.my_hotel_preparation_tickets(p_area text)
 returns table(ticket_id uuid,order_number bigint,table_label text,counter_name text,status text,created_at timestamptz,items jsonb)
-language plpgsql stable security definer set search_path='' as $$
+language plpgsql stable security definer set search_path='' as $mwisho$
 begin
  if p_area not in ('kitchen','bar') then raise exception 'Invalid preparation area';end if;
  if not exists(select 1 from public.staff_profiles s join public.staff_roles r on r.user_id=s.user_id
@@ -85,4 +85,4 @@ begin
  join public.counters c on c.id=o.counter_id
  where t.preparation_area=p_area and o.status<>'cancelled'
  order by case t.status when 'pending' then 0 when 'preparing' then 1 when 'ready' then 2 else 3 end,t.created_at desc limit 100;
-end $;
+end $mwisho$;
