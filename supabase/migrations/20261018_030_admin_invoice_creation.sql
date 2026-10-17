@@ -15,4 +15,3 @@ revoke all on function public.hotel_create_booked_invoice(uuid,text,text,text,te
 grant execute on function public.hotel_create_booked_invoice(uuid,text,text,text,text) to authenticated;
 revoke execute on function public.hotel_request_invoice(uuid,text,text,text,text,text) from authenticated;
 revoke execute on function public.hotel_review_invoice(uuid,boolean,text),public.hotel_review_invoice(uuid,boolean,text,text) from authenticated;
-alter table public.hotel_invoice_requests alter column invoice_number set default nextval('public.hotel_invoice_requests_invoice_number_seq'::regclass);
