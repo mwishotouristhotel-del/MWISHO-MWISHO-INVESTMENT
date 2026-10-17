@@ -1,7 +1,7 @@
 name: Deploy MWISHO POS to GitHub Pages
 on:
   push:
-    branches: [main]
+    branches: [main, feature/pos-foundation]
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,7 +22,7 @@ jobs:
       - run: npm run build
         env:
           VITE_SUPABASE_URL: https://vsrkdykljelafkoixjtq.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.MWISHO_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.MWISHO_SUPABASE_PUBLISHABLE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
