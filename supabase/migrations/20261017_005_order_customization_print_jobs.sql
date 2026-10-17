@@ -11,6 +11,7 @@ create table public.hotel_print_jobs(
  unique(order_id,destination)
 );
 alter table public.hotel_print_jobs enable row level security;
+drop function if exists public.hotel_menu();
 create or replace function public.hotel_menu()
 returns table(id uuid,name text,price numeric,preparation_area text,preparation_options jsonb)
 language sql stable security definer set search_path='' as $$
