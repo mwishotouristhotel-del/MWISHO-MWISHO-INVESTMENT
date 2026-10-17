@@ -22,7 +22,7 @@ jobs:
       - run: npm run build
         env:
           VITE_SUPABASE_URL: https://vsrkdykljelafkoixjtq.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.MWISHO_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_cPQ_bQOpdyniRlkJCA4-xg_67heLy6l
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
