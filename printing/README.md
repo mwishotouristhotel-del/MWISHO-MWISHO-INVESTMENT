@@ -23,3 +23,6 @@
 - Hardware compatibility, Windows service installation, printer discovery, automated tests and deployment are still pending.
 - Never put a Supabase service-role key in a browser or Windows print agent.
 - LEOGO resources must not be modified.
+
+## Single cashier PC with three USB XP-80C printers
+Install three XP-80C USB printers on the same Windows cashier computer, with distinct Windows printer queue names: `MWISHO-KITCHEN`, `MWISHO-BAR`, `MWISHO-CASHIER`. Set each queue to 80 mm roll paper. Register three print-device records, one per destination (`kitchen`, `bar`, `counter`) with the matching Windows printer name, `paper_width_mm=80`, and unique agent user/device credentials. Run one Windows print-agent process per device ID on the cashier PC, each polling only its assigned queue. Verify USB ports, driver names, auto-cut and simultaneous print behavior on hardware. Browser-generated customer bills/receipts are not yet automatically routed through the agent and require selecting `MWISHO-CASHIER` in the browser print dialog. Do not assume that a single agent instance services all three devices.
