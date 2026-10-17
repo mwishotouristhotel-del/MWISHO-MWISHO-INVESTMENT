@@ -1,0 +1,2 @@
+alter table public.hotel_bills add column if not exists cash_received numeric(14,2), add column if not exists change_due numeric(14,2);
+create unique index if not exists hotel_mpesa_unique_ref on public.hotel_bills(upper(trim(payment_reference))) where status='paid' and payment_method='mpesa';

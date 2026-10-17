@@ -1,0 +1,1 @@
+MWISHO hotel printing integration in progress. Physical printer testing pending.
