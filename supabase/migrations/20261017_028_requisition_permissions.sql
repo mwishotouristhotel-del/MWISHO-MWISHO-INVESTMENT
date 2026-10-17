@@ -1,0 +1,5 @@
+create or replace function public.my_requisition_permissions() returns jsonb language sql security definer set search_path='' as $$
+select jsonb_build_object('can_approve',exists(select 1 from public.staff_roles r where r.user_id=auth.uid() and r.active and r.role='central_manager'),'departments',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'name',d.name) order by d.name) from public.departments d where exists(select 1 from public.staff_profiles p where p.user_id=auth.uid() and p.active) and (exists(select 1 from public.staff_roles r where r.user_id=auth.uid() and r.active and r.role='department_manager' and r.department_id=d.id) or (exists(select 1 from public.staff_roles r where r.user_id=auth.uid() and r.active and r.role='cashier') and exists(select 1 from public.cashier_assignments ca join public.cashier_shifts cs on cs.assignment_id=ca.id where ca.cashier_id=auth.uid() and ca.ends_at is null and ca.starts_at<=now() and cs.closed_at is null)))),'[]'::jsonb))
+$$;
+revoke all on function public.my_requisition_permissions() from public,anon;
+grant execute on function public.my_requisition_permissions() to authenticated;
