@@ -1,0 +1,28 @@
+create extension if not exists pgcrypto;
+create table public.departments(id uuid primary key default gen_random_uuid(),code text not null unique,name text not null,created_at timestamptz not null default now());
+create table public.counters(id uuid primary key default gen_random_uuid(),department_id uuid not null references public.departments(id),code text not null unique,name text not null,counter_type text not null check(counter_type in ('bar','restaurant','retail','service')),active boolean not null default true);
+create table public.staff_profiles(user_id uuid primary key references auth.users(id) on delete cascade,display_name text not null,active boolean not null default true,created_at timestamptz not null default now());
+create table public.staff_roles(id uuid primary key default gen_random_uuid(),user_id uuid not null references public.staff_profiles(user_id) on delete cascade,department_id uuid references public.departments(id),role text not null check(role in ('director_admin','central_manager','accounts','central_storekeeper','department_manager','supervisor','cashier','head_waiter','waiter','order_taker','handover_staff','release_staff')),active boolean not null default true,created_at timestamptz not null default now());
+create table public.cashier_assignments(id uuid primary key default gen_random_uuid(),cashier_id uuid not null references public.staff_profiles(user_id),counter_id uuid not null references public.counters(id),assigned_by uuid not null references public.staff_profiles(user_id),starts_at timestamptz not null default now(),ends_at timestamptz,check(ends_at is null or ends_at>starts_at));
+create unique index one_active_cashier_per_counter on public.cashier_assignments(counter_id) where ends_at is null;
+create table public.inventory_locations(id uuid primary key default gen_random_uuid(),department_id uuid not null references public.departments(id),counter_id uuid references public.counters(id),name text not null,active boolean not null default true,unique(department_id,name));
+create table public.products(id uuid primary key default gen_random_uuid(),department_id uuid not null references public.departments(id),sku text not null,name text not null,unit text not null default 'piece',price numeric(14,2) not null default 0 check(price>=0),active boolean not null default true,unique(department_id,sku));
+create table public.stock_movements(id uuid primary key default gen_random_uuid(),product_id uuid not null references public.products(id),from_location_id uuid references public.inventory_locations(id),to_location_id uuid references public.inventory_locations(id),quantity numeric(14,3) not null check(quantity>0),reason text not null,actor_id uuid not null references public.staff_profiles(user_id),created_at timestamptz not null default now(),check(from_location_id is distinct from to_location_id),check(from_location_id is not null or to_location_id is not null));
+create table public.cashier_shifts(id uuid primary key default gen_random_uuid(),assignment_id uuid not null references public.cashier_assignments(id),opened_at timestamptz not null default now(),closed_at timestamptz,opening_float numeric(14,2) not null default 0 check(opening_float>=0),closing_cash numeric(14,2),check(closed_at is null or closed_at>=opened_at));
+create unique index one_open_shift_per_assignment on public.cashier_shifts(assignment_id) where closed_at is null;
+insert into public.departments(code,name) values ('HARDWARE','Hardware'),('HOTEL','Hotel'),('LIQUOR','Liquor Store'),('DRY_GOODS','Dry Goods');
+insert into public.counters(department_id,code,name,counter_type) select id,'HOTEL_BAR_'||n,'Hotel Bar '||n,'bar' from public.departments cross join generate_series(1,4) n where code='HOTEL';
+insert into public.counters(department_id,code,name,counter_type) select id,'HOTEL_RESTAURANT_'||n,'Hotel Restaurant '||n,'restaurant' from public.departments cross join generate_series(1,2) n where code='HOTEL';
+insert into public.counters(department_id,code,name,counter_type) select id,code||'_MAIN',name||' Main Counter','retail' from public.departments where code in ('HARDWARE','LIQUOR','DRY_GOODS');
+insert into public.inventory_locations(department_id,name) select id,name||' Main Store' from public.departments;
+insert into public.inventory_locations(department_id,counter_id,name) select department_id,id,name||' Stock' from public.counters;
+alter table public.departments enable row level security;
+alter table public.counters enable row level security;
+alter table public.staff_profiles enable row level security;
+alter table public.staff_roles enable row level security;
+alter table public.cashier_assignments enable row level security;
+alter table public.inventory_locations enable row level security;
+alter table public.products enable row level security;
+alter table public.stock_movements enable row level security;
+alter table public.cashier_shifts enable row level security;
+-- Deliberately no client access policies yet; deny by default until audited roles and RPCs exist.
