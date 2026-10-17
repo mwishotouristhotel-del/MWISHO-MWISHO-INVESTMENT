@@ -1,0 +1,1 @@
+insert into public.requisition_sections(department_id,name) select d.id,'General Store' from public.departments d where d.name<>'Hotel' on conflict do nothing;
