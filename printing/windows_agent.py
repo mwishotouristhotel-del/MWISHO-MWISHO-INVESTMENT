@@ -21,7 +21,7 @@ def request(path, body, auth=False):
     payload=json.dumps(body).encode()
     req=urllib.request.Request(URL+path,data=payload,headers=headers,method="POST")
     with urllib.request.urlopen(req,timeout=25) as resp:
-        return json.loads(resp.read().decode())
+        raw=resp.read().decode()\n        return json.loads(raw) if raw.strip() else None
 
 def login():
     global token,expires
@@ -33,8 +33,8 @@ def line(text,width):
     return str(text).encode("ascii","replace")[:width]+b"\n"
 
 def ticket(job):
-    width=32 if job["paper_width_mm"]==58 else 42
-    out=b"\x1b\x40"+line("MWISHO HOTEL",width)+line("ORDER #"+str(job["order_number"]),width)
+    width=48 if job["paper_width_mm"]==80 else 32
+    out=b"\x1b\x40"+b"\x1b\x61\x01"+line("MWISHO HOTEL",width)+b"\x1b\x61\x00"+line("ORDER #"+str(job["order_number"]),width)
     out+=line(job["destination"].upper()+" COPY",width)+line("Counter: "+job["counter_name"],width)
     out+=line("Table: "+job["table_label"],width)+b"-"*width+b"\n"
     for item in job["items"]:
