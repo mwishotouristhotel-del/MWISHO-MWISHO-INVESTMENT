@@ -2,3 +2,24 @@
 .customer-receipt{max-width:340px;margin:18px auto;padding:18px;background:#fff;border:1px dashed #999;font:13px/1.4 monospace;color:#111}.customer-receipt h2{text-align:center}.customer-receipt p{margin:6px 0}.customer-receipt hr{border:0;border-top:1px dashed #555}.receipt-actions{margin-top:22px}.menu-form{display:grid;gap:12px;max-width:520px}.menu-form label{display:grid;gap:5px}.menu-form input,.menu-form select,.customize input,.customize select,.customize textarea{padding:10px;border:1px solid #bccbd9;border-radius:7px;width:100%}.basket-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #e5eaf0}@media print{@page{size:80mm auto;margin:3mm}body *{visibility:hidden!important}.customer-receipt,.customer-receipt *{visibility:visible!important}.customer-receipt{position:absolute;left:0;top:0;width:72mm;max-width:none;margin:0;padding:0;border:0;box-shadow:none;font-size:11px}.customer-receipt button{display:none!important}}
 
 .invoice-sheet{background:#fff;color:#111;width:min(100%,210mm);min-height:270mm;margin:24px auto;padding:18mm;border:1px solid #ddd;font:14px/1.5 Arial,sans-serif}.invoice-sheet .invoice-heading{display:flex;justify-content:space-between;align-items:center;gap:15px;border-bottom:2px solid #333}.invoice-sheet table{border-collapse:collapse;width:100%;margin-top:22px}.invoice-sheet th,.invoice-sheet td{border-bottom:1px solid #ccc;padding:9px;text-align:left}.payment details{margin:12px 0}.payment details label{display:block;margin:8px 0}.payment details input,.payment details select,.payment details textarea{display:block;width:100%;padding:9px}@page invoicePage{size:A4;margin:15mm}@media print{body:has(.invoice-sheet) .invoice-sheet{page:invoicePage}body:has(.invoice-sheet) .customer-receipt,body:has(.invoice-sheet) .customer-receipt *{visibility:hidden!important}body:has(.invoice-sheet) .invoice-sheet,body:has(.invoice-sheet) .invoice-sheet *{visibility:visible!important}body:has(.invoice-sheet) .invoice-sheet{position:absolute;top:0;left:0;width:100%;min-height:0;margin:0;padding:0;border:0;font-size:11pt}body:has(.invoice-sheet) .invoice-sheet table{width:100%}}
+
+/* MWISHO official palette: sky blue, pink, purple, yellow. Screen-only styling; receipts stay printer-friendly. */
+:root{--mw-sky:#38bdf8;--mw-pink:#ec4899;--mw-purple:#8b5cf6;--mw-yellow:#facc15;--mw-ink:#17263a;--mw-focus:#0369a1}
+@media screen{
+body{background:#f4f8ff;color:var(--mw-ink)}
+aside{background:linear-gradient(160deg,#43217e 0%,#6d28d9 48%,#087aa9 100%);border-right:4px solid var(--mw-pink)}
+aside p,aside .staff small{color:#e9dcff}
+aside button:hover,aside button:focus-visible{background:#ffffff25}
+aside button.selected{background:var(--mw-sky);color:#102b49;font-weight:700}
+button.selected,.primary{background:#087fb5;color:white;font-weight:650}
+.primary:hover{background:#036a9c}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--mw-pink);outline-offset:2px}
+header h1,.login h1{color:#7133b5}
+header{border-bottom:3px solid var(--mw-yellow);padding-bottom:14px}
+article,.login{border-top:4px solid var(--mw-sky)}
+.counter.active{border:2px solid #7c3aed;background:#f5f0ff}
+.note{background:#fff9d9;border-left:4px solid var(--mw-yellow)}
+nav button.selected{background:#7c3aed;color:white}
+.login{border-top:5px solid var(--mw-pink)}
+.login .primary{background:#087fb5}
+}
