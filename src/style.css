@@ -58,3 +58,8 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .counter:hover{border-color:#8b5cf6;background:#f8f5ff}
 @media(max-width:720px){.layout aside{width:100%;padding:13px}.brand-lockup{padding:7px 10px 12px}.side-menu{grid-template-columns:repeat(2,minmax(0,1fr))}.side-menu button{min-height:44px;padding:6px;gap:6px}.menu-icon{width:27px;height:27px;font-size:16px}.menu-label{font-size:11px}.menu-chevron{display:none}.layout main{padding:12px}.layout header{padding:14px}.layout article{padding:16px}}
 }
+
+@media screen{
+.division-selector{display:flex;flex-direction:column;gap:7px;margin:5px 0 18px}.division-selector .division-active{display:flex;align-items:center;gap:10px;border-radius:12px;background:linear-gradient(110deg,#38bdf8,#d2efff);color:#21365e;font-weight:750;padding:12px 10px;flex-wrap:wrap;text-align:left}.division-selector .division-active small{margin-left:auto;font-size:10px;color:#285b83}.division-upcoming{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:11px 9px;background:#ffffff13;border:1px solid #ffffff19;border-radius:10px;color:#e6e0f3;font-size:12px}.division-upcoming small{color:#facc15;font-size:10px;white-space:nowrap}.side-menu-title{letter-spacing:1.4px}
+@media(max-width:720px){.division-selector{grid-column:1/-1}.division-upcoming{font-size:11px}}
+}
