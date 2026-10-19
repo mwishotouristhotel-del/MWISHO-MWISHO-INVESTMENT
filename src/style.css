@@ -269,3 +269,16 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-venue-status-active{color:#168552;font-size:11px;font-weight:750}
 .mw-venue-status-inactive{color:#9c5260;font-size:11px;font-weight:750}
 @media(max-width:700px){.mw-venue-item .mw-counter-row{display:grid;grid-template-columns:1fr;gap:8px}.mw-venue-item .mw-counter-row input{width:100%}.mw-venue-item .mw-counter-row button{width:100%}}
+
+/* Hotel Settings: prominent unlimited Add Restaurant / Add Bar controls */
+.mw-venue-add-panel{margin-bottom:18px;border:1px solid #38bdf857}
+.mw-venue-add-panel>p{max-width:800px}
+.mw-venue-type-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.mw-venue-type-buttons button{min-height:58px;border:2px solid #8b5cf62b;border-radius:12px;padding:12px;text-align:center;font-weight:800;background:#8b5cf60b}
+.mw-venue-type-buttons button.selected{border-color:#38bdf8;background:#38bdf82b;box-shadow:inset 0 0 0 1px #38bdf83b}
+.mw-venue-create-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:14px;margin-bottom:9px}
+.mw-venue-create-form label{display:grid;gap:7px;font-weight:750;min-width:0}
+.mw-venue-create-form input{width:100%;min-height:45px}
+.mw-venue-create-form button{min-height:45px;border-radius:10px;padding:10px 18px;white-space:normal}
+.mw-venue-add-panel>small{font-size:11px;opacity:.76}
+@media(max-width:650px){.mw-venue-create-form{grid-template-columns:1fr}.mw-venue-create-form button{width:100%}.mw-venue-type-buttons button{min-height:54px;font-size:12px}}
