@@ -361,3 +361,11 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 @media print{
   .layout>aside{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}
 }
+
+/* Hotel menu image uploads and photo-backed waiter POS tiles */
+.mw-menu-image-upload{display:grid;gap:6px;border:1px dashed #b9a6d9;border-radius:12px;padding:12px;background:#faf7ff;font-weight:750;color:#463163}
+.mw-menu-image-upload input[type=file]{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.mw-menu-image-upload small{font-size:11px;color:#6d6180;font-weight:450}
+.mw-pos-product-picture{overflow:hidden;position:relative}
+.mw-pos-product-picture img{width:100%;height:100%;object-fit:cover;display:block;border-radius:9px}
+.mw-menu-list-image{height:46px;width:46px;flex:0 0 46px;object-fit:cover;border-radius:9px;border:1px solid #dcd2e9;margin-right:9px}
