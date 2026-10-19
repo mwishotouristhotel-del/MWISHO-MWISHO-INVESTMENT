@@ -254,3 +254,18 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-price-row input{width:100%;min-height:42px}
 .mw-price-row button{min-height:42px;padding:8px 12px;border-radius:9px}
 @media(max-width:740px){.mw-price-row{grid-template-columns:1fr}.mw-price-row button{width:100%}}
+
+/* Flexible Restaurant and Bar directory */
+.mw-venue-title{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.mw-venue-title h3{margin:0}.mw-venue-title small{font-size:11px;opacity:.72}
+.mw-venue-item{border:1px solid #8b5cf623;border-radius:12px;padding:10px;background:#8b5cf608}
+.mw-venue-item+.mw-venue-item{margin-top:10px}
+.mw-venue-item .mw-counter-row{margin:0;padding:0;border:0;background:transparent}
+.mw-venue-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.mw-venue-actions button{min-height:35px;padding:7px 15px;border-radius:9px;font-weight:750}
+.mw-venue-remove{color:#a22945;border:1px solid #ec489955;background:#fff3f5}
+.mw-venue-restore{color:#146541;border:1px solid #16a34a55;background:#edfdf4}
+.mw-venue-inactive{opacity:.8;background:#88888810}
+.mw-venue-status-active{color:#168552;font-size:11px;font-weight:750}
+.mw-venue-status-inactive{color:#9c5260;font-size:11px;font-weight:750}
+@media(max-width:700px){.mw-venue-item .mw-counter-row{display:grid;grid-template-columns:1fr;gap:8px}.mw-venue-item .mw-counter-row input{width:100%}.mw-venue-item .mw-counter-row button{width:100%}}
