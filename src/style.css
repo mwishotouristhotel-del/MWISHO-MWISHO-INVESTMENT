@@ -193,3 +193,23 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-menu-single-editor{padding:16px;border:1px solid #e6e0f0;border-radius:14px;background:white}
 .mw-menu-single-editor summary{font-weight:800;color:#5d3895;cursor:pointer;margin-bottom:10px}
 @media(max-width:740px){.mw-variation-panel{padding:15px}.mw-variation-basic{grid-template-columns:1fr}.mw-variation-row{grid-template-columns:30px minmax(0,1fr) minmax(0,110px);gap:7px;padding:8px}.mw-variation-row button{grid-column:2/-1;justify-self:end}.mw-variation-number{width:30px;height:30px}.mw-variation-row label{font-size:11px}}
+
+/* Director Admin navigation refinement: clearly separate operating workspaces and controls */
+.layout aside{display:flex;flex-direction:column;gap:0}
+.layout aside .side-menu{display:flex;flex-direction:column;gap:5px}
+.layout aside .side-menu-title{margin:23px 10px 8px;padding:0;font-size:10px;line-height:1.4;letter-spacing:1.45px;text-transform:uppercase;font-weight:850;color:#facc15}
+.layout aside .admin-menu-heading{margin-top:22px;padding-top:17px;border-top:1px solid #ffffff2a}
+.layout aside .side-menu>button{display:flex;align-items:center;gap:12px;min-height:44px;padding:8px 12px;margin:0;border-radius:11px;font-size:13px;font-weight:650;transition:background .14s}
+.layout aside .side-menu>button .menu-icon{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;background:#ffffff1a;font-size:15px}
+.layout aside .side-menu>button .menu-label{flex:1;text-align:left}
+.layout aside .side-menu>button .menu-chevron{opacity:.7;font-weight:800}
+.layout aside .side-menu>button.selected{background:#38bdf8!important;color:#122544!important;box-shadow:inset 0 0 0 1px #ffffff44}
+.layout aside .side-menu>button:hover:not(.selected){background:#ffffff17}
+.mw-admin-division{margin-top:7px;padding:10px 8px 12px;border-radius:14px;background:#160e3826}
+.mw-admin-division .side-menu-title{margin:6px 3px 12px!important}
+.mw-division-selected{display:flex;align-items:center;gap:10px;background:#ffffff20;padding:10px 12px;border:1px solid #ffffff2c;border-radius:11px;font-size:13px;font-weight:750}
+.mw-division-selected span{display:grid;gap:2px}
+.mw-division-selected small{font-size:10px;color:#facc15;font-weight:600}
+.mw-division-muted{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-top:5px;color:#d8d4ef;font-size:12px}
+.mw-division-muted small{font-size:10px;color:#cfc3df}
+@media(max-width:720px){.layout aside .side-menu{gap:5px!important}.layout aside .side-menu>button{min-height:44px!important}.mw-admin-division{padding:8px}}
