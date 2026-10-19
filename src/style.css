@@ -219,3 +219,10 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-header-settings{background:linear-gradient(100deg,#8b5cf6,#38bdf8);color:#fff;border-radius:11px;padding:11px 14px;font-weight:800;box-shadow:0 4px 14px #6335a52a}
 .mw-header-settings:hover{filter:brightness(1.08)}
 @media(max-width:850px){.layout main>header{gap:12px;flex-wrap:wrap}.mw-admin-header-tools{justify-content:flex-start}.mw-header-settings{font-size:12px;padding:9px 11px}}
+
+/* Director quick access: independent of scrollable module menu */
+.mw-admin-quick{border:1px solid #ffffff38;background:linear-gradient(125deg,#3d2389,#552fa0);border-radius:12px;margin:0 0 12px;padding:12px}
+.mw-admin-quick-heading{color:#facc15;font-size:10px;font-weight:900;letter-spacing:1.2px;margin-bottom:7px}
+.layout aside .mw-admin-quick button{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;margin:0;background:#38bdf8;color:#102a46;border-radius:9px;padding:12px;font-size:13px;font-weight:900}
+.mw-admin-quick small{display:block;color:#e5daff;font-size:11px;margin-top:7px}
+.mw-build-label{font-size:10px;color:#e1d7ff;letter-spacing:.2px;opacity:.85;margin:1px 5px 7px}
