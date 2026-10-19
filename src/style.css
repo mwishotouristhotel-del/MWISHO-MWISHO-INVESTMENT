@@ -239,3 +239,18 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-counter-map-row select{min-height:40px;width:100%}
 .mw-counter-map-row button{min-height:40px;border-radius:9px;padding:9px 13px;font-weight:750}
 @media(max-width:740px){.mw-counter-map-row{grid-template-columns:1fr;align-items:stretch;gap:10px}.mw-counter-map-row button{width:100%}}
+
+/* MWISHO Hotel per-counter pricing configuration */
+.mw-price-settings{margin-bottom:18px}
+.mw-price-settings>p{max-width:900px}
+.mw-price-location-label{display:grid;gap:7px;max-width:450px;font-weight:700;font-size:13px;margin:18px 0}
+.mw-price-location-label select{min-height:43px;width:100%}
+.mw-price-grid{display:grid;gap:10px}
+.mw-price-row{display:grid;grid-template-columns:minmax(160px,1fr) minmax(140px,185px) auto;align-items:end;gap:12px;border:1px solid #8b5cf630;padding:12px;border-radius:11px}
+.mw-price-row>div{display:grid;gap:5px}
+.mw-price-row strong{font-size:13px}
+.mw-price-row small{font-size:11px;opacity:.78}
+.mw-price-row label{display:grid;gap:4px;font-size:12px;font-weight:700}
+.mw-price-row input{width:100%;min-height:42px}
+.mw-price-row button{min-height:42px;padding:8px 12px;border-radius:9px}
+@media(max-width:740px){.mw-price-row{grid-template-columns:1fr}.mw-price-row button{width:100%}}
