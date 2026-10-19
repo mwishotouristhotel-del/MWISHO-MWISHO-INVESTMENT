@@ -226,3 +226,16 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .layout aside .mw-admin-quick button{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;margin:0;background:#38bdf8;color:#102a46;border-radius:9px;padding:12px;font-size:13px;font-weight:900}
 .mw-admin-quick small{display:block;color:#e5daff;font-size:11px;margin-top:7px}
 .mw-build-label{font-size:10px;color:#e1d7ff;letter-spacing:.2px;opacity:.85;margin:1px 5px 7px}
+
+/* MWISHO Hotel Settings — Director-managed operating section assignments */
+.mw-section-mapping{margin-bottom:20px}
+.mw-section-mapping>p{max-width:940px}
+.mw-counter-map-list{display:grid;gap:10px;margin:14px 0}
+.mw-counter-map-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,230px) auto;align-items:end;gap:14px;padding:12px;border:1px solid #8b5cf633;border-radius:12px;background:var(--card-bg,#ffffff0a)}
+.mw-counter-map-row>div{display:grid;gap:5px}
+.mw-counter-map-row strong{font-size:14px}
+.mw-counter-map-row small{font-size:11px;opacity:.72;overflow-wrap:anywhere}
+.mw-counter-map-row label{display:grid;gap:5px;font-size:12px;font-weight:700}
+.mw-counter-map-row select{min-height:40px;width:100%}
+.mw-counter-map-row button{min-height:40px;border-radius:9px;padding:9px 13px;font-weight:750}
+@media(max-width:740px){.mw-counter-map-row{grid-template-columns:1fr;align-items:stretch;gap:10px}.mw-counter-map-row button{width:100%}}
