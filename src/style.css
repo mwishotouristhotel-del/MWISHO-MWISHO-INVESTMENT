@@ -282,3 +282,12 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-venue-create-form button{min-height:45px;border-radius:10px;padding:10px 18px;white-space:normal}
 .mw-venue-add-panel>small{font-size:11px;opacity:.76}
 @media(max-width:650px){.mw-venue-create-form{grid-template-columns:1fr}.mw-venue-create-form button{width:100%}.mw-venue-type-buttons button{min-height:54px;font-size:12px}}
+
+/* Hotel pricing: compact search-first single item editor */
+.mw-price-search-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:15px 0 8px}
+.mw-price-search-controls label{display:grid;gap:7px;font-size:13px;font-weight:750;min-width:0}
+.mw-price-search-controls input,.mw-price-search-controls select{width:100%;min-width:0;min-height:44px;border-radius:9px}
+.mw-price-filter-summary{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0 14px;font-size:12px;opacity:.85}
+.mw-price-filter-summary button{padding:7px 10px;border-radius:9px;font-size:12px}
+.mw-price-settings .mw-price-grid{margin-top:12px}
+@media(max-width:700px){.mw-price-search-controls{grid-template-columns:1fr;gap:12px}}
