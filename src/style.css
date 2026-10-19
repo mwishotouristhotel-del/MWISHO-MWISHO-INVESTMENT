@@ -291,3 +291,73 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-price-filter-summary button{padding:7px 10px;border-radius:9px;font-size:12px}
 .mw-price-settings .mw-price-grid{margin-top:12px}
 @media(max-width:700px){.mw-price-search-controls{grid-template-columns:1fr;gap:12px}}
+
+/* MWISHO portal navigation: sidebar stays in place while main page scrolls.
+   Only the navigation column scrolls internally when its menu is longer than the viewport. */
+@media screen and (min-width:721px){
+  .layout{align-items:stretch}
+  .layout>aside{
+    position:sticky;
+    top:0;
+    align-self:flex-start;
+    height:100vh;
+    height:100dvh;
+    max-height:100vh;
+    max-height:100dvh;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-color:#d9c8ff66 transparent;
+  }
+  .layout>main{min-width:0;max-width:100%}
+  .layout.mw-waiter-layout>aside{
+    width:176px;
+    min-width:176px;
+    flex:0 0 176px;
+    padding:13px 8px;
+  }
+  .mw-waiter-layout .brand-lockup{padding:5px 3px 10px;gap:7px}
+  .mw-waiter-layout .brand-mark{width:30px;height:30px;border-radius:9px;font-size:19px;flex-shrink:0}
+  .mw-waiter-layout .brand-lockup h2{font-size:16px;letter-spacing:.2px}
+  .mw-waiter-layout .brand-lockup p{font-size:7px;letter-spacing:.5px;overflow-wrap:anywhere}
+  .mw-waiter-layout aside .staff{font-size:12px;padding:10px 3px}
+  .mw-waiter-layout aside .staff small{font-size:10px}
+  .mw-waiter-layout aside .side-menu{margin-top:5px}
+  .mw-waiter-layout aside .side-menu-title{margin:10px 5px 5px!important;font-size:9px;letter-spacing:.7px}
+  .mw-waiter-layout aside .side-menu>button{
+    min-height:37px;
+    gap:7px;
+    padding:5px 6px;
+    font-size:11px;
+  }
+  .mw-waiter-layout aside .side-menu>button .menu-icon{
+    width:26px;
+    height:26px;
+    font-size:13px;
+    border-radius:7px;
+  }
+  .mw-waiter-layout aside .side-menu>button .menu-label{font-size:11px}
+  .mw-waiter-layout aside .side-menu>button .menu-chevron{display:none}
+  .mw-waiter-layout>main{padding:14px 16px;min-width:0}
+  .mw-waiter-layout .mw-pos-workspace{
+    grid-template-columns:minmax(0,2fr) minmax(260px,0.92fr);
+    gap:12px;
+  }
+  .mw-waiter-layout .mw-pos-catalog,.mw-waiter-layout .mw-pos-basket{padding:12px}
+  .mw-waiter-layout .mw-pos-products{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+@media screen and (min-width:721px) and (max-width:1000px){
+  .layout.mw-waiter-layout>aside{width:150px;min-width:150px;flex-basis:150px}
+  .mw-waiter-layout>main{padding:12px 10px}
+  .mw-waiter-layout .mw-pos-workspace{grid-template-columns:minmax(0,1fr)}
+  .mw-waiter-layout .mw-pos-basket{position:static}
+}
+@media screen and (max-width:720px){
+  /* Preserve accessible hamburger + slide-out menu; no permanent sidebar consuming POS space. */
+  .layout.mw-waiter-layout>main{width:100%;min-width:0}
+  .mw-waiter-layout .mw-pos-workspace{grid-template-columns:minmax(0,1fr)}
+  .mw-waiter-layout .mw-pos-products{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media print{
+  .layout>aside{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}
+}
