@@ -440,3 +440,14 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-shift-report footer{display:flex;gap:11px;flex-wrap:wrap;margin-top:23px;padding-top:14px;border-top:1px solid #eee}
 .mw-shift-report footer button:not(.primary){background:#f6f2fa;color:#55426b;border:1px solid #e1d9eb;border-radius:9px;padding:12px 17px}
 @media(max-width:600px){.mw-shift-report{padding:17px}.mw-shift-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mw-shift-main{padding:22px}.mw-shift-heading h2{font-size:22px}.mw-shift-report-times{grid-template-columns:1fr}.mw-shift-report-metric strong{font-size:13px}}
+
+/* Hotel dashboard: KPIs first, detailed operational reports underneath. */
+.mw-dashboard-reports{margin:28px 0 26px;border-top:1px solid #e6e0ee;padding-top:22px}
+.mw-dashboard-reports-head h3{margin:0 0 4px;font-size:19px;color:#402b70}
+.mw-dashboard-reports-head p{margin:0 0 16px;color:#766d89;font-size:12px}
+.mw-dashboard-reports-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.mw-dashboard-reports-grid>.mw-section-sales-report{margin:0;min-width:0;padding:17px;background:#fbfaff;border:1px solid #e6dfef;box-shadow:none}
+.mw-dashboard-reports-grid>.mw-section-sales-report:first-child{grid-column:1/-1}
+.mw-dashboard-reports-grid .mw-section-sales-report h3{font-size:15px;margin:0}
+.mw-dashboard-reports-grid .mw-section-sales-report>button{font-size:12px;padding:8px 11px}
+@media(max-width:760px){.mw-dashboard-reports-grid{grid-template-columns:minmax(0,1fr)}.mw-dashboard-reports-grid>.mw-section-sales-report:first-child{grid-column:auto}}
