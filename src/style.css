@@ -394,3 +394,49 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-stock-recipe-row input,.mw-stock-recipe-row select{width:100%;min-width:0;padding:8px;border:1px solid #d1c6e6;border-radius:8px;background:#fff}
 .mw-stock-recipe-row>small{grid-column:1/-1;color:#655778}
 @media(max-width:850px){.mw-stock-recipe-row{grid-template-columns:repeat(2,minmax(0,1fr))}.mw-stock-recipe-row>strong{grid-column:1/-1}.mw-stock-recipe-row button{width:100%}}
+
+/* Clean hotel waiter and cashier shift workspace */
+.mw-shift-workspace{display:grid;gap:20px;max-width:1120px;margin:0 auto}
+.mw-shift-heading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:15px;padding:8px 0 4px;border-bottom:1px solid #e7e2ef}
+.mw-shift-eyebrow{font-size:10px;letter-spacing:.13em;font-weight:800;color:#8063a4}
+.mw-shift-heading h2{font-size:25px;letter-spacing:-.035em;margin:5px 0 3px;color:#32244c}
+.mw-shift-heading p{font-size:13px;color:#726a7e;max-width:560px;margin:0 0 12px}
+.mw-shift-heading>button{border-radius:9px;padding:10px 14px;border:1px solid #d9cfe9;background:#fff;color:#573b7c;font-weight:700}
+.mw-shift-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.mw-shift-card{display:grid;align-content:start;gap:14px;background:#fff;border:1px solid #e9e2f1;border-radius:17px;padding:23px;box-shadow:0 9px 32px #3222440c}
+.mw-shift-card h3{margin:0;font-size:21px;color:#34254d}
+.mw-shift-card p{margin:0;font-size:13px;line-height:1.55;color:#71677e}
+.mw-shift-card-top{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.mw-shift-card-top small{color:#806d95;font-size:11px}
+.mw-shift-card-top h3{font-size:19px;margin-top:4px}
+.mw-shift-state{display:inline-flex;width:fit-content;padding:5px 11px;border-radius:50px;font-size:10px;letter-spacing:.02em;font-weight:800;white-space:nowrap}
+.mw-shift-state.open{background:#e8f8ef;color:#176b43}.mw-shift-state.closed{background:#f2eef8;color:#6c578c}
+.mw-shift-main{max-width:630px;background:linear-gradient(130deg,#fff,#f6faff);border-color:#d8dff5;padding:30px}
+.mw-shift-main h3{font-size:27px}
+.mw-shift-fact{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #f1edf7;padding:4px 0 12px;font-size:12px}
+.mw-shift-card label{font-size:12px;font-weight:700;color:#544669;display:grid;gap:7px}
+.mw-shift-card input{width:100%;padding:12px;border:1px solid #d6cde4;border-radius:9px;background:#fff;font-size:15px;color:#25203b}
+.mw-shift-card button.primary,.mw-shift-report button.primary{background:linear-gradient(110deg,#7048c4,#a05ac7);color:white;border:0;border-radius:9px;padding:12px 17px;font-weight:800}
+.mw-shift-actions{display:flex;gap:10px;flex-wrap:wrap}
+.mw-shift-actions>button:not(.primary),.mw-shift-card>button:not(.primary){border:1px solid #d7cde7;border-radius:9px;padding:11px 13px;background:#faf8fe;color:#5a457b;font-weight:750}
+.mw-shift-history-title{font-size:16px;color:#4e366d;margin:8px 0 0}
+.mw-shift-history{display:grid;gap:9px}
+.mw-shift-history-row{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;padding:13px 17px;border:1px solid #e8e0ef;border-radius:11px;font-size:13px}
+.mw-shift-history-row button{border:1px solid #d3c7e3;border-radius:8px;padding:7px 11px;background:#faf7ff;color:#5e4880;font-weight:700}
+.mw-shift-empty,.mw-shift-help{font-size:13px;color:#7e738b}
+.mw-shift-overlay{position:fixed;inset:0;background:#171225af;z-index:1000;padding:18px;display:flex;align-items:center;justify-content:center;overflow:auto}
+.mw-shift-report{width:min(750px,100%);max-height:min(94vh,950px);overflow-y:auto;background:#fff;border-radius:20px;padding:26px;box-shadow:0 22px 70px #08040c40}
+.mw-shift-report>header{display:flex;justify-content:space-between;gap:15px;border-bottom:2px solid #f0eaf7;padding-bottom:16px}
+.mw-shift-report>header small{color:#8b6baf;font-size:10px;font-weight:900;letter-spacing:.12em}
+.mw-shift-report>header h2{margin:5px 0;font-size:22px;color:#322151}.mw-shift-report>header p{font-size:12px;color:#766687;margin:0}
+.mw-shift-report>header button{align-self:start;border:0;border-radius:10px;padding:7px 12px;background:#f2edfa;color:#5f417b;font-size:20px}
+.mw-shift-report-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;padding:15px 0;font-size:12px;color:#675779}
+.mw-shift-report-times span{display:grid;gap:3px}.mw-shift-report-times b{color:#342c4f}
+.mw-shift-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.mw-shift-report-metric{padding:13px 10px;border:1px solid #e7dff0;border-radius:10px;background:#fcfaff;display:grid;gap:6px}
+.mw-shift-report-metric small{font-size:10px;color:#857994}.mw-shift-report-metric strong{font-size:15px;color:#35244f;overflow-wrap:anywhere}
+.mw-shift-report>h3{margin:24px 0 11px;font-size:15px;color:#35244f}
+.mw-shift-pending{display:flex;gap:10px;justify-content:space-between;padding:10px 4px;border-bottom:1px solid #eee;font-size:12px}
+.mw-shift-report footer{display:flex;gap:11px;flex-wrap:wrap;margin-top:23px;padding-top:14px;border-top:1px solid #eee}
+.mw-shift-report footer button:not(.primary){background:#f6f2fa;color:#55426b;border:1px solid #e1d9eb;border-radius:9px;padding:12px 17px}
+@media(max-width:600px){.mw-shift-report{padding:17px}.mw-shift-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mw-shift-main{padding:22px}.mw-shift-heading h2{font-size:22px}.mw-shift-report-times{grid-template-columns:1fr}.mw-shift-report-metric strong{font-size:13px}}
