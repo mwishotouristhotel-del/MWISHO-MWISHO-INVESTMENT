@@ -378,3 +378,19 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-report-line{display:flex;align-items:center;justify-content:space-between;gap:12px;background:white;border:1px solid #ebe5f3;border-radius:9px;padding:9px 11px;font-size:12px}
 .mw-report-line strong{white-space:nowrap;color:#392368}
 @media(max-width:600px){.mw-report-line{flex-wrap:wrap}.mw-section-sales-report{padding:12px}}
+
+/* Work-area stock consumption configuration */
+.mw-stock-consumption{display:grid;gap:13px}
+.mw-stock-consumption>p{font-size:13px;color:#645574;margin:0}
+.mw-stock-ready-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.mw-stock-ready-card{display:grid;gap:7px;padding:12px;border:1px solid #ded5ef;border-radius:11px;background:#fcfaff;font-size:13px}
+.mw-stock-ready-card small{font-size:11px;color:#77688a}
+.mw-stock-ready-card span{font-size:11px;color:#674b89}
+.mw-stock-ready-card button,.mw-stock-recipe-row button{border:1px solid #9868d9;border-radius:9px;background:#8b5cf6;color:#fff;padding:9px 10px;font-size:12px;font-weight:750}
+.mw-stock-recipe-list{display:grid;gap:9px}
+.mw-stock-recipe-row{display:grid;grid-template-columns:minmax(160px,2fr) minmax(120px,2fr) minmax(100px,1fr) auto;align-items:end;gap:9px;background:#faf8ff;border:1px solid #e5def1;border-radius:10px;padding:11px}
+.mw-stock-recipe-row strong{font-size:12px;align-self:center}
+.mw-stock-recipe-row label{display:grid;gap:4px;font-size:11px;font-weight:700}
+.mw-stock-recipe-row input,.mw-stock-recipe-row select{width:100%;min-width:0;padding:8px;border:1px solid #d1c6e6;border-radius:8px;background:#fff}
+.mw-stock-recipe-row>small{grid-column:1/-1;color:#655778}
+@media(max-width:850px){.mw-stock-recipe-row{grid-template-columns:repeat(2,minmax(0,1fr))}.mw-stock-recipe-row>strong{grid-column:1/-1}.mw-stock-recipe-row button{width:100%}}
