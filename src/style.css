@@ -369,3 +369,12 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-pos-product-picture{overflow:hidden;position:relative}
 .mw-pos-product-picture img{width:100%;height:100%;object-fit:cover;display:block;border-radius:9px}
 .mw-menu-list-image{height:46px;width:46px;flex:0 0 46px;object-fit:cover;border-radius:9px;border:1px solid #dcd2e9;margin-right:9px}
+
+/* Cashier work area financial summaries and section reporting */
+.mw-section-sales-report{border:1px solid #ded6ee;background:linear-gradient(120deg,#fcfaff,#f3fbff);border-radius:15px;padding:16px;margin:0 0 18px;display:grid;gap:8px}
+.mw-section-sales-report h3{margin:0;color:#392368;font-size:17px}
+.mw-section-sales-report p{margin:0;color:#6b6183;font-size:12px}
+.mw-section-sales-report>button{justify-self:start;border-radius:9px;padding:9px 12px;background:#38bdf8;color:#153451;font-weight:750}
+.mw-report-line{display:flex;align-items:center;justify-content:space-between;gap:12px;background:white;border:1px solid #ebe5f3;border-radius:9px;padding:9px 11px;font-size:12px}
+.mw-report-line strong{white-space:nowrap;color:#392368}
+@media(max-width:600px){.mw-report-line{flex-wrap:wrap}.mw-section-sales-report{padding:12px}}
