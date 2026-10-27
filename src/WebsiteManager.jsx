@@ -70,7 +70,9 @@ function WebsiteManager({supabase}){
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
-  const allowed=['tagline','contact_phone','contact_email','whatsapp','facebook','instagram'];
+  const allowed=['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok'];
+  const tiktok=String(settings.tiktok||'').trim();
+  if(tiktok){try{const u=new URL(tiktok);if(u.protocol!=='https:'||!['tiktok.com','www.tiktok.com','m.tiktok.com'].includes(u.hostname)||!u.pathname.startsWith('/@'))throw Error();}catch{setError('Enter a valid TikTok profile URL such as https://www.tiktok.com/@youraccount');setBusy(false);return;}}
   const {error:e}=await supabase.from('hotel_website_settings').upsert(allowed.map(key=>({key,value:settings[key]||'',updated_at:new Date().toISOString()})));
   if(e)setError(e.message);else setMessage('Website contact and branding settings saved.');
   setBusy(false);
@@ -120,7 +122,7 @@ function WebsiteManager({supabase}){
     <button type="button" className="mw-web-save" disabled={busy} onClick={saveCard}>{busy?'Saving…':'Save Changes'}</button>
    </>:<p>Website settings have not been initialized yet. Apply the isolated migration before using this panel.</p>}</div></div>}
   {tab==='settings'&&<div className="mw-web-editor mw-web-settings"><h3>Public Hotel Details</h3><p>Only add contact details approved for publication. The existing POS and payment details are not exposed.</p>
-   {[['tagline','Hotel tagline'],['contact_phone','Contact number'],['contact_email','Public email'],['whatsapp','WhatsApp number'],['facebook','Facebook link'],['instagram','Instagram link']].map(([key,label])=><label key={key}>{label}<input value={settings[key]||''} onChange={e=>setSettings(old=>({...old,[key]:e.target.value}))}/></label>)}
+   {[['tagline','Hotel tagline'],['contact_phone','Contact number'],['contact_email','Public email'],['whatsapp','WhatsApp number'],['facebook','Facebook link'],['instagram','Instagram link'],['tiktok','TikTok account link']].map(([key,label])=><label key={key}>{label}<input value={settings[key]||''} onChange={e=>setSettings(old=>({...old,[key]:e.target.value}))}/></label>)}
    <p className="mw-web-info">Online reservations and payments remain disabled until the accommodation backend is tested.</p><button className="mw-web-save" type="button" disabled={busy} onClick={saveSettings}>Save Website Settings</button></div>}
   {tab==='traffic'&&<div className="mw-web-editor"><div className="mw-web-traffic-top"><h3>Website Customer Traffic</h3><div><select aria-label="Traffic reporting period" value={period} onChange={e=>setPeriod(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><button type="button" onClick={refresh}>Refresh</button><button type="button" onClick={exportCsv}>Export CSV</button></div></div>
    <div className="mw-web-metrics"><div><small>Recorded page views</small><strong>{views.toLocaleString('en-KE')}</strong></div><div><small>Pages visited</small><strong>{topPages.length}</strong></div><div><small>Reporting period</small><strong>{period} days</strong></div></div>

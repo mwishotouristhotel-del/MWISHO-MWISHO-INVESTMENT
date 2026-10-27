@@ -16,7 +16,7 @@ Deno.serve(async(req:Request)=>{
   if(req.method==='GET'){
    const [cards,settings]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
-    db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram'])
+    db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok'])
    ]);
    if(cards.error||settings.error)return respond({error:'content unavailable'},503);
    return respond({cards:cards.data,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
