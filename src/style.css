@@ -459,3 +459,11 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-menu-photo-status{display:block;color:#77648d;font-size:11px;margin-top:4px}
 .mw-pos-product-picture>span{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
 .mw-pos-product-picture img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Hotel menu photo completeness and visibility */
+.mw-menu-photo-audit{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:17px;margin:14px 0;background:linear-gradient(125deg,#f4f9ff,#fff5fc);border:1px solid #dcd9f3;border-radius:13px;color:#48306f}
+.mw-menu-photo-audit strong{font-size:16px}
+.mw-menu-photo-audit>span{padding:5px 10px;border-radius:20px;background:#fff;color:#77538e;border:1px solid #e0d3ee;font-size:12px;font-weight:750}
+.mw-menu-photo-audit p{width:100%;margin:0;color:#645e76;font-size:12px;line-height:1.6}
+.mw-menu-photo-audit button{border:0;background:#36b9ef;color:#0c3856;padding:9px 12px;border-radius:8px;font-weight:800}
+.mw-menu-photo-status{display:block;font-size:11px;margin-top:4px;color:#79618f}
