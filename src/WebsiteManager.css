@@ -86,3 +86,4 @@
  .mw-web-admin .mw-web-list-icon{width:60px;height:50px}
  .mw-web-admin .mw-web-list>button{grid-template-columns:60px minmax(0,1fr) auto!important}
 }
+.mw-web-image-upload{padding:14px;margin:16px 0;border:1px solid #dccbef;border-radius:10px;background:#faf8ff}.mw-web-image-upload .mw-web-save{margin:8px 0;display:inline-flex;min-height:42px;align-items:center}.mw-web-image-notice{font-size:13px;color:#4f3584;margin:8px 0;line-height:1.5}.mw-web-image-upload input[type=file]{display:block;width:100%;margin-top:8px}.mw-web-image-upload button:disabled{opacity:.55;cursor:not-allowed}
