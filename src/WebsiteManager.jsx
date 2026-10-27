@@ -133,7 +133,7 @@ function WebsiteManager({supabase}){
     <label>Description<textarea rows="3" value={active.description} maxLength={500} onChange={e=>edit('description',e.target.value)}/></label>
     <div className="mw-web-image-upload">
  <label>Replace image (PNG, JPG, WebP; maximum 5 MB)
-  <input key={selected+(pendingImage?'chosen':'empty')} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
+  <input key={selected} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
    onChange={e=>{setPendingImage(e.target.files?.[0]||null);setImageNotice('Image selected. Click Upload & Publish Image to save.');setError('');}}/>
  </label>
  <button type="button" className="mw-web-save" onClick={uploadImage} disabled={busy||!pendingImage}>{busy?'Publishing image…':'Upload & Publish Image'}</button>
