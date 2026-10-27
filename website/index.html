@@ -33,6 +33,10 @@ footer .brand-tagline{color:#ffcf4a}
 .modal-brand{text-align:center;margin:0 auto 14px}
 .modal-brand img{width:min(205px,70%);height:auto;margin:auto;object-fit:contain}
 @media(max-width:700px){.brand .official-logo{width:145px}footer .brand .official-logo{width:175px}}
+/* Website image is controlled by public content API when an admin publishes a hero image. */
+.hero:before{background:linear-gradient(90deg,rgba(15,28,47,.89),rgba(15,28,47,.42) 61%,rgba(0,0,0,.1)),var(--hero-managed-image,url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1800&q=85')) center/cover}
+[hidden]{display:none!important}
+.website-public-contact{border-left:3px solid var(--yellow);padding-left:14px}
 </style></head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
@@ -76,4 +80,65 @@ document.getElementById('closeModal').addEventListener('click',closeBooking);mod
 document.getElementById('quickBooking').addEventListener('submit',e=>{e.preventDefault();const a=document.getElementById('checkin').value,b=document.getElementById('checkout').value;if(!validateDates(a,b)){alert('Please select valid check-in and check-out dates.');return}document.getElementById('modalCheckin').value=a;document.getElementById('modalCheckout').value=b;document.getElementById('modalGuests').value=document.getElementById('guests').value;openBooking()});
 document.getElementById('bookingForm').addEventListener('submit',e=>{e.preventDefault();const a=document.getElementById('modalCheckin').value,b=document.getElementById('modalCheckout').value;document.getElementById('bookingStatus').textContent=validateDates(a,b)?'Preview complete. Online room availability and reservations are not active yet.':'Choose valid check-in and check-out dates.'});
 document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('contactStatus').textContent='Preview only: enquiry submission is not connected yet. No message was sent.'});
+</script><script>
+/* MWISHO website: isolated public content + privacy-conscious page views. */
+(()=>{
+ const endpoint='https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-website-public';
+ const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
+ function updateText(el,text){if(el&&typeof text==='string'&&text)el.textContent=text}
+ function applyCard(card,root){
+  if(!root)return;
+  updateText(root.querySelector('h3'),card.title);
+  updateText(root.querySelector('.kicker, .eyebrow'),card.subtitle);
+  updateText(root.querySelector('p'),card.description);
+  const image=root.querySelector('img');
+  const src=normalizeImage(card.image_url);
+  if(image&&src){image.src=src;image.alt=card.title+' at MWISHO Tourist Hotel';}
+  if(!card.enabled)root.hidden=true;
+ }
+ async function getPublished(){
+  try{
+   const response=await fetch(endpoint,{method:'GET',mode:'cors',cache:'no-store'});
+   if(!response.ok)throw new Error('content unavailable');
+   const {cards=[],settings={}}=await response.json();
+   const map=new Map(cards.map(x=>[x.slug,x]));
+   const hero=map.get('hero');
+   if(hero){
+    updateText(document.querySelector('.hero h1'),hero.title);
+    updateText(document.querySelector('.hero .eyebrow'),hero.subtitle);
+    updateText(document.querySelector('.hero p'),hero.description);
+    const src=normalizeImage(hero.image_url);
+    if(src)document.documentElement.style.setProperty('--hero-managed-image','url('+JSON.stringify(src)+')');
+   }
+   [['#rooms .tile',['regular-rooms','vvip-rooms','extended-stay']],
+    ['#dining .feature-card',['restaurant','bar']],
+    ['#events .tile',['conference','night-club','private-events']]].forEach(([selector,slugs])=>{
+       const els=[...document.querySelectorAll(selector)];
+       slugs.forEach((slug,i)=>{const card=map.get(slug);if(card)applyCard(card,els[i]);else if(els[i])els[i].hidden=true;});
+    });
+   const footer=document.querySelector('footer .footgrid>div:first-child p');
+   if(footer&&settings.tagline)footer.textContent=settings.tagline+' · Stay in comfort. Dine with joy. Celebrate memorable moments.';
+   const contact=document.querySelector('#contact .contact-grid>div:first-child');
+   if(contact){
+    const detail=document.createElement('div');detail.className='website-public-contact';
+    const phone=String(settings.contact_phone||'').trim();
+    const email=String(settings.contact_email||'').trim();
+    if(phone){const p=document.createElement('p');p.textContent='Telephone: '+phone;detail.appendChild(p);}
+    if(email){const p=document.createElement('p');p.textContent='Email: '+email;detail.appendChild(p);}
+    if(detail.children.length)contact.appendChild(detail);
+   }
+  }catch(err){console.warn('Website content temporarily unavailable; showing safe fallback presentation.');}
+ }
+ const sectionPaths=[['home','/'],['about','/about'],['rooms','/rooms'],['dining','/dining'],['events','/events'],['gallery','/gallery'],['contact','/contact']];
+ function track(path){
+  const key='mwisho-view-'+new Date().toISOString().slice(0,10)+'-'+path;
+  try{if(sessionStorage.getItem(key))return;sessionStorage.setItem(key,'1')}catch{}
+  fetch(endpoint,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:path}),keepalive:true}).catch(()=>{});
+ }
+ if('IntersectionObserver' in window){
+  const observer=new IntersectionObserver(entries=>{for(const e of entries){if(e.isIntersecting){const p=sectionPaths.find(([id])=>id===e.target.id);if(p)track(p[1]);observer.unobserve(e.target);}}},{threshold:0.2});
+  sectionPaths.forEach(([id])=>{const el=document.getElementById(id);if(el)observer.observe(el);});
+ }else track('/');
+ getPublished();
+})();
 </script></body></html>
