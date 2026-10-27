@@ -112,7 +112,7 @@ function WebsiteManager({supabase}){
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
  <small className="mw-web-area">{(PLACEMENTS.find(([id])=>id===(c.placement||DEFAULT_PLACEMENT[c.slug]))||['','Homepage'])[1]}</small>
- </button>)}></aside>
+ </button>)}</aside>
   <div className="mw-web-editor">{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{active.image_url?<img src={active.image_url} alt={'Preview of '+active.title}/>:<div>Upload an image to replace the current placeholder</div>}</div>
     <div className="mw-web-card-controls">
   <span>Section: <strong>{(PLACEMENTS.find(([id])=>id===(active.placement||DEFAULT_PLACEMENT[active.slug]))||['','Homepage'])[1]}</strong></span>
