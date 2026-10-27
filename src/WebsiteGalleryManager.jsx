@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import './WebsiteGalleryManager.css';
+import {prepareGalleryUpload} from './galleryUpload.js';
 
 const MAX_BYTES=10*1024*1024;
 const TYPE_MAP={'image/jpeg':'photo','image/png':'photo','image/webp':'photo','video/mp4':'video','video/webm':'video'};
@@ -10,6 +11,7 @@ export default function WebsiteGalleryManager({supabase}){
  const [file,setFile]=useState(null),[title,setTitle]=useState(''),[description,setDescription]=useState('');
  const [publish,setPublish]=useState(true),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState('');
  const [workingId,setWorkingId]=useState(null);
+ const [optimizePhotos,setOptimizePhotos]=useState(true);
  async function refresh(){
   const {data,error:e}=await supabase.from('hotel_website_gallery').select('*')
     .order('display_order',{ascending:true}).order('created_at',{ascending:false});
@@ -28,11 +30,16 @@ export default function WebsiteGalleryManager({supabase}){
  }
  async function upload(e){
   e.preventDefault();if(!file||busy)return;
-  setBusy(true);setError('');setStatus('Uploading gallery media…');
-  const path=crypto.randomUUID()+'.'+EXT[file.type];
+  setBusy(true);setError('');setStatus('Preparing gallery media…');
+  let path='';
   let uploaded=false;
   try{
-   const {error:uploadError}=await supabase.storage.from('mwisho-gallery').upload(path,file,{contentType:file.type,upsert:false});
+   const prepared=await prepareGalleryUpload(file,{optimize:optimizePhotos});
+   const uploadFile=prepared.file;
+   path=crypto.randomUUID()+'.'+EXT[uploadFile.type];
+   const savedMB=(file.size-uploadFile.size)/1048576;
+   setStatus(prepared.optimized?'Photo optimized — '+savedMB.toFixed(2)+' MB less to upload. Uploading…':'Uploading '+(uploadFile.size/1048576).toFixed(2)+' MB to storage…');
+   const {error:uploadError}=await supabase.storage.from('mwisho-gallery').upload(path,uploadFile,{contentType:uploadFile.type,upsert:false});
    if(uploadError)throw new Error('Storage upload failed: '+uploadError.message);
    uploaded=true;
    const publicUrl=supabase.storage.from('mwisho-gallery').getPublicUrl(path).data?.publicUrl;
@@ -41,7 +48,7 @@ export default function WebsiteGalleryManager({supabase}){
    setStatus('Media uploaded. Saving gallery details…');
    const {data,error:dbError}=await supabase.from('hotel_website_gallery').insert({
      title:title.trim().slice(0,120),description:description.trim().slice(0,500),
-     media_type:TYPE_MAP[file.type],mime_type:file.type,file_size:file.size,
+     media_type:TYPE_MAP[uploadFile.type],mime_type:uploadFile.type,file_size:uploadFile.size,
      object_path:path,media_url:publicUrl,is_published:publish,display_order:nextOrder
    }).select('id,media_url').single();
    if(dbError||!data)throw new Error('Gallery record failed: '+(dbError?.message||'No saved row returned'));
@@ -50,7 +57,7 @@ export default function WebsiteGalleryManager({supabase}){
    await refresh();
   }catch(e){
    setError(e?.message||String(e));setStatus('Upload was not published.');
-   if(uploaded)await supabase.storage.from('mwisho-gallery').remove([path]).catch(()=>{});
+   if(uploaded&&path)await supabase.storage.from('mwisho-gallery').remove([path]).catch(()=>{});
   }finally{setBusy(false);}
  }
  async function update(item,patch){
@@ -95,17 +102,18 @@ export default function WebsiteGalleryManager({supabase}){
  return <section className="mw-gallery-admin">
   <div className="mw-gallery-heading"><div><h3>Gallery Photos & Videos</h3><p>Upload, publish, reorder or remove media for the public hotel Gallery.</p></div><div className="mw-gallery-stats">{items.length} media • {published} published</div></div>
   <form onSubmit={upload} className="mw-gallery-uploader">
-   <h4>Add Gallery Photo or Video</h4><p>Photos have no additional size limit in this form (your Supabase project's upload ceiling still applies). Videos: <strong>10 MB maximum</strong>. JPG, PNG, WebP, MP4 and WebM. Videos play only when visitors choose to play them.</p>
+   <h4>Add Gallery Photo or Video</h4><p>Photos have no additional size limit in this form (your Supabase project's upload ceiling still applies). Videos: <strong>10 MB maximum</strong>. JPG, PNG, WebP, MP4 and WebM. Large photos are optimized before upload by default. Videos play only when visitors choose to play them.</p>
    <label>Choose photo or video<input key={file?.name||'empty'} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={e=>selectFile(e.target.files?.[0])} disabled={busy}/></label>
    <label>Caption / title<input value={title} maxLength={120} onChange={e=>setTitle(e.target.value)} placeholder="e.g. VVIP Lounge"/></label>
    <label>Description (optional)<textarea value={description} maxLength={500} onChange={e=>setDescription(e.target.value)} rows="2"/></label>
+   <label className="mw-gallery-check"><input type="checkbox" checked={optimizePhotos} onChange={e=>setOptimizePhotos(e.target.checked)}/> Optimize large photos for faster upload (recommended). Originals can still be uploaded.</label>
    <label className="mw-gallery-check"><input type="checkbox" checked={publish} onChange={e=>setPublish(e.target.checked)}/> Publish to customer website after uploading</label>
    <button type="submit" disabled={!file||busy}>{busy?'Uploading…':'Upload to Gallery'}</button>
   </form>
   {error&&<p className="mw-gallery-error" role="alert">{error}</p>}
   {status&&<p className="mw-gallery-status" role="status">{status}</p>}
   <div className="mw-gallery-grid">{items.map((item,i)=><article className="mw-gallery-card" key={item.id}>
-    {item.media_type==='video'?<video preload="metadata" controls playsInline src={item.media_url}/>:<img loading="lazy" src={item.media_url} alt={item.title||'Hotel gallery photograph'}/>}
+    {item.media_type==='video'?<video preload="none" controls playsInline src={item.media_url}/>:<img loading="lazy" src={item.media_url} alt={item.title||'Hotel gallery photograph'}/>}
     <div className="mw-gallery-card-body">
      <div className="mw-gallery-card-head"><strong>{item.title|| (item.media_type==='video'?'Hotel video':'Hotel photo')}</strong><span>{item.is_published?'Published':'Draft'}</span></div>
      <small>{item.media_type==='video'?'Video':'Photo'} · {(Number(item.file_size)/1048576).toFixed(2)} MB</small>
