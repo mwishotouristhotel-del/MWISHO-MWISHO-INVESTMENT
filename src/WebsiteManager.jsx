@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import './WebsiteManager.css';
 import WebsiteGalleryManager from './WebsiteGalleryManager.jsx';
+import {optimizeWebsitePhoto} from './optimizeWebsitePhoto.js';
 const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
 const DEFAULT_PLACEMENT={hero:'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
 const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
@@ -120,11 +121,11 @@ function WebsiteManager({supabase}){
   setBusy(true);setImageUploadingSlug(slug);
   let uploadedUrl='';
   try{
-    let chosen=file;
+    let chosen=await optimizeWebsitePhoto(file,1800);
     // Large phone camera files can exceed the 5 MB storage limit. Reduce them safely.
-    if(file.size>5*1024*1024){
+    if(chosen.size>5*1024*1024){
       setImageNotice('Photo is larger than 5 MB. Optimizing it for the website…');
-      const bitmap=await createImageBitmap(file);
+      const bitmap=await createImageBitmap(chosen);
       try{
         const factor=Math.min(1,2200/Math.max(bitmap.width,bitmap.height));
         const canvas=document.createElement('canvas');
@@ -147,7 +148,7 @@ function WebsiteManager({supabase}){
     const ext=chosen.type==='image/png'?'png':chosen.type==='image/webp'?'webp':'jpg';
     const objectName=slug+'-'+crypto.randomUUID()+'.'+ext;
     const {error:uploadError}=await supabase.storage.from('mwisho-website')
-      .upload(objectName,chosen,{contentType:chosen.type,upsert:false});
+      .upload(objectName,chosen,{contentType:chosen.type,upsert:false,cacheControl:'31536000'});
     if(uploadError)throw new Error('Photo upload was rejected: '+uploadError.message);
     const url=supabase.storage.from('mwisho-website').getPublicUrl(objectName).data?.publicUrl;
     if(!url||!url.startsWith('https://'))throw new Error('Photo uploaded, but no public image link was returned.');
