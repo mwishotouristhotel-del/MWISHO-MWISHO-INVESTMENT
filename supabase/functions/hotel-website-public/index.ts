@@ -14,12 +14,13 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
   if(req.method==='GET'){
-   const [cards,settings]=await Promise.all([
+   const [cards,settings,gallery]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
-    db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok'])
+    db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok']),
+    db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80)
    ]);
-   if(cards.error||settings.error)return respond({error:'content unavailable'},503);
-   return respond({cards:cards.data,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
+   if(cards.error||settings.error||gallery.error)return respond({error:'content unavailable'},503);
+   return respond({cards:cards.data,gallery:gallery.data||[],settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
   if(!data || typeof data.page!=='string'||!/^\/[a-z0-9/_-]{0,95}$/.test(data.page))return respond({error:'invalid page'},400);

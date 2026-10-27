@@ -37,7 +37,7 @@ footer .brand-tagline{color:#ffcf4a}
 .hero:before{background:linear-gradient(90deg,rgba(15,28,47,.89),rgba(15,28,47,.42) 61%,rgba(0,0,0,.1)),var(--hero-managed-image,url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1800&q=85')) center/cover}
 [hidden]{display:none!important}
 .website-public-contact{border-left:3px solid var(--yellow);padding-left:14px}
-</style></head><body>
+.gallery-entry{margin:0;border-radius:8px;overflow:hidden;background:#f6f1fc;min-width:0}.gallery-entry img,.gallery-entry video{display:block;width:100%;height:225px;object-fit:cover;border:0;background:#141627}.gallery-entry figcaption{padding:10px 12px;color:#45335f;font-size:12px;line-height:1.5}.gallery-entry video{cursor:pointer}@media(max-width:700px){.gallery-entry img,.gallery-entry video{height:175px}}</style></head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
 <section class="hero" id="home"><div class="wrap"><div class="eyebrow">WELCOME TO MWISHO TOURIST HOTEL</div><h1 class="serif">Taste Of Class.<br/>Memorable moments.</h1><p>Relax in comfort, enjoy exceptional dining and celebrate life's finest moments. Discover the warmth of hospitality at MWISHO Tourist Hotel.</p><div class="hero-actions"><button class="btn btn-primary" data-book>Explore & Book Rooms →</button><a class="btn btn-white" href="#about">Discover Our Hotel</a></div></div></section>
@@ -100,7 +100,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   try{
    const response=await fetch(endpoint,{method:'GET',mode:'cors',cache:'no-store'});
    if(!response.ok)throw new Error('content unavailable');
-   const {cards=[],settings={}}=await response.json();
+   const {cards=[],settings={},gallery=[]}=await response.json();
    const map=new Map(cards.map(x=>[x.slug,x]));
    const hero=map.get('hero');
    if(hero){
@@ -154,6 +154,39 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
      node.hidden=false;parent.appendChild(node);
     }
    });
+   // Gallery is public only for entries explicitly published by authorized hotel Admin.
+   // Build DOM with textContent; never insert captions as HTML.
+   const galleryContainer=document.querySelector('#gallery .gallery');
+   const galleryCaption=document.querySelector('#gallery .gallery-caption');
+   if(galleryContainer&&Array.isArray(gallery)&&gallery.length){
+    const nodes=[];
+    for(const entry of gallery){
+     const source=normalizeImage(entry.media_url);
+     if(!source||!['photo','video'].includes(entry.media_type))continue;
+     const figure=document.createElement('figure');figure.className='gallery-entry';
+     let media;
+     if(entry.media_type==='video'){
+      media=document.createElement('video');
+      media.controls=true;media.preload='metadata';media.playsInline=true;
+      media.setAttribute('aria-label',entry.title||'Hotel gallery video');
+     }else{
+      media=document.createElement('img');media.loading='lazy';media.alt=entry.title||'MWISHO Tourist Hotel photograph';
+     }
+     media.src=source;figure.appendChild(media);
+     if(entry.title||entry.description){
+      const label=document.createElement('figcaption');
+      label.textContent=[entry.title,entry.description].filter(Boolean).join(' — ');
+      figure.appendChild(label);
+     }
+     nodes.push(figure);
+    }
+    if(nodes.length){
+     galleryContainer.replaceChildren(...nodes);
+     if(galleryCaption)galleryCaption.textContent='Photos and videos published by MWISHO Tourist Hotel.';
+     const intro=document.querySelector('#gallery .section-head p');
+     if(intro)intro.textContent='Explore official MWISHO Tourist Hotel photos and videos.';
+    }
+   }
    const footer=document.querySelector('footer .footgrid>div:first-child p');
    if(footer&&settings.tagline)footer.textContent=settings.tagline+' · Stay in comfort. Dine with joy. Celebrate memorable moments.';
    const socialRoot=document.getElementById('website-social-links');

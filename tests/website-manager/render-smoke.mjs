@@ -26,6 +26,19 @@ try {
   }));
   if(!html.includes('Hotel Website Management')||!html.includes('Add Service Card'))
     throw new Error('Hotel Website Management did not render its card controls');
-  process.stdout.write('PASS: Website Manager renders without runtime ReferenceError\\n');
+  const galleryFile=join(out,'gallery.mjs');
+  await build({entryPoints:['src/WebsiteGalleryManager.jsx'],bundle:true,platform:'node',format:'esm',
+    outfile:galleryFile,external:['react','react-dom'],loader:{'.css':'empty'},logLevel:'warning'});
+  const galleryDest='./.website-gallery-smoke.mjs';
+  await writeFile(galleryDest,await readFile(galleryFile));
+  try {
+   const {default:Gallery}=await import(pathToFileURL(join(process.cwd(),galleryDest)).href);
+   const galleryHtml=renderToStaticMarkup(React.createElement(Gallery,{
+    supabase:{from:()=>{throw new Error('Gallery must not fetch on server render');}}
+   }));
+   if(!galleryHtml.includes('Gallery Photos')||!galleryHtml.includes('10 MB')||!galleryHtml.includes('Upload to Gallery'))
+     throw new Error('Gallery uploader did not render correctly');
+  } finally {await unlink(galleryDest).catch(()=>{});}
+  process.stdout.write('PASS: Website Manager and Gallery render safely\\n');
  } finally {await unlink(dest).catch(()=>{});}
 } finally {await rm(out,{recursive:true,force:true});}
