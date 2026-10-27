@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 const env=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'https://localhost/'});
 globalThis.window=env.window;globalThis.document=env.window.document;
-globalThis.navigator=env.window.navigator;globalThis.HTMLElement=env.window.HTMLElement;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:env.window.navigator});globalThis.HTMLElement=env.window.HTMLElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 globalThis.crypto=globalThis.crypto??{randomUUID:()=>String(Date.now())};
 const dest='.website-manager-upload-test.mjs';
