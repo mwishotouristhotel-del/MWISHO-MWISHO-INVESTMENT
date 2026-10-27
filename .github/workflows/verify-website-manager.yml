@@ -1,0 +1,33 @@
+name: Verify Hotel Website Manager
+on:
+  pull_request:
+    paths:
+      - 'src/WebsiteManager.jsx'
+      - 'src/WebsiteManager.css'
+      - 'hotel/**'
+      - 'tests/website-manager/**'
+      - '.github/workflows/verify-website-manager.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Install static analyzer
+        run: npm install --no-save --no-audit --no-fund eslint@9 globals@15
+      - name: Check undefined handlers and variables
+        run: npx eslint --config tests/website-manager/eslint.config.mjs src/WebsiteManager.jsx
+      - name: Build complete POS and Admin
+        run: npm run build
+      - name: Check isolated hotel customer website
+        run: |
+          test -f hotel/index.html
+          test -f hotel/assets/mwisho-logo.svg
+          grep -q 'hotel-website-public' hotel/index.html
+          grep -q 'hotel_website_content' src/WebsiteManager.jsx
