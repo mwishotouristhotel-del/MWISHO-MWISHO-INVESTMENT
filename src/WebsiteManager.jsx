@@ -23,6 +23,7 @@ function WebsiteManager({supabase}){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
  const [tab,setTab]=useState('content');
+ const [pendingImage,setPendingImage]=useState(null),[imageNotice,setImageNotice]=useState('');
  const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
  async function refresh(){
   setError('');
@@ -50,37 +51,37 @@ function WebsiteManager({supabase}){
    if(e)throw e;
    if(!data)throw new Error('No card was updated. Check website administration permissions.');
    await refresh();
-   setMessage('Saved successfully. Refresh the customer website to view this card and its image.');
+   setMessage('Card text and settings saved. '+(data.image_url?'The image URL is saved.':'No image is attached yet—use Upload & Publish Image below.'));
   }catch(e){setError('Unable to save service card: '+(e.message||String(e)));}
   finally{setBusy(false);}
  }
- async function uploadImage(file){
-  if(!file)return;
+ async function uploadImage(){
+  const file=pendingImage;
+  if(!file||!active){setError('Choose an image and a card first.');return;}
   if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
-   setError('Use a PNG, JPEG or WebP image under 5 MB.');return;
+    setError('Use a PNG, JPEG or WebP image smaller than 5 MB.');return;
   }
-  if(!active){setError('Choose a service card before uploading.');return;}
-  const cardSlug=active.slug;
-  setBusy(true);setError('');setMessage('Uploading and publishing image…');
-  const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-  const name=cardSlug+'-'+crypto.randomUUID()+'.'+extension;
+  const slug=active.slug;
+  setBusy(true);setError('');setMessage('');setImageNotice('Uploading image…');
   try{
-   const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(name,file,{contentType:file.type,upsert:false});
-   if(uploadError)throw new Error('Storage upload failed: '+uploadError.message);
-   const {data:publicUrlData}=supabase.storage.from('mwisho-website').getPublicUrl(name);
-   const publicUrl=publicUrlData?.publicUrl;
-   if(!publicUrl||!/^https:\/\//.test(publicUrl))throw new Error('Uploaded image URL could not be determined.');
-   // Save directly to the selected database row: React state updates are asynchronous.
-   const {data:saved,error:dbError}=await supabase.from('hotel_website_content')
-    .update({image_url:publicUrl,updated_at:new Date().toISOString()})
-    .eq('slug',cardSlug).select('slug,image_url').single();
-   if(dbError||saved?.image_url!==publicUrl)throw new Error('Image uploaded but card update failed: '+(dbError?.message||'no row returned'));
-   setCards(old=>old.map(c=>c.slug===cardSlug?{...c,image_url:publicUrl}:c));
-   setMessage('Image uploaded and published to '+(active.title||cardSlug)+'. Refresh the customer website to see it.');
-  }catch(e){
-   setError(e.message||String(e));
-   setMessage('');
-  }finally{setBusy(false);}
+    const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
+    const name=slug+'-'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(name,file,{contentType:file.type,upsert:false});
+    if(uploadError)throw new Error('Storage upload failed: '+uploadError.message);
+    const url=supabase.storage.from('mwisho-website').getPublicUrl(name).data?.publicUrl;
+    if(!url||!url.startsWith('https://'))throw new Error('Upload completed without a valid public image link.');
+    setImageNotice('Image uploaded; saving to service card…');
+    const {data,error:e}=await supabase.from('hotel_website_content')
+      .update({image_url:url,updated_at:new Date().toISOString()}).eq('slug',slug)
+      .select('slug,image_url').single();
+    if(e||data?.image_url!==url)throw new Error('Image uploaded, but the card was not saved: '+(e?.message||'verification failed'));
+    const {data:verified,error:verifyError}=await supabase.from('hotel_website_content').select('image_url').eq('slug',slug).single();
+    if(verifyError||verified?.image_url!==url)throw new Error('Image was uploaded but publication could not be verified.');
+    setCards(old=>old.map(x=>x.slug===slug?{...x,image_url:url}:x));
+    setPendingImage(null);
+    setImageNotice('Image published successfully. The selected card now has a verified image URL.');
+  }catch(e){setImageNotice('Not published.');setError(e.message||String(e));}
+  finally{setBusy(false);}
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
@@ -109,7 +110,7 @@ function WebsiteManager({supabase}){
   <button type="submit" disabled={busy}>Create Card</button>
  </form>}
  </div>
- {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
+ {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setPendingImage(null);setImageNotice('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
  <span className="mw-web-list-icon" aria-hidden="true">{serviceImage(c)?<img className="mw-web-list-image" src={serviceImage(c)} alt="" loading="lazy"/>:'🖼️'}</span>
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
@@ -130,7 +131,14 @@ function WebsiteManager({supabase}){
  <label>Service / card heading<input value={active.title} maxLength={100} onChange={e=>edit('title',e.target.value)}/></label>
     <label>Small heading<input value={active.subtitle} maxLength={120} onChange={e=>edit('subtitle',e.target.value)}/></label>
     <label>Description<textarea rows="3" value={active.description} maxLength={500} onChange={e=>edit('description',e.target.value)}/></label>
-    <label>Change Image — upload and publish automatically (PNG, JPG, WebP, maximum 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>uploadImage(e.target.files?.[0])}/></label>
+    <div className="mw-web-image-upload">
+ <label>Replace image (PNG, JPG, WebP; maximum 5 MB)
+  <input key={selected+(pendingImage?'chosen':'empty')} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
+   onChange={e=>{setPendingImage(e.target.files?.[0]||null);setImageNotice('Image selected. Click Upload & Publish Image to save.');setError('');}}/>
+ </label>
+ <button type="button" className="mw-web-save" onClick={uploadImage} disabled={busy||!pendingImage}>{busy?'Publishing image…':'Upload & Publish Image'}</button>
+ <p className="mw-web-image-notice" role="status">{imageNotice}</p>
+ </div>
     <label>Or paste HTTPS image URL<input type="url" placeholder="https://..." value={active.image_url} onChange={e=>edit('image_url',e.target.value)}/></label>
     <label className="mw-web-check"><input type="checkbox" checked={active.enabled} onChange={e=>edit('enabled',e.target.checked)}/> Display this section on customer website</label>
     <button type="button" className="mw-web-save" disabled={busy} onClick={saveCard}>{busy?'Saving…':'Save Changes'}</button>
