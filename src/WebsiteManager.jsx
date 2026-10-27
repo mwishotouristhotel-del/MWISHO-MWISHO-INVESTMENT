@@ -23,7 +23,7 @@ function WebsiteManager({supabase}){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
  const [tab,setTab]=useState('content');
- const [pendingImage,setPendingImage]=useState(null),[imageNotice,setImageNotice]=useState('');
+ const [imageNotice,setImageNotice]=useState('');
  const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
  async function refresh(){
   setError('');
@@ -51,37 +51,37 @@ function WebsiteManager({supabase}){
    if(e)throw e;
    if(!data)throw new Error('No card was updated. Check website administration permissions.');
    await refresh();
-   setMessage('Card text and settings saved. '+(data.image_url?'The image URL is saved.':'No image is attached yet—use Upload & Publish Image below.'));
+   setMessage('Card text and settings saved. '+(data.image_url?'An image URL is attached.':'No uploaded image is attached. Choose a replacement photo to upload immediately.'));
   }catch(e){setError('Unable to save service card: '+(e.message||String(e)));}
   finally{setBusy(false);}
  }
- async function uploadImage(){
-  const file=pendingImage;
-  if(!file||!active){setError('Choose an image and a card first.');return;}
+ async function uploadImage(file){
+  if(!file)return;
+  if(!active){setError('Select a website card first.');return;}
   if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
-    setError('Use a PNG, JPEG or WebP image smaller than 5 MB.');return;
+    setError('Choose a JPG, PNG or WebP picture under 5 MB.');return;
   }
   const slug=active.slug;
-  setBusy(true);setError('');setMessage('');setImageNotice('Uploading image…');
+  setBusy(true);setError('');setImageNotice('Uploading image for '+active.title+'…');
   try{
     const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-    const name=slug+'-'+crypto.randomUUID()+'.'+ext;
-    const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(name,file,{contentType:file.type,upsert:false});
-    if(uploadError)throw new Error('Storage upload failed: '+uploadError.message);
-    const url=supabase.storage.from('mwisho-website').getPublicUrl(name).data?.publicUrl;
-    if(!url||!url.startsWith('https://'))throw new Error('Upload completed without a valid public image link.');
-    setImageNotice('Image uploaded; saving to service card…');
-    const {data,error:e}=await supabase.from('hotel_website_content')
-      .update({image_url:url,updated_at:new Date().toISOString()}).eq('slug',slug)
-      .select('slug,image_url').single();
-    if(e||data?.image_url!==url)throw new Error('Image uploaded, but the card was not saved: '+(e?.message||'verification failed'));
-    const {data:verified,error:verifyError}=await supabase.from('hotel_website_content').select('image_url').eq('slug',slug).single();
-    if(verifyError||verified?.image_url!==url)throw new Error('Image was uploaded but publication could not be verified.');
-    setCards(old=>old.map(x=>x.slug===slug?{...x,image_url:url}:x));
-    setPendingImage(null);
-    setImageNotice('Image published successfully. The selected card now has a verified image URL.');
-  }catch(e){setImageNotice('Not published.');setError(e.message||String(e));}
-  finally{setBusy(false);}
+    const path=slug+'-'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(path,file,{contentType:file.type,upsert:false});
+    if(uploadError)throw new Error('Storage upload: '+uploadError.message);
+    const {data:publicData}=supabase.storage.from('mwisho-website').getPublicUrl(path);
+    const imageUrl=publicData?.publicUrl;
+    if(!imageUrl||!imageUrl.startsWith('https://'))throw new Error('Storage did not return a valid image URL.');
+    const {data:saved,error:saveError}=await supabase.from('hotel_website_content')
+      .update({image_url:imageUrl,updated_at:new Date().toISOString()})
+      .eq('slug',slug).select('slug,image_url').single();
+    if(saveError||saved?.image_url!==imageUrl)throw new Error('Image uploaded but saving to the card failed: '+(saveError?.message||'No matching card'));
+    // Treat the database response as the source of truth; don't wait for another Save click.
+    setCards(old=>old.map(card=>card.slug===slug?{...card,image_url:saved.image_url}:card));
+    setImageNotice('Image saved for '+slug+'. The preview now uses your uploaded photo.');
+  }catch(e){
+    setImageNotice('');
+    setError('Image not published: '+(e?.message||String(e)));
+  }finally{setBusy(false);}
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
@@ -110,7 +110,7 @@ function WebsiteManager({supabase}){
   <button type="submit" disabled={busy}>Create Card</button>
  </form>}
  </div>
- {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setPendingImage(null);setImageNotice('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
+ {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setImageNotice('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
  <span className="mw-web-list-icon" aria-hidden="true">{serviceImage(c)?<img className="mw-web-list-image" src={serviceImage(c)} alt="" loading="lazy"/>:'🖼️'}</span>
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
@@ -132,13 +132,12 @@ function WebsiteManager({supabase}){
     <label>Small heading<input value={active.subtitle} maxLength={120} onChange={e=>edit('subtitle',e.target.value)}/></label>
     <label>Description<textarea rows="3" value={active.description} maxLength={500} onChange={e=>edit('description',e.target.value)}/></label>
     <div className="mw-web-image-upload">
- <label>Replace image (PNG, JPG, WebP; maximum 5 MB)
-  <input key={selected} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy}
-   onChange={e=>{setPendingImage(e.target.files?.[0]||null);setImageNotice('Image selected. Click Upload & Publish Image to save.');setError('');}}/>
- </label>
- <button type="button" className="mw-web-save" onClick={uploadImage} disabled={busy||!pendingImage}>{busy?'Publishing image…':'Upload & Publish Image'}</button>
- <p className="mw-web-image-notice" role="status">{imageNotice}</p>
- </div>
+      <label>Change or replace image (JPG, PNG or WebP, maximum 5 MB)
+        <input key={selected} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
+          onChange={e=>uploadImage(e.target.files?.[0])}/>
+      </label>
+      <p className="mw-web-image-notice" role="status">{busy?'Uploading and saving image…':imageNotice}</p>
+    </div>
     <label>Or paste HTTPS image URL<input type="url" placeholder="https://..." value={active.image_url} onChange={e=>edit('image_url',e.target.value)}/></label>
     <label className="mw-web-check"><input type="checkbox" checked={active.enabled} onChange={e=>edit('enabled',e.target.checked)}/> Display this section on customer website</label>
     <button type="button" className="mw-web-save" disabled={busy} onClick={saveCard}>{busy?'Saving…':'Save Changes'}</button>
@@ -154,4 +153,12 @@ function WebsiteManager({supabase}){
   </div>}
  </article>
 }
-export default WebsiteManager;
+class WebsiteManagerErrorBoundary extends React.Component{
+ constructor(props){super(props);this.state={failed:false};}
+ static getDerivedStateFromError(){return {failed:true};}
+ componentDidCatch(error){console.error('Website Management rendering failed',error);}
+ render(){return this.state.failed
+ ? <article className="mw-web-admin"><h2>Website Management display error</h2><p>The website editor encountered an error. Other POS modules are unaffected.</p><button type="button" onClick={()=>this.setState({failed:false})}>Reload Website Manager</button></article>
+ :this.props.children;}
+}
+export default function SafeWebsiteManager(props){return <WebsiteManagerErrorBoundary><WebsiteManager {...props}/></WebsiteManagerErrorBoundary>}
