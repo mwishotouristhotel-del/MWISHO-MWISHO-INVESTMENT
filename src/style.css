@@ -367,7 +367,7 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-menu-image-upload input[type=file]{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .mw-menu-image-upload small{font-size:11px;color:#6d6180;font-weight:450}
 .mw-pos-product-picture{overflow:hidden;position:relative}
-.mw-pos-product-picture img{width:100%;height:100%;object-fit:cover;display:block;border-radius:9px}
+.mw-pos-product-picture img{width:100%;height:100%;object-fit:contain;display:block;border-radius:9px}
 .mw-menu-list-image{height:46px;width:46px;flex:0 0 46px;object-fit:cover;border-radius:9px;border:1px solid #dcd2e9;margin-right:9px}
 
 /* Cashier work area financial summaries and section reporting */
@@ -458,7 +458,7 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-existing-photo-picker:focus-within{outline:2px solid #7c3aed;outline-offset:2px}
 .mw-menu-photo-status{display:block;color:#77648d;font-size:11px;margin-top:4px}
 .mw-pos-product-picture>span{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
-.mw-pos-product-picture img{width:100%;height:100%;object-fit:cover;display:block}
+.mw-pos-product-picture img{width:100%;height:100%;object-fit:contain;display:block}
 
 /* Hotel menu photo completeness and visibility */
 .mw-menu-photo-audit{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:17px;margin:14px 0;background:linear-gradient(125deg,#f4f9ff,#fff5fc);border:1px solid #dcd9f3;border-radius:13px;color:#48306f}
