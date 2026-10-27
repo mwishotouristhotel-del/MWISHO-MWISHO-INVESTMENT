@@ -23,7 +23,7 @@ function WebsiteManager({supabase}){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
  const [tab,setTab]=useState('content');
- const [imageNotice,setImageNotice]=useState('');
+ const [imageNotice,setImageNotice]=useState(''),[imageError,setImageError]=useState(''),[imageUploadingSlug,setImageUploadingSlug]=useState('');
  const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
  async function refresh(){
   setError('');
@@ -110,31 +110,61 @@ function WebsiteManager({supabase}){
  }
  async function uploadImage(file){
   if(!file)return;
-  if(!active){setError('Select a website card first.');return;}
-  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
-    setError('Choose a JPG, PNG or WebP picture under 5 MB.');return;
-  }
+  if(!active){setImageError('Choose a service card first.');return;}
   const slug=active.slug;
-  setBusy(true);setError('');setImageNotice('Uploading image for '+active.title+'…');
+  setImageError('');setImageNotice('');setError('');
+  if(!['image/png','image/jpeg','image/webp'].includes(file.type)){
+    setImageError('Unsupported file type. Use a JPG, PNG or WebP photograph.');return;
+  }
+  setBusy(true);setImageUploadingSlug(slug);
+  let uploadedUrl='';
   try{
-    const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-    const path=slug+'-'+crypto.randomUUID()+'.'+ext;
-    const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(path,file,{contentType:file.type,upsert:false});
-    if(uploadError)throw new Error('Storage upload: '+uploadError.message);
-    const {data:publicData}=supabase.storage.from('mwisho-website').getPublicUrl(path);
-    const imageUrl=publicData?.publicUrl;
-    if(!imageUrl||!imageUrl.startsWith('https://'))throw new Error('Storage did not return a valid image URL.');
+    let chosen=file;
+    // Large phone camera files can exceed the 5 MB storage limit. Reduce them safely.
+    if(file.size>5*1024*1024){
+      setImageNotice('Photo is larger than 5 MB. Optimizing it for the website…');
+      const bitmap=await createImageBitmap(file);
+      try{
+        const factor=Math.min(1,2200/Math.max(bitmap.width,bitmap.height));
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(bitmap.width*factor));
+        canvas.height=Math.max(1,Math.round(bitmap.height*factor));
+        const ctx=canvas.getContext('2d');
+        if(!ctx)throw new Error('Image processing is unavailable in this browser.');
+        ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+        let blob=null;
+        for(const quality of [0.86,0.73,0.60]){
+          blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+          if(blob&&blob.size<=5*1024*1024)break;
+        }
+        if(!blob||blob.size>5*1024*1024)throw new Error('Could not reduce this picture below 5 MB. Please resize it and try again.');
+        chosen=new File([blob],file.name.replace(/\.[^.]+$/, '')+'.jpg',{type:'image/jpeg'});
+      }finally{bitmap.close?.();}
+    }
+    setImageNotice('Uploading '+chosen.name+' ('+(chosen.size/(1024*1024)).toFixed(2)+' MB)…');
+    const ext=chosen.type==='image/png'?'png':chosen.type==='image/webp'?'webp':'jpg';
+    const objectName=slug+'-'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await supabase.storage.from('mwisho-website')
+      .upload(objectName,chosen,{contentType:chosen.type,upsert:false});
+    if(uploadError)throw new Error('Photo upload was rejected: '+uploadError.message);
+    const url=supabase.storage.from('mwisho-website').getPublicUrl(objectName).data?.publicUrl;
+    if(!url||!url.startsWith('https://'))throw new Error('Photo uploaded, but no public image link was returned.');
+    uploadedUrl=url;
+    setImageNotice('Photo uploaded. Saving the link to '+slug+'…');
     const {data:saved,error:saveError}=await supabase.from('hotel_website_content')
-      .update({image_url:imageUrl,updated_at:new Date().toISOString()})
+      .update({image_url:url,updated_at:new Date().toISOString()})
       .eq('slug',slug).select('slug,image_url').single();
-    if(saveError||saved?.image_url!==imageUrl)throw new Error('Image uploaded but saving to the card failed: '+(saveError?.message||'No matching card'));
-    // Treat the database response as the source of truth; don't wait for another Save click.
-    setCards(old=>old.map(card=>card.slug===slug?{...card,image_url:saved.image_url}:card));
-    setImageNotice('Image saved for '+slug+'. The preview now uses your uploaded photo.');
+    if(saveError||saved?.image_url!==url)throw new Error('Photo uploaded but card update failed: '+(saveError?.message||'No updated card returned'));
+    setCards(old=>old.map(card=>card.slug===slug?{...card,image_url:url}:card));
+    setImageNotice('Published: '+slug+' photo saved. The image link is now available in the field below.');
   }catch(e){
+    const detail=e?.message||String(e);
+    setImageError(detail+(uploadedUrl?' The photo reached storage but the card link did not save.':' No new photo was published.'));
     setImageNotice('');
-    setError('Image not published: '+(e?.message||String(e)));
-  }finally{setBusy(false);}
+  }finally{
+    setBusy(false);setImageUploadingSlug('');
+  }
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
@@ -163,7 +193,7 @@ function WebsiteManager({supabase}){
   <button type="submit" disabled={busy}>Create Card</button>
  </form>}
  </div>
- {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setImageNotice('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
+ {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setImageNotice('');setImageError('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
  <span className="mw-web-list-icon" aria-hidden="true">{serviceImage(c)?<img className="mw-web-list-image" src={serviceImage(c)} alt="" loading="lazy"/>:'🖼️'}</span>
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
@@ -189,7 +219,9 @@ function WebsiteManager({supabase}){
         <input key={selected} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy}
           onChange={e=>uploadImage(e.target.files?.[0])}/>
       </label>
-      <p className="mw-web-image-notice" role="status">{busy?'Uploading and saving image…':imageNotice}</p>
+      <p className="mw-web-image-notice" role="status">{imageUploadingSlug===active.slug&&busy?'Uploading and saving image…':imageNotice}</p>
+      {imageError&&<p className="mw-web-image-failure" role="alert">{imageError}</p>}
+      <p className="mw-web-image-note">Images are saved only when a public HTTPS image link appears below. Large photos are automatically optimized.</p>
     </div>
     <label>Or paste HTTPS image URL<input type="url" placeholder="https://..." value={active.image_url} onChange={e=>edit('image_url',e.target.value)}/></label>
     <label className="mw-web-check"><input type="checkbox" checked={active.enabled} onChange={e=>edit('enabled',e.target.checked)}/> Display this section on customer website</label>
