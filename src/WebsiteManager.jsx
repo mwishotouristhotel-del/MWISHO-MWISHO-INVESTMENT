@@ -1,7 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import './WebsiteManager.css';
 const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
-const SITE='https://mwishotouristhotel-del.github.io/MWISHO-MWISHO-INVESTMENT/';
+const SITE='https://mwishotouristhotel-del.github.io/MWISHO-MWISHO-INVESTMENT/hotel/';
 function WebsiteManager({supabase}){
  const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),[selected,setSelected]=useState('hero');
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
