@@ -73,3 +73,16 @@
 .mw-web-card-controls button{border:1px solid #d5c6e9;background:#fff;color:#50288d;border-radius:7px;padding:8px 11px;font-size:12px;font-weight:700}
 .mw-web-card-controls button:disabled{opacity:.5}
 @media(max-width:800px){.mw-web-add-form{grid-template-columns:1fr}.mw-web-card-controls span{flex-basis:100%}}
+
+
+/* Show the image actually rendered by the customer site, even before a custom upload. */
+.mw-web-admin .mw-web-list-icon{width:100%;height:84px;display:block;overflow:hidden;border-radius:8px;background:#e8e2f1}
+.mw-web-admin .mw-web-list-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:8px}
+.mw-web-admin .mw-web-list>button{justify-content:flex-start!important;gap:8px!important}
+.mw-web-admin .mw-web-list>button .mw-web-list-name{min-height:18px}
+.mw-web-admin .mw-web-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.mw-web-admin .mw-web-default-note{font-size:12px;line-height:1.6;color:#705a22;background:#fff8e5;border-left:4px solid #ffcf4a;padding:10px 13px;margin:9px 0 18px}
+@media(max-width:560px){
+ .mw-web-admin .mw-web-list-icon{width:60px;height:50px}
+ .mw-web-admin .mw-web-list>button{grid-template-columns:60px minmax(0,1fr) auto!important}
+}
