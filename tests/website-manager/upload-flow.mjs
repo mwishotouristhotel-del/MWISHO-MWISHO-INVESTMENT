@@ -11,7 +11,7 @@ const env=new JSDOM('<!doctype html><html><body><div id="root"></div></body></ht
 globalThis.window=env.window;globalThis.document=env.window.document;
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:env.window.navigator});globalThis.HTMLElement=env.window.HTMLElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
-globalThis.crypto=globalThis.crypto??{randomUUID:()=>String(Date.now())};
+// Node 22 provides crypto.randomUUID natively.
 const dest='.website-manager-upload-test.mjs';
 await build({entryPoints:['src/WebsiteManager.jsx'],bundle:true,platform:'node',format:'esm',outfile:dest,external:['react','react-dom'],loader:{'.css':'empty'},logLevel:'silent'});
 const {default:WebsiteManager}=await import(pathToFileURL(join(process.cwd(),dest)).href);
