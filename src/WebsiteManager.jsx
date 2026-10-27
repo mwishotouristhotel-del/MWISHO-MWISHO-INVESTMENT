@@ -25,62 +25,48 @@ function WebsiteManager({supabase}){
  function edit(field,value){setCards(old=>old.map(x=>x.slug===selected?{...x,[field]:value}:x))}
  async function saveCard(){
   if(!active)return;
-  if(active.image_url&&!/^https:\/\//i.test(active.image_url)){setError('Please supply a secure HTTPS image URL.');return}
+  if(active.image_url&&!/^https:\/\//i.test(active.image_url)){setError('Please supply a secure HTTPS image URL.');return;}
   setBusy(true);setError('');setMessage('');
-  const {error:e}=await supabase.from('hotel_website_content').update({
-   title:active.title,subtitle:active.subtitle,description:active.description,image_url:active.image_url,
-   enabled:active.enabled,placement:active.placement||DEFAULT_PLACEMENT[active.slug]||'events',display_order:active.display_order,updated_at:new Date().toISOString()
-  }).eq('slug',active.slug);
-  if(e)setError(e.message);else {setMessage('Saved '+active.title+'. Refresh the customer website to view changes.');await refresh();}
-  setBusy(false);
- }
- async function addCard(e){
-  e.preventDefault();
-  const title=newCard.title.trim();
-  if(!title||title.length>100){setError('Enter a service card name (up to 100 characters).');return;}
-  if(!PLACEMENTS.some(([p])=>p===newCard.placement)){setError('Choose a valid website section.');return;}
-  setBusy(true);setError('');setMessage('');
-  const slug='custom-'+crypto.randomUUID();
-  const nextOrder=Math.max(100,...cards.map(c=>Number(c.display_order)||0))+10;
-  const {error:e2}=await supabase.from('hotel_website_content').insert({
-   slug,title,subtitle:'',description:'',image_url:'',enabled:true,
-   placement:newCard.placement,display_order:nextOrder
-  });
-  if(e2)setError(e2.message);
-  else{await refresh();setSelected(slug);setNewCard({title:'',placement:'events'});setAdding(false);setMessage('Service card created. Add its image and description, then save.');}
-  setBusy(false);
- }
- async function moveCard(direction){
-  if(!active||active.slug==='hero')return;
-  const placement=active.placement||DEFAULT_PLACEMENT[active.slug]||'events';
-  const related=cards.filter(x=>x.slug!=='hero'&&(x.placement||DEFAULT_PLACEMENT[x.slug])===placement).sort((a,b)=>a.display_order-b.display_order);
-  const index=related.findIndex(x=>x.slug===active.slug);
-  const neighbor=related[index+direction];if(!neighbor)return;
-  setBusy(true);setError('');
-  // Two separate writes are protected by RLS; if the second fails, restore the original order.
-  const oldA=active.display_order,oldB=neighbor.display_order;
-  const first=await supabase.from('hotel_website_content').update({display_order:oldB}).eq('slug',active.slug);
-  if(first.error){setError(first.error.message);setBusy(false);return;}
-  const second=await supabase.from('hotel_website_content').update({display_order:oldA}).eq('slug',neighbor.slug);
-  if(second.error){await supabase.from('hotel_website_content').update({display_order:oldA}).eq('slug',active.slug);setError(second.error.message);}
-  await refresh();setBusy(false);
- }
- async function hideCard(){
-  if(!active||active.slug==='hero')return;
-  if(!window.confirm('Hide this service card from the customer website? You can show it again later.'))return;
-  const {error:e}=await supabase.from('hotel_website_content').update({enabled:false}).eq('slug',active.slug);
-  if(e)setError(e.message);else{await refresh();setMessage('Card hidden. It remains editable in Admin.');}
+  try{
+   const {data,error:e}=await supabase.from('hotel_website_content').update({
+    title:active.title,subtitle:active.subtitle,description:active.description,image_url:active.image_url,
+    enabled:active.enabled,placement:active.placement||DEFAULT_PLACEMENT[active.slug]||'events',
+    display_order:active.display_order,updated_at:new Date().toISOString()
+   }).eq('slug',active.slug).select('slug,image_url').single();
+   if(e)throw e;
+   if(!data)throw new Error('No card was updated. Check website administration permissions.');
+   await refresh();
+   setMessage('Saved successfully. Refresh the customer website to view this card and its image.');
+  }catch(e){setError('Unable to save service card: '+(e.message||String(e)));}
+  finally{setBusy(false);}
  }
  async function uploadImage(file){
   if(!file)return;
-  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){setError('Use a PNG, JPEG or WebP image under 5 MB.');return;}
-  setBusy(true);setError('');
+  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
+   setError('Use a PNG, JPEG or WebP image under 5 MB.');return;
+  }
+  if(!active){setError('Choose a service card before uploading.');return;}
+  const cardSlug=active.slug;
+  setBusy(true);setError('');setMessage('Uploading and publishing image…');
   const extension=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';
-  const name=selected+'-'+crypto.randomUUID()+'.'+extension;
-  const {error:e}=await supabase.storage.from('mwisho-website').upload(name,file,{contentType:file.type,upsert:false});
-  if(e)setError(e.message);
-  else {const {data}=supabase.storage.from('mwisho-website').getPublicUrl(name);edit('image_url',data.publicUrl);setMessage('Image uploaded. Click Save Changes to publish it.');}
-  setBusy(false);
+  const name=cardSlug+'-'+crypto.randomUUID()+'.'+extension;
+  try{
+   const {error:uploadError}=await supabase.storage.from('mwisho-website').upload(name,file,{contentType:file.type,upsert:false});
+   if(uploadError)throw new Error('Storage upload failed: '+uploadError.message);
+   const {data:publicUrlData}=supabase.storage.from('mwisho-website').getPublicUrl(name);
+   const publicUrl=publicUrlData?.publicUrl;
+   if(!publicUrl||!/^https:\/\//.test(publicUrl))throw new Error('Uploaded image URL could not be determined.');
+   // Save directly to the selected database row: React state updates are asynchronous.
+   const {data:saved,error:dbError}=await supabase.from('hotel_website_content')
+    .update({image_url:publicUrl,updated_at:new Date().toISOString()})
+    .eq('slug',cardSlug).select('slug,image_url').single();
+   if(dbError||saved?.image_url!==publicUrl)throw new Error('Image uploaded but card update failed: '+(dbError?.message||'no row returned'));
+   setCards(old=>old.map(c=>c.slug===cardSlug?{...c,image_url:publicUrl}:c));
+   setMessage('Image uploaded and published to '+(active.title||cardSlug)+'. Refresh the customer website to see it.');
+  }catch(e){
+   setError(e.message||String(e));
+   setMessage('');
+  }finally{setBusy(false);}
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
@@ -128,7 +114,7 @@ function WebsiteManager({supabase}){
  <label>Service / card heading<input value={active.title} maxLength={100} onChange={e=>edit('title',e.target.value)}/></label>
     <label>Small heading<input value={active.subtitle} maxLength={120} onChange={e=>edit('subtitle',e.target.value)}/></label>
     <label>Description<textarea rows="3" value={active.description} maxLength={500} onChange={e=>edit('description',e.target.value)}/></label>
-    <label>Image (PNG, JPG, WebP, maximum 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>uploadImage(e.target.files?.[0])}/></label>
+    <label>Change Image — upload and publish automatically (PNG, JPG, WebP, maximum 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>uploadImage(e.target.files?.[0])}/></label>
     <label>Or paste HTTPS image URL<input type="url" placeholder="https://..." value={active.image_url} onChange={e=>edit('image_url',e.target.value)}/></label>
     <label className="mw-web-check"><input type="checkbox" checked={active.enabled} onChange={e=>edit('enabled',e.target.checked)}/> Display this section on customer website</label>
     <button type="button" className="mw-web-save" disabled={busy} onClick={saveCard}>{busy?'Saving…':'Save Changes'}</button>
