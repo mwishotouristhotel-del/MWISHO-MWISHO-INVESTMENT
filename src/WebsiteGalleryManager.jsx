@@ -21,7 +21,7 @@ export default function WebsiteGalleryManager({supabase}){
   setError('');setStatus('');
   if(!f){setFile(null);return;}
   if(!TYPE_MAP[f.type]){setError('Only JPG, PNG, WebP, MP4 and WebM are supported.');setFile(null);return;}
-  if(f.size>MAX_BYTES){setError('Maximum file size is 10 MB per photo or video. Compress this file before uploading.');setFile(null);return;}
+  if(TYPE_MAP[f.type]==='video'&&f.size>MAX_BYTES){setError('Videos must be 10 MB or less. Compress this video before uploading.');setFile(null);return;}
   if(f.size===0){setError('The selected file is empty.');setFile(null);return;}
   setFile(f);
   setStatus((TYPE_MAP[f.type]==='video'?'Video':'Photo')+' ready: '+f.name+' ('+(f.size/1048576).toFixed(2)+' MB)');
@@ -95,7 +95,7 @@ export default function WebsiteGalleryManager({supabase}){
  return <section className="mw-gallery-admin">
   <div className="mw-gallery-heading"><div><h3>Gallery Photos & Videos</h3><p>Upload, publish, reorder or remove media for the public hotel Gallery.</p></div><div className="mw-gallery-stats">{items.length} media • {published} published</div></div>
   <form onSubmit={upload} className="mw-gallery-uploader">
-   <h4>Add Gallery Photo or Video</h4><p>Maximum <strong>10 MB per file</strong>. JPG, PNG, WebP, MP4 and WebM. Videos play only when visitors choose to play them.</p>
+   <h4>Add Gallery Photo or Video</h4><p>Photos have no additional size limit in this form (your Supabase project's upload ceiling still applies). Videos: <strong>10 MB maximum</strong>. JPG, PNG, WebP, MP4 and WebM. Videos play only when visitors choose to play them.</p>
    <label>Choose photo or video<input key={file?.name||'empty'} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={e=>selectFile(e.target.files?.[0])} disabled={busy}/></label>
    <label>Caption / title<input value={title} maxLength={120} onChange={e=>setTitle(e.target.value)} placeholder="e.g. VVIP Lounge"/></label>
    <label>Description (optional)<textarea value={description} maxLength={500} onChange={e=>setDescription(e.target.value)} rows="2"/></label>
