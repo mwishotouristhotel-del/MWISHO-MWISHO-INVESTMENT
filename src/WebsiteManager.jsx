@@ -4,6 +4,20 @@ const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restauran
 const DEFAULT_PLACEMENT={hero:'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
 const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
 const SITE='https://mwishotouristhotel-del.github.io/MWISHO-MWISHO-INVESTMENT/hotel/';
+// These are the same temporary illustrative images currently shown on the public website.
+// They are not hotel-owned photos; any uploaded image takes precedence.
+const WEBSITE_DEFAULT_IMAGES={
+ 'hero':'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1800&q=85',
+ 'regular-rooms':'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=900&q=80',
+ 'vvip-rooms':'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=80',
+ 'extended-stay':'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=900&q=80',
+ 'restaurant':'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=85',
+ 'bar':'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1000&q=85',
+ 'conference':'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=850&q=80',
+ 'night-club':'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=850&q=80',
+ 'private-events':'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=850&q=80'
+};
+function serviceImage(card){return card?.image_url||WEBSITE_DEFAULT_IMAGES[card?.slug]||'';}
 function WebsiteManager({supabase}){
  const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),[selected,setSelected]=useState('hero');
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
@@ -96,12 +110,12 @@ function WebsiteManager({supabase}){
  </form>}
  </div>
  {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
- <span className="mw-web-list-icon" aria-hidden="true">{c.slug==='hero'?'🏨':'🖼️'}</span>
+ <span className="mw-web-list-icon" aria-hidden="true">{serviceImage(c)?<img className="mw-web-list-image" src={serviceImage(c)} alt="" loading="lazy"/>:'🖼️'}</span>
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
  <small className="mw-web-area">{(PLACEMENTS.find(([id])=>id===(c.placement||DEFAULT_PLACEMENT[c.slug]))||['','Homepage'])[1]}</small>
  </button>)}</aside>
-  <div className="mw-web-editor">{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{active.image_url?<img src={active.image_url} alt={'Preview of '+active.title}/>:<div>Upload an image to replace the current placeholder</div>}</div>
+  <div className="mw-web-editor">{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{serviceImage(active)?<img src={serviceImage(active)} alt={'Preview of '+active.title}/>:<div>No image selected. Upload a hotel photo to show here.</div>}</div>{!active.image_url&&<p className="mw-web-default-note">Illustrative preview from the customer website. No custom photo has been saved for this card yet. Upload a replacement image below to publish your own hotel photo.</p>}
     <div className="mw-web-card-controls">
   <span>Section: <strong>{(PLACEMENTS.find(([id])=>id===(active.placement||DEFAULT_PLACEMENT[active.slug]))||['','Homepage'])[1]}</strong></span>
   {active.slug!=='hero'&&<>
