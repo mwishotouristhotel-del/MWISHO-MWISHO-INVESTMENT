@@ -6,6 +6,7 @@ on:
       - 'src/WebsiteManager.css'
       - 'src/WebsiteGalleryManager.jsx'
       - 'src/WebsiteGalleryManager.css'
+      - 'src/galleryUpload.js'
       - 'supabase/functions/hotel-website-public/**'
       - 'hotel/**'
       - 'tests/website-manager/**'
@@ -30,6 +31,8 @@ jobs:
         run: node tests/website-manager/render-smoke.mjs
       - name: Test upload and saved image URLs for hero and restaurant
         run: node tests/website-manager/upload-flow.mjs
+      - name: Test gallery optimization and original-file option
+        run: node tests/website-manager/gallery-optimization.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
