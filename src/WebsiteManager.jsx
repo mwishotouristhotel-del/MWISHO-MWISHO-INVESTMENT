@@ -55,6 +55,59 @@ function WebsiteManager({supabase}){
   }catch(e){setError('Unable to save service card: '+(e.message||String(e)));}
   finally{setBusy(false);}
  }
+ async function addCard(e){
+  e.preventDefault();
+  const title=String(newCard.title||'').trim();
+  if(!title||title.length>100){setError('Enter a name up to 100 characters.');return;}
+  if(!PLACEMENTS.some(([key])=>key===newCard.placement)){setError('Choose a valid section.');return;}
+  setBusy(true);setError('');setMessage('');
+  try{
+   const slug='custom-'+crypto.randomUUID();
+   const order=Math.max(90,...cards.map(c=>Number(c.display_order)||0))+10;
+   const {data,error:e}=await supabase.from('hotel_website_content').insert({
+    slug,title,subtitle:'',description:'',image_url:'',enabled:true,
+    placement:newCard.placement,display_order:order
+   }).select('slug').single();
+   if(e||!data)throw new Error(e?.message||'Card was not created.');
+   await refresh();setSelected(data.slug);
+   setNewCard({title:'',placement:'events'});setAdding(false);
+   setMessage('New card created. Add its photo and description.');
+  }catch(e){setError('Unable to create card: '+(e?.message||String(e)));}
+  finally{setBusy(false);}
+ }
+ async function moveCard(direction){
+  if(!active||active.slug==='hero'||busy)return;
+  const placement=active.placement||DEFAULT_PLACEMENT[active.slug]||'events';
+  const inSection=cards.filter(c=>c.slug!=='hero'&&(c.placement||DEFAULT_PLACEMENT[c.slug])===placement)
+   .sort((a,b)=>Number(a.display_order)-Number(b.display_order));
+  const position=inSection.findIndex(c=>c.slug===active.slug);
+  const other=inSection[position+direction];if(!other)return;
+  setBusy(true);setError('');
+  const firstOrder=active.display_order,secondOrder=other.display_order;
+  try{
+   const a=await supabase.from('hotel_website_content').update({display_order:secondOrder}).eq('slug',active.slug);
+   if(a.error)throw a.error;
+   const b=await supabase.from('hotel_website_content').update({display_order:firstOrder}).eq('slug',other.slug);
+   if(b.error){
+    await supabase.from('hotel_website_content').update({display_order:firstOrder}).eq('slug',active.slug);
+    throw b.error;
+   }
+   await refresh();setMessage('Card order updated.');
+  }catch(e){setError('Could not change card order: '+(e?.message||String(e)));}
+  finally{setBusy(false);}
+ }
+ async function hideCard(){
+  if(!active||active.slug==='hero'||busy)return;
+  if(!window.confirm('Hide this service card from the customer website? You can show it again later.'))return;
+  setBusy(true);setError('');
+  try{
+   const {error:e}=await supabase.from('hotel_website_content').update({enabled:false}).eq('slug',active.slug);
+   if(e)throw e;
+   setCards(old=>old.map(c=>c.slug===active.slug?{...c,enabled:false}:c));
+   setMessage('Card hidden. You can show it again using the visibility checkbox.');
+  }catch(e){setError('Unable to hide card: '+(e?.message||String(e)));}
+  finally{setBusy(false);}
+ }
  async function uploadImage(file){
   if(!file)return;
   if(!active){setError('Select a website card first.');return;}
