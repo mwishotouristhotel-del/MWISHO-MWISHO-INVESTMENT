@@ -4,6 +4,9 @@ on:
     paths:
       - 'src/WebsiteManager.jsx'
       - 'src/WebsiteManager.css'
+      - 'src/WebsiteGalleryManager.jsx'
+      - 'src/WebsiteGalleryManager.css'
+      - 'supabase/functions/hotel-website-public/**'
       - 'hotel/**'
       - 'tests/website-manager/**'
       - '.github/workflows/verify-website-manager.yml'
@@ -22,7 +25,7 @@ jobs:
       - name: Install static analyzer
         run: npm install --no-save --no-audit --no-fund eslint@9 globals@15 jsdom@26
       - name: Check undefined handlers and variables
-        run: npx eslint --config tests/website-manager/eslint.config.mjs src/WebsiteManager.jsx
+        run: npx eslint --config tests/website-manager/eslint.config.mjs src/WebsiteManager.jsx src/WebsiteGalleryManager.jsx
       - name: Render Website Management with React (smoke test)
         run: node tests/website-manager/render-smoke.mjs
       - name: Test upload and saved image URLs for hero and restaurant
