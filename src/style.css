@@ -482,3 +482,10 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .mw-pos-variation-dialog .mw-pos-modal-actions button{border-radius:9px;padding:11px 16px}
 .mw-pos-product .mw-pos-add{font-size:11px;font-weight:800}
 @media(max-width:600px){.mw-pos-variation-dialog{padding:18px}.mw-pos-variation-dialog .mw-pos-modal-title h3{font-size:22px}}
+
+/* Admin Kitchen and Bar item entry shortcuts */
+.mw-admin-entry-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 23px}
+.mw-admin-entry-card{display:flex;flex-direction:column;gap:7px;align-items:flex-start;text-align:left;min-width:0;background:#fff;border:2px solid #e5dff1;border-radius:15px;padding:19px;box-shadow:0 4px 15px #402b7010;color:#422572}
+.mw-admin-entry-card>span{font-size:29px}.mw-admin-entry-card strong{font-size:17px;color:#442481}.mw-admin-entry-card small{font-size:12px;color:#655b7b;line-height:1.4}
+.mw-admin-entry-card:hover,.mw-admin-entry-card.active{border-color:#38bdf8;background:#f2faff;box-shadow:0 6px 16px #38bdf824}
+@media(max-width:640px){.mw-admin-entry-cards{grid-template-columns:1fr}.mw-admin-entry-card{padding:14px}}
