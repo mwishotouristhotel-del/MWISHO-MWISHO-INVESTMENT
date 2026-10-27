@@ -110,12 +110,50 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
     const src=normalizeImage(hero.image_url);
     if(src)document.documentElement.style.setProperty('--hero-managed-image','url('+JSON.stringify(src)+')');
    }
-   [['#rooms .tile',['regular-rooms','vvip-rooms','extended-stay']],
-    ['#dining .feature-card',['restaurant','bar']],
-    ['#events .tile',['conference','night-club','private-events']]].forEach(([selector,slugs])=>{
-       const els=[...document.querySelectorAll(selector)];
-       slugs.forEach((slug,i)=>{const card=map.get(slug);if(card)applyCard(card,els[i]);else if(els[i])els[i].hidden=true;});
-    });
+   // Render and order database-managed cards using safe DOM text, never HTML injection.
+   const placements=[
+    {name:'rooms',selector:'#rooms .grid3',defaults:['regular-rooms','vvip-rooms','extended-stay'],kind:'tile'},
+    {name:'dining',selector:'#dining .experience',defaults:['restaurant','bar'],kind:'feature-card'},
+    {name:'events',selector:'#events .grid3',defaults:['conference','night-club','private-events'],kind:'tile'}
+   ];
+   function createCustom(card,placement){
+    const article=document.createElement('article');article.className=placement.kind;
+    article.dataset.cardSlug=card.slug;
+    const img=document.createElement('img');img.loading='lazy';img.alt=card.title+' at MWISHO Tourist Hotel';
+    const src=normalizeImage(card.image_url);
+    if(src)img.src=src;
+    else img.src='https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=900&q=80';
+    const body=document.createElement('div');body.className=placement.kind==='tile'?'tile-body':'copy';
+    const kicker=document.createElement('span');kicker.className=placement.kind==='tile'?'kicker':'eyebrow';
+    kicker.textContent=card.subtitle||'MWISHO TOURIST HOTEL';
+    const heading=document.createElement('h3');heading.textContent=card.title;
+    const paragraph=document.createElement('p');paragraph.textContent=card.description||'Discover more at MWISHO Tourist Hotel.';
+    const link=document.createElement('a');link.className=placement.kind==='tile'?'textbtn':'btn btn-white';
+    link.href='#contact';link.textContent='Enquire →';
+    body.append(kicker,heading,paragraph,link);
+    article.append(img,body);
+    return article;
+   }
+   placements.forEach(placement=>{
+    const parent=document.querySelector(placement.selector);if(!parent)return;
+    const existing=[...parent.children].slice(0,placement.defaults.length);
+    placement.defaults.forEach((slug,i)=>{if(existing[i])existing[i].dataset.cardSlug=slug;});
+    const published=cards.filter(c=>c.enabled&&
+     (c.placement||({ 'regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'})[c.slug])===placement.name
+    ).sort((a,b)=>Number(a.display_order)-Number(b.display_order));
+    existing.forEach(node=>node.hidden=true);
+    // Discard old dynamically created items if content is refreshed.
+    [...parent.querySelectorAll('[data-card-custom]')].forEach(node=>node.remove());
+    for(const card of published){
+     if(card.slug==='hero')continue;
+     const standardIndex=placement.defaults.indexOf(card.slug);
+     const node=standardIndex>=0?existing[standardIndex]:createCustom(card,placement);
+     if(!node)continue;
+     if(standardIndex>=0)applyCard(card,node);
+     else node.dataset.cardCustom='true';
+     node.hidden=false;parent.appendChild(node);
+    }
+   });
    const footer=document.querySelector('footer .footgrid>div:first-child p');
    if(footer&&settings.tagline)footer.textContent=settings.tagline+' · Stay in comfort. Dine with joy. Celebrate memorable moments.';
    const contact=document.querySelector('#contact .contact-grid>div:first-child');
