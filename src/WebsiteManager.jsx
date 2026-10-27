@@ -1,12 +1,15 @@
 import React,{useEffect,useState} from 'react';
 import './WebsiteManager.css';
 const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
+const DEFAULT_PLACEMENT={hero:'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
+const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
 const SITE='https://mwishotouristhotel-del.github.io/MWISHO-MWISHO-INVESTMENT/hotel/';
 function WebsiteManager({supabase}){
  const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),[selected,setSelected]=useState('hero');
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
  const [tab,setTab]=useState('content');
+ const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
  async function refresh(){
   setError('');
   const [a,b,c]=await Promise.all([
@@ -15,7 +18,7 @@ function WebsiteManager({supabase}){
    supabase.from('hotel_website_traffic_daily').select('*').gte('date',new Date(Date.now()-90*86400000).toISOString().slice(0,10)).order('date',{ascending:false})
   ]);
   if(a.error||b.error||c.error) {setError(a.error?.message||b.error?.message||c.error?.message);return;}
-  setCards(a.data||[]);setSettings(Object.fromEntries((b.data||[]).map(x=>[x.key,x.value])));setTraffic(c.data||[]);
+  setCards((a.data||[]).sort((x,y)=>x.display_order-y.display_order));setSettings(Object.fromEntries((b.data||[]).map(x=>[x.key,x.value])));setTraffic(c.data||[]);
  }
  useEffect(()=>{refresh()},[]);
  const active=cards.find(c=>c.slug===selected);
@@ -26,10 +29,47 @@ function WebsiteManager({supabase}){
   setBusy(true);setError('');setMessage('');
   const {error:e}=await supabase.from('hotel_website_content').update({
    title:active.title,subtitle:active.subtitle,description:active.description,image_url:active.image_url,
-   enabled:active.enabled,updated_at:new Date().toISOString()
+   enabled:active.enabled,placement:active.placement||DEFAULT_PLACEMENT[active.slug]||'events',display_order:active.display_order,updated_at:new Date().toISOString()
   }).eq('slug',active.slug);
-  if(e)setError(e.message);else setMessage('Saved '+active.title+'. Customer website reads the published settings on its next refresh.');
+  if(e)setError(e.message);else {setMessage('Saved '+active.title+'. Refresh the customer website to view changes.');await refresh();}
   setBusy(false);
+ }
+ async function addCard(e){
+  e.preventDefault();
+  const title=newCard.title.trim();
+  if(!title||title.length>100){setError('Enter a service card name (up to 100 characters).');return;}
+  if(!PLACEMENTS.some(([p])=>p===newCard.placement)){setError('Choose a valid website section.');return;}
+  setBusy(true);setError('');setMessage('');
+  const slug='custom-'+crypto.randomUUID();
+  const nextOrder=Math.max(100,...cards.map(c=>Number(c.display_order)||0))+10;
+  const {error:e2}=await supabase.from('hotel_website_content').insert({
+   slug,title,subtitle:'',description:'',image_url:'',enabled:true,
+   placement:newCard.placement,display_order:nextOrder
+  });
+  if(e2)setError(e2.message);
+  else{await refresh();setSelected(slug);setNewCard({title:'',placement:'events'});setAdding(false);setMessage('Service card created. Add its image and description, then save.');}
+  setBusy(false);
+ }
+ async function moveCard(direction){
+  if(!active||active.slug==='hero')return;
+  const placement=active.placement||DEFAULT_PLACEMENT[active.slug]||'events';
+  const related=cards.filter(x=>x.slug!=='hero'&&(x.placement||DEFAULT_PLACEMENT[x.slug])===placement).sort((a,b)=>a.display_order-b.display_order);
+  const index=related.findIndex(x=>x.slug===active.slug);
+  const neighbor=related[index+direction];if(!neighbor)return;
+  setBusy(true);setError('');
+  // Two separate writes are protected by RLS; if the second fails, restore the original order.
+  const oldA=active.display_order,oldB=neighbor.display_order;
+  const first=await supabase.from('hotel_website_content').update({display_order:oldB}).eq('slug',active.slug);
+  if(first.error){setError(first.error.message);setBusy(false);return;}
+  const second=await supabase.from('hotel_website_content').update({display_order:oldA}).eq('slug',neighbor.slug);
+  if(second.error){await supabase.from('hotel_website_content').update({display_order:oldA}).eq('slug',active.slug);setError(second.error.message);}
+  await refresh();setBusy(false);
+ }
+ async function hideCard(){
+  if(!active||active.slug==='hero')return;
+  if(!window.confirm('Hide this service card from the customer website? You can show it again later.'))return;
+  const {error:e}=await supabase.from('hotel_website_content').update({enabled:false}).eq('slug',active.slug);
+  if(e)setError(e.message);else{await refresh();setMessage('Card hidden. It remains editable in Admin.');}
  }
  async function uploadImage(file){
   if(!file)return;
@@ -59,9 +99,33 @@ function WebsiteManager({supabase}){
   <div className="mw-web-head"><div><small>MWISHO TOURIST HOTEL · TASTE OF CLASS</small><h2>Hotel Website Management</h2><p>Customer website content, service photos and traffic — independent of hotel POS.</p></div><a href={SITE} target="_blank" rel="noreferrer">↗ Open Customer Website</a></div>
   <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
-  {tab==='content'&&<div className="mw-web-layout"><aside className="mw-web-list" aria-label="Website sections"><div className="mw-web-list-heading"><strong>Manage Service Cards</strong><small>Choose a section to edit its image and text</small></div>{CARD_NAMES.map(id=>{const c=cards.find(x=>x.slug===id);return <button type="button" key={id} onClick={()=>{setSelected(id);setMessage('')}} className={selected===id?'current':''} aria-current={selected===id?'true':undefined}><span className="mw-web-list-icon" aria-hidden="true">{id==='hero'?'🏨':'🖼️'}</span><span className="mw-web-list-name">{c?.title||id}</span><small className="mw-web-list-status">{c?.enabled===false?'Hidden':'Visible'}</small></button>})}</aside>
+  {tab==='content'&&<div className="mw-web-layout"><aside className="mw-web-list" aria-label="Website sections"><div className="mw-web-list-heading"><strong>Manage Service Cards</strong><small>Choose a section to edit its image and text</small></div><div className="mw-web-new-card">
+ <button type="button" className="mw-web-add-button" onClick={()=>setAdding(v=>!v)} disabled={busy}>＋ Add Service Card</button>
+ {adding&&<form className="mw-web-add-form" onSubmit={addCard}>
+  <label>Card name<input value={newCard.title} required maxLength={100} onChange={e=>setNewCard(v=>({...v,title:e.target.value}))} placeholder="e.g. Wedding Packages"/></label>
+  <label>Website section<select value={newCard.placement} onChange={e=>setNewCard(v=>({...v,placement:e.target.value}))}>{PLACEMENTS.map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+  <button type="submit" disabled={busy}>Create Card</button>
+ </form>}
+ </div>
+ {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
+ <span className="mw-web-list-icon" aria-hidden="true">{c.slug==='hero'?'🏨':'🖼️'}</span>
+ <span className="mw-web-list-name">{c.title}</span>
+ <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
+ <small className="mw-web-area">{(PLACEMENTS.find(([id])=>id===(c.placement||DEFAULT_PLACEMENT[c.slug]))||['','Homepage'])[1]}</small>
+ </button>)}</aside>
   <div className="mw-web-editor">{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{active.image_url?<img src={active.image_url} alt={'Preview of '+active.title}/>:<div>Upload an image to replace the current placeholder</div>}</div>
-    <label>Service / card heading<input value={active.title} maxLength={100} onChange={e=>edit('title',e.target.value)}/></label>
+    <div className="mw-web-card-controls">
+  <span>Section: <strong>{(PLACEMENTS.find(([id])=>id===(active.placement||DEFAULT_PLACEMENT[active.slug]))||['','Homepage'])[1]}</strong></span>
+  {active.slug!=='hero'&&<>
+    <button type="button" disabled={busy} onClick={()=>moveCard(-1)}>↑ Move Earlier</button>
+    <button type="button" disabled={busy} onClick={()=>moveCard(1)}>↓ Move Later</button>
+    <button type="button" disabled={busy} onClick={hideCard}>Hide Card</button>
+  </>}
+ </div>
+ {active.slug.startsWith('custom-')&&<label>Move to website section
+  <select value={active.placement||'events'} onChange={e=>edit('placement',e.target.value)}>{PLACEMENTS.map(([k,label])=><option key={k} value={k}>{label}</option>)}</select>
+ </label>}
+ <label>Service / card heading<input value={active.title} maxLength={100} onChange={e=>edit('title',e.target.value)}/></label>
     <label>Small heading<input value={active.subtitle} maxLength={120} onChange={e=>edit('subtitle',e.target.value)}/></label>
     <label>Description<textarea rows="3" value={active.description} maxLength={500} onChange={e=>edit('description',e.target.value)}/></label>
     <label>Image (PNG, JPG, WebP, maximum 5 MB)<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={e=>uploadImage(e.target.files?.[0])}/></label>
