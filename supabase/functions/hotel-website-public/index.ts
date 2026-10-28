@@ -13,6 +13,17 @@ Deno.serve(async(req:Request)=>{
  if(!url||!key)return respond({error:'not configured'},503);
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
+  if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_menu'){
+   const {data:items,error:menuError}=await db.from('products')
+    .select('id,name,price,preparation_options,hotel_image_path')
+    .eq('active',true).eq('preparation_area','kitchen').eq('hotel_stock_only',false)
+    .gt('price',0).order('name').limit(200);
+   if(menuError)return respond({error:'Menu temporarily unavailable'},503);
+   return respond({menu:(items||[]).map((x:any)=>({
+    id:x.id,name:x.name,price:Number(x.price),
+    preparation_options:x.preparation_options||[]
+   })),online_orders_enabled:false,payment_verified:false});
+  }
   if(req.method==='GET'){
    const [cards,settings,gallery,promotions,rooms]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
