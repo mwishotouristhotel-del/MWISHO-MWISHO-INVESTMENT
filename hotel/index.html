@@ -130,7 +130,7 @@ footer .brand-tagline{color:#ffcf4a}
   flex-basis:62px;width:62px;height:56px;
  }
 }
-</style>
+.mw-room-availability{padding:14px 0 5px;display:grid;gap:11px}.mw-room-availability h4{font-size:16px;margin:4px 0;color:#492b82}.mw-room-availability>p{font-size:12px;color:#655b75;line-height:1.5}.mw-room-request-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mw-room-request-fields label{display:grid;gap:5px;color:#46335f;font-size:12px;font-weight:700}.mw-room-request-fields input{display:block;width:100%;min-width:0;padding:10px;border:1px solid #d5c7e9;border-radius:8px;font-size:15px}.mw-room-availability .mw-room-similar{background:#fff;border:1px solid #6330ab;color:#6330ab;padding:11px;border-radius:8px;font-weight:700}.mw-room-request-status{font-weight:650}@media(max-width:450px){.mw-room-request-fields{grid-template-columns:1fr}}</style>
 </head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
@@ -281,22 +281,49 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
     return {title:kinds.find(([k])=>k===packageSelect.value)?.[1]||'Room package',count,base,extra,total};
    };
    packageSelect.addEventListener('change',calculate);guestSelect.addEventListener('change',calculate);
-   const enquire=document.createElement('button');enquire.type='button';enquire.className='btn btn-primary';enquire.textContent='Enquire About This Room';
-   enquire.addEventListener('click',()=>{
-    const quote=calculate();if(!quote)return;
-    roomDialog.close();
-    const contact=document.getElementById('contact'),form=document.getElementById('contactForm');
-    if(form){
-     form.topic.value='Accommodation enquiry';
-     form.message.value='I would like to enquire about '+(room.name||'Regular Room')+
-      ', package: '+quote.title+', '+quote.count+' guest(s). Indicative nightly rate: '+money(quote.total)+
-      ' ('+money(quote.base)+' first guest + '+money(quote.extra)+' per extra guest). Please confirm availability, dates and booking arrangements.';
-    }
-    contact?.scrollIntoView({behavior:'smooth'});
-   });
+   const availability=document.createElement('form');availability.className='mw-room-availability';
+   const title=document.createElement('h4');title.textContent='Check This Room Availability';
+   const notice=document.createElement('p');notice.textContent='Live availability is not connected to the Accommodation POS yet. Hotel staff will verify your dates and respond to your request.';
+   const fields=document.createElement('div');fields.className='mw-room-request-fields';
+   const makeField=(caption,type,required=true)=>{
+    const label=document.createElement('label');label.textContent=caption;
+    const input=document.createElement('input');input.type=type;input.required=required;label.appendChild(input);fields.appendChild(label);return input;
+   };
+   const arrival=makeField('Check-in date','date'),departure=makeField('Check-out date','date');
+   arrival.min=new Date().toLocaleDateString('en-CA');
+   departure.min=arrival.min;
+   arrival.addEventListener('change',()=>{departure.min=arrival.value;});
+   const fullName=makeField('Your full name','text'),contact=makeField('Phone or email','text');
+   fullName.maxLength=120;contact.maxLength=180;
+   const response=document.createElement('p');response.className='mw-room-request-status';response.setAttribute('role','status');
+   const send=(kind)=>async(event)=>{
+    event.preventDefault();if(!availability.reportValidity())return;
+    const action=kind==='similar_room'?'similar_room':'availability';
+    const buttons=availability.querySelectorAll('button');
+    buttons.forEach(x=>x.disabled=true);
+    response.textContent='Submitting your request…';
+    try{
+     const result=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({action:'room_request',room_id:room.id,request_kind:action,
+       check_in:arrival.value,check_out:departure.value,
+       guests:Number(guestSelect.value),package_key:packageSelect.value,
+       customer_name:fullName.value.trim(),customer_contact:contact.value.trim()})});
+     const payload=await result.json();
+     if(!result.ok||!payload.ok)throw new Error(payload.error||'Unable to send request');
+     response.textContent='Request received. Staff will confirm availability or suggest an alternative. This is not yet a confirmed booking.';
+    }catch(err){response.textContent=err.message||'Request failed. Please retry or contact the hotel.';}
+    finally{buttons.forEach(x=>x.disabled=false);}
+   };
+   const check=document.createElement('button');check.type='submit';check.className='btn btn-primary';
+   check.textContent='Check This Room Availability';
+   availability.addEventListener('submit',send('availability'));
+   const similar=document.createElement('button');similar.type='button';similar.className='mw-room-similar';
+   similar.textContent='Recommend a Similar Room for Me';
+   similar.addEventListener('click',event=>send('similar_room')(event));
+   availability.append(title,notice,fields,check,similar,response);
    detail.append(heading,description,guests,amenities);
    if(available.length){
-    detail.append(label,qtyLabel,price,breakdown,enquire);calculate();
+    detail.append(label,qtyLabel,price,breakdown,availability);calculate();
    }else{
     const note=document.createElement('p');note.textContent='Package prices are being prepared. Please contact the hotel.';detail.appendChild(note);
    }
