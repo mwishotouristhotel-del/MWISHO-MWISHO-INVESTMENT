@@ -7,12 +7,16 @@ const MAX_BYTES=10*1024*1024;
 const TYPE_MAP={'image/jpeg':'photo','image/png':'photo','image/webp':'photo','video/mp4':'video','video/webm':'video'};
 const EXT={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'};
 
-export default function WebsiteGalleryManager({supabase}){
+export default function WebsiteGalleryManager({supabase,userId}){
+ const draftKey='mwisho-gallery-form-'+(userId||'no-user');
+ const readDraft=()=>{try{return JSON.parse(localStorage.getItem(draftKey)||'{}')}catch{return {}}};
+ const initial=readDraft();
  const [items,setItems]=useState([]);
- const [file,setFile]=useState(null),[title,setTitle]=useState(''),[description,setDescription]=useState('');
- const [publish,setPublish]=useState(true),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState('');
+ const [file,setFile]=useState(null),[title,setTitle]=useState(initial.title||''),[description,setDescription]=useState(initial.description||'');
+ const [publish,setPublish]=useState(initial.publish??true),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[error,setError]=useState('');
  const [workingId,setWorkingId]=useState(null);
- const [optimizePhotos,setOptimizePhotos]=useState(true);
+ const [optimizePhotos,setOptimizePhotos]=useState(initial.optimizePhotos??true);
+ useEffect(()=>{try{localStorage.setItem(draftKey,JSON.stringify({title,description,publish,optimizePhotos}))}catch{}},[draftKey,title,description,publish,optimizePhotos]);
  async function refresh(){
   const {data,error:e}=await supabase.from('hotel_website_gallery').select('*')
     .order('display_order',{ascending:true}).order('created_at',{ascending:false});
@@ -136,7 +140,7 @@ export default function WebsiteGalleryManager({supabase}){
  const published=items.filter(x=>x.is_published).length;
  return <section className="mw-gallery-admin">
   <div className="mw-gallery-heading"><div><h3>Gallery Photos & Videos</h3><p>Upload, publish, reorder or remove media for the public hotel Gallery.</p></div><div className="mw-gallery-stats">{items.length} media • {published} published</div></div>
-  <form onSubmit={upload} className="mw-gallery-uploader">
+  <form onSubmit={upload} className="mw-gallery-uploader"><p className="mw-web-draft-hint">Captions are preserved on this device while you work. Files must be reselected after refresh.</p>
    <h4>Add Gallery Photo or Video</h4><p>Photos have no additional size limit in this form (your Supabase project's upload ceiling still applies). Videos: <strong>10 MB maximum</strong>. JPG, PNG, WebP, MP4 and WebM. Large photos are optimized before upload by default. Videos play only when visitors choose to play them.</p>
    <label>Choose photo or video<input key={file?.name||'empty'} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={e=>selectFile(e.target.files?.[0])} disabled={busy}/></label>
    <label>Caption / title<input value={title} maxLength={120} onChange={e=>setTitle(e.target.value)} placeholder="e.g. VVIP Lounge"/></label>

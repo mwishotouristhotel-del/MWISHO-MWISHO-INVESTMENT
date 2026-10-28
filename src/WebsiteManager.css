@@ -92,3 +92,5 @@
 .mw-web-image-failure{color:#9f1c27;background:#fff0f0;border:1px solid #ffb6b6;padding:12px;border-radius:7px;line-height:1.5;font-size:13px;font-weight:650}
 .mw-web-image-note{font-size:12px;color:#645878;line-height:1.6}
 .mw-web-image-upload input[type=file]{max-width:100%;overflow:hidden}
+
+.mw-web-autosave-status{font-size:13px;color:#4c2884;background:#f5effc;border-left:4px solid #ffcf4a;border-radius:7px;padding:10px 14px;margin:10px 0}.mw-web-draft-hint{grid-column:1/-1;color:#655b78;font-size:12px;line-height:1.5;background:#fff9e8;padding:9px;border-radius:7px}

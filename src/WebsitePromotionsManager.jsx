@@ -7,10 +7,13 @@ const VIDEO_MAX=10*1024*1024;
 const empty={kind:'advertisement',title:'',description:'',action_label:'',action_url:'',event_date:'',starts_at:'',ends_at:'',popup_enabled:false,popup_mode:'manual',is_published:true};
 const toLocal=v=>v?new Date(v).toISOString().slice(0,16):'';
 const toUtc=v=>v?new Date(v).toISOString():null;
-export default function WebsitePromotionsManager({supabase}){
- const [items,setItems]=useState([]),[form,setForm]=useState(empty),[media,setMedia]=useState(null),[busy,setBusy]=useState(false),[working,setWorking]=useState(null);
+export default function WebsitePromotionsManager({supabase,userId}){
+ const draftKey='mwisho-promo-form-'+(userId||'no-user');
+ const stored=()=>{try{return JSON.parse(localStorage.getItem(draftKey)||'null')}catch{return null}};
+ const [items,setItems]=useState([]),[form,setForm]=useState(()=>({...empty,...stored()})),[media,setMedia]=useState(null),[busy,setBusy]=useState(false),[working,setWorking]=useState(null);
  const [notice,setNotice]=useState(''),[error,setError]=useState('');
  const patch=(k,v)=>setForm(f=>({...f,[k]:v}));
+ useEffect(()=>{try{localStorage.setItem(draftKey,JSON.stringify(form))}catch{}},[draftKey,form]);
  async function refresh(){
   const {data,error:e}=await supabase.from('hotel_website_promotions').select('*').order('display_order').order('created_at',{ascending:false});
   if(e)setError('Cannot load adverts: '+e.message);else setItems(data||[]);
@@ -79,7 +82,7 @@ export default function WebsitePromotionsManager({supabase}){
     <button type="button" className={form.kind==='advertisement'?'selected':''} onClick={()=>patch('kind','advertisement')}><strong>📣 Advertisements</strong><span>Special offers, promotions and announcements</span></button>
     <button type="button" className={form.kind==='event'?'selected':''} onClick={()=>patch('kind','event')}><strong>📅 Upcoming Hotel Events</strong><span>Music, conferences, celebrations and hotel activities</span></button>
    </div>
-  <form className="mw-promo-form" onSubmit={submit}>
+  <form className="mw-promo-form" onSubmit={submit}><p className="mw-web-draft-hint">Your advertisement or event details are saved as a local draft. Reselect the media file after refresh.</p>
    <h4>Upload New Advertisement or Event</h4>
    <label>Content type<select value={form.kind} onChange={e=>patch('kind',e.target.value)}><option value="advertisement">Advertisement</option><option value="event">Upcoming Hotel Event</option></select></label>
    <label>Title<input required maxLength={150} value={form.title} onChange={e=>patch('title',e.target.value)} placeholder="e.g. Friday Live Music"/></label>
