@@ -42,6 +42,8 @@ jobs:
         run: node tests/website-manager/promotions-popup.mjs
       - name: Verify website autosave and refresh restoration
         run: node tests/website-manager/autosave-navigation.mjs
+      - name: Verify About image Admin card and customer mapping
+        run: node tests/website-manager/about-image-card.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website

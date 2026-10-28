@@ -3,14 +3,15 @@ import './WebsiteManager.css';
 import WebsiteGalleryManager from './WebsiteGalleryManager.jsx';
 import WebsiteRoomsManager from './WebsiteRoomsManager.jsx';
 import WebsitePromotionsManager from './WebsitePromotionsManager.jsx';
-const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
-const DEFAULT_PLACEMENT={hero:'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
+const CARD_NAMES=['hero','about-hotel','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
+const DEFAULT_PLACEMENT={hero:'hero','about-hotel':'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
 const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
 const SITE='https://mwishotouristhotel-del.github.io/MWISHO-MWISHO-INVESTMENT/hotel/';
 // These are the same temporary illustrative images currently shown on the public website.
 // They are not hotel-owned photos; any uploaded image takes precedence.
 const WEBSITE_DEFAULT_IMAGES={
  'hero':'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1800&q=85',
+ 'about-hotel':'',
  'regular-rooms':'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=900&q=80',
  'vvip-rooms':'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=80',
  'extended-stay':'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=900&q=80',

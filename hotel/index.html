@@ -67,6 +67,9 @@ footer .brand-tagline{color:#ffcf4a}
   margin-bottom:16px;
  }
 }
+/* Dedicated Admin-managed About section photo: preserve proportions and avoid distortion. */
+#about .intro .image img{width:100%;height:100%;object-fit:contain;object-position:center;background:#f4f0f9}
+@media(max-width:700px){#about .intro .image{height:auto;min-height:320px}#about .intro .image img{height:auto;min-height:320px;max-height:540px;object-fit:contain}}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -103,7 +106,7 @@ footer .brand-tagline{color:#ffcf4a}
 <main>
 <section class="hero" id="home"><div class="wrap"><div class="eyebrow">WELCOME TO MWISHO TOURIST HOTEL</div><h1 class="serif">Taste Of Class.<br/>Memorable moments.</h1><p>Relax in comfort, enjoy exceptional dining and celebrate life's finest moments. Discover the warmth of hospitality at MWISHO Tourist Hotel.</p><div class="hero-actions"><button class="btn btn-primary" data-book>Explore & Book Rooms →</button><a class="btn btn-white" href="#about">Discover Our Hotel</a></div></div></section>
 <div class="wrap"><form class="bookbar" id="quickBooking"><div class="field"><label for="checkin">Check-in</label><input id="checkin" type="date" required/></div><div class="field"><label for="checkout">Check-out</label><input id="checkout" type="date" required/></div><div class="field"><label for="guests">Guests</label><select id="guests"><option value="1">1 Guest</option><option value="2" selected>2 Guests</option><option value="3">3 Guests</option><option value="4">4 Guests</option><option value="5">5+ Guests</option></select></div><button type="submit" class="btn btn-primary">Explore Availability →</button></form></div>
-<section class="section section-white" id="about"><div class="wrap intro"><div class="image"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="float-note"><strong>Stay • Dine • Celebrate</strong><div style="font-size:12px;color:#777;margin-top:5px">A complete hospitality experience</div></div></div><div><span class="eyebrow">MORE THAN A PLACE TO STAY</span><h2 class="serif">Thoughtful hospitality, wonderful memories.</h2><p>Whether you're visiting for a peaceful getaway, a delicious meal, a special event or a lively evening out, MWISHO Tourist Hotel brings your plans together in one welcoming destination.</p><p>Discover our accommodation, VVIP and Regular dining experiences, nightlife and conference offerings.</p><div class="features"><span><b>✦</b> Comfortable stays</span><span><b>✦</b> Great dining</span><span><b>✦</b> Event experiences</span></div><a href="#rooms" class="btn btn-outline">Explore our experiences →</a></div></div></section>
+<section class="section section-white" id="about"><div class="wrap intro"><div class="image"><img id="mw-about-hotel-photo" loading="lazy" decoding="async" src="assets/photo-placeholder.svg" alt="MWISHO Tourist Hotel About section photograph"/><div class="float-note"><strong>Stay • Dine • Celebrate</strong><div class="about-photo-caption" style="font-size:12px;color:#777;margin-top:5px">A complete hospitality experience</div></div></div><div><span class="eyebrow">MORE THAN A PLACE TO STAY</span><h2 class="serif">Thoughtful hospitality, wonderful memories.</h2><p>Whether you're visiting for a peaceful getaway, a delicious meal, a special event or a lively evening out, MWISHO Tourist Hotel brings your plans together in one welcoming destination.</p><p>Discover our accommodation, VVIP and Regular dining experiences, nightlife and conference offerings.</p><div class="features"><span><b>✦</b> Comfortable stays</span><span><b>✦</b> Great dining</span><span><b>✦</b> Event experiences</span></div><a href="#rooms" class="btn btn-outline">Explore our experiences →</a></div></div></section>
 <section class="section" id="rooms"><div class="wrap"><div class="section-head"><span class="eyebrow">REST & RECHARGE</span><h2 class="serif">Find your kind of comfort</h2><p>Browse our accommodation experiences. Room categories, prices and live availability will be published once confirmed by hotel management.</p></div><div class="grid3">
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ACCOMMODATION</span><h3>Regular Rooms</h3><p>A relaxed retreat with the comfort and convenience you need for a pleasant stay.</p><div class="tile-footer"><small>Rates to be confirmed</small><button class="textbtn" id="viewRegularRooms" type="button" aria-haspopup="dialog" aria-controls="regularRoomCatalogue">View Regular Rooms →</button></div></div></article>
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ENHANCED COMFORT</span><h3>VVIP Rooms</h3><p>A more exclusive accommodation experience for guests seeking added comfort.</p><div class="tile-footer"><small>Rates to be confirmed</small><button class="textbtn" data-room="VVIP Rooms">Enquire →</button></div></div></article>
@@ -269,6 +272,19 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
     updateText(document.querySelector('.hero p'),hero.description);
     const src=normalizeImage(hero.image_url);
     if(src)document.documentElement.style.setProperty('--hero-managed-image','url('+JSON.stringify(src)+')');
+   }
+   const aboutCard=map.get('about-hotel');
+   if(aboutCard){
+    const about=document.getElementById('about');
+    if(about){
+     const photo=about.querySelector('#mw-about-hotel-photo');
+     const imageSrc=normalizeImage(aboutCard.image_url);
+     if(photo&&imageSrc){photo.src=imageSrc;photo.alt='MWISHO Tourist Hotel — '+aboutCard.title;}
+     updateText(about.querySelector('.float-note strong'),aboutCard.title);
+     updateText(about.querySelector('.about-photo-caption'),aboutCard.subtitle);
+     const imagePanel=about.querySelector('.intro .image');
+     if(imagePanel)imagePanel.hidden=!aboutCard.enabled;
+    }
    }
    // Render and order database-managed cards using safe DOM text, never HTML injection.
    const placements=[
