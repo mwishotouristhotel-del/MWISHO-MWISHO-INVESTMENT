@@ -13,6 +13,12 @@ Deno.serve(async(req:Request)=>{
  if(!url||!key)return respond({error:'not configured'},503);
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  try{
+  if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_payment_config'){
+   const {data}=await db.from('hotel_website_settings').select('key,value').in('key',['mpesa_till_number','food_order_enabled']);
+   const settings=Object.fromEntries((data||[]).map((x:any)=>[x.key,x.value]));
+   const till=String(settings.mpesa_till_number||'').trim();
+   return respond({enabled:settings.food_order_enabled==='true'&&/^\\d{5,15}$/.test(till),till:/^\\d{5,15}$/.test(till)?till:''});
+  }
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_menu'){
    const {data:items,error:menuError}=await db.from('products')
     .select('id,name,price,preparation_options,hotel_image_path')
@@ -38,6 +44,62 @@ Deno.serve(async(req:Request)=>{
    return respond({cards:cards.data,rooms:rooms.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='submit_food_payment'){
+   const {data:settingsRows,error:settingsError}=await db.from('hotel_website_settings')
+     .select('key,value').in('key',['mpesa_till_number','food_order_enabled']);
+   if(settingsError)return respond({error:'Food ordering temporarily unavailable.'},503);
+   const options=Object.fromEntries((settingsRows||[]).map((x:any)=>[x.key,x.value]));
+   const till=String(options.mpesa_till_number||'').trim();
+   if(options.food_order_enabled!=='true'||!/^\\d{5,15}$/.test(till))
+      return respond({error:'Food ordering has not been activated by the hotel.'},503);
+   const name=String(data.customer_name||'').trim(),phone=String(data.customer_phone||'').trim();
+   const reference=String(data.mpesa_reference||'').trim().toUpperCase();
+   const date=String(data.arrival_date||''),time=String(data.arrival_time||'');
+   if(name.length<2||name.length>120||!/^\\+?[0-9 ]{9,25}$/.test(phone)||
+       !/^[A-Z0-9]{8,15}$/.test(reference)||!/\\d{4}-\\d{2}-\\d{2}/.test(date)||
+       !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)||
+       date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'}))
+      return respond({error:'Check the name, phone, arrival time and M-Pesa code.'},400);
+   if(!Array.isArray(data.items)||data.items.length<1||data.items.length>25)
+      return respond({error:'Choose valid menu items.'},400);
+   const requestItems=data.items.map((item:any)=>({id:String(item?.id||''),qty:Number(item?.qty)}));
+   if(requestItems.some((item:any)=>!/^[0-9a-f-]{36}$/i.test(item.id)||
+       !Number.isInteger(item.qty)||item.qty<1||item.qty>20))
+      return respond({error:'Invalid food quantities.'},400);
+   const distinctIds=[...new Set(requestItems.map((item:any)=>item.id))];
+   if(distinctIds.length!==requestItems.length)return respond({error:'Duplicate item detected.'},400);
+   const {data:products,error:productsError}=await db.from('products')
+    .select('id,name,price').in('id',distinctIds).eq('active',true)
+    .eq('preparation_area','kitchen').eq('hotel_stock_only',false);
+   if(productsError||!products||products.length!==distinctIds.length)
+      return respond({error:'Some menu items have changed. Refresh the menu.'},409);
+   const byId=new Map(products.map((x:any)=>[x.id,x]));
+   const items=requestItems.map((item:any)=>{
+    const product:any=byId.get(item.id);
+    return {id:item.id,name:product.name,qty:item.qty,unit_price:Number(product.price)};
+   });
+   if(items.some((x:any)=>!Number.isFinite(x.unit_price)||x.unit_price<=0))
+      return respond({error:'Invalid current menu price.'},409);
+   const amount=items.reduce((total:number,item:any)=>total+item.qty*item.unit_price,0);
+   if(!Number.isFinite(amount)||amount<=0||amount>200000)
+      return respond({error:'Invalid order value.'},400);
+   const {count:recent,error:throttleError}=await db.from('hotel_website_food_orders')
+     .select('id',{count:'exact',head:true}).eq('customer_phone',phone)
+     .gte('created_at',new Date(Date.now()-3600000).toISOString());
+   if(throttleError)return respond({error:'Could not process your request.'},503);
+   if((recent||0)>=3)return respond({error:'Too many recent orders. Contact the hotel.'},429);
+   const {data:inserted,error:insertError}=await db.from('hotel_website_food_orders').insert({
+    customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
+    items,total_kes:amount,till_number:till,mpesa_reference:reference,
+    status:'pending_verification'
+   }).select('id').single();
+   if(insertError){
+    if(insertError.code==='23505')return respond({error:'This M-Pesa code is already submitted.'},409);
+    return respond({error:'Unable to submit payment proof. Contact the hotel.'},503);
+   }
+   return respond({ok:true,order_id:inserted.id,status:'pending_verification',
+    amount, message:'Payment proof submitted. The hotel must independently verify the transaction before preparation.'});
+  }
   if(data?.action==='room_request'){
    const kind=data.request_kind;
    const iso=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
