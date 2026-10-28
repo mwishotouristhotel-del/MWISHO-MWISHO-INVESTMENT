@@ -222,13 +222,11 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
    // One popup per browser session: rotate active items, never obstruct every navigation.
    const popupItems=activePromos.filter(item=>item.popup_enabled);
    if(popupItems.length){
-    let selected=null;
-    for(const entry of popupItems){
-      try{if(sessionStorage.getItem('mw-promo-shown-'+entry.id)==='1')continue;}
-      catch{}selected=entry;break;
-    }
+    let shown=false;
+    try{shown=sessionStorage.getItem('mw-promo-displayed-this-session')==='1';}catch{}
+    const selected=shown?null:popupItems[0];
     if(selected){
-     try{sessionStorage.setItem('mw-promo-shown-'+selected.id,'1');}catch{}
+     try{sessionStorage.setItem('mw-promo-displayed-this-session','1');}catch{}
      const dialog=document.createElement('dialog');dialog.className='mw-promotion-popup';
      dialog.setAttribute('aria-label',selected.title);
      const wrap=document.createElement('div');wrap.className='mw-promotion-popup-inside';
