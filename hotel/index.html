@@ -71,6 +71,8 @@ footer .brand-tagline{color:#ffcf4a}
 #about .intro .image img{width:100%;height:100%;object-fit:contain;object-position:center;background:#f4f0f9}
 @media(max-width:700px){#about .intro .image{height:auto;min-height:320px}#about .intro .image img{height:auto;min-height:320px;max-height:540px;object-fit:contain}}
 .mw-room-photo-viewer{background:#f7f3fa}.mw-room-photo-viewer>img{width:100%;height:210px;object-fit:contain;background:#f6f2fb}.mw-room-photo-controls{display:flex;gap:14px;justify-content:center;align-items:center;padding:6px;color:#552c90;font-weight:700}.mw-room-photo-controls button{border:1px solid #cdb8e7;border-radius:9px;background:white;color:#5727a0;padding:3px 16px;font-size:23px}.mw-room-photo-thumbs{display:flex;gap:6px;overflow-x:auto;padding:5px 9px 10px}.mw-room-photo-thumbs button{padding:2px;border:1px solid #cdb9e4;background:white;border-radius:6px;flex:0 0 55px}.mw-room-photo-thumbs img{height:43px;width:100%;object-fit:contain}.mw-room-dialog .mw-room-list article .mw-room-photo-viewer img{object-fit:contain}
+
+.mw-food-dialog{width:min(96vw,850px);max-height:90vh;overflow-y:auto;background:#fff;border:0;border-radius:17px;padding:22px;color:#302146}.mw-food-dialog::backdrop{background:#0f0919bb}.mw-food-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.mw-food-head h2{font-family:'Playfair Display',serif;font-size:25px;margin:8px 0}.mw-food-head small{color:#6a30aa}.mw-food-head button{background:#ffcf4a;border:0;border-radius:7px;padding:9px}.mw-food-safety{background:#fff7dc;border-left:4px solid #ffca48;padding:12px;line-height:1.55;font-size:13px}.mw-food-list{display:grid;gap:10px;margin:15px 0}.mw-food-item,.mw-food-cart-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9dff3;border-radius:8px}.mw-food-item div{display:grid;gap:4px}.mw-food-item span{font-size:13px;color:#6b5b7c}.mw-food-item button,.mw-food-cart-item button{border:0;border-radius:7px;background:#6330ab;color:#fff;padding:9px 12px;flex-shrink:0}.mw-food-cart{background:#faf8fd;border-radius:12px;padding:16px;display:grid;gap:12px}.mw-food-cart h3{color:#4e2b83}.mw-food-cart label{display:grid;gap:5px;font-weight:700;font-size:12px}.mw-food-cart input{padding:11px;border:1px solid #d7c9e8;border-radius:8px;width:100%;min-width:0;font-size:16px}.mw-food-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mw-food-cart #mwFoodCheckout{padding:13px;border:0;border-radius:8px;background:#ad9bc4;color:white;cursor:not-allowed}.mw-food-cart #mwFoodStatus{font-size:12px;color:#5d506c}@media(max-width:580px){.mw-food-dialog{padding:13px}.mw-food-dates{grid-template-columns:1fr}.mw-food-head h2{font-size:20px}}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -143,7 +145,7 @@ footer .brand-tagline{color:#ffcf4a}
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">SPECIAL OCCASIONS</span><h3>Extended Stays</h3><p>Planning a longer visit? Contact our team about arrangements suited to your stay.</p><div class="tile-footer"><small>Ask about options</small><button class="textbtn" type="button" id="viewExtendedRooms">View Extended Stays →</button><button class="textbtn" data-room="Extended Stay">Enquire →</button></div></div></article>
 </div></div></section>
 <section class="section section-white" id="dining"><div class="wrap"><div class="section-head"><span class="eyebrow">GOOD FOOD, GOOD COMPANY</span><h2 class="serif">Dine, unwind & enjoy</h2><p>Explore the experiences available across our restaurant, bar and entertainment areas. Menus and prices will be connected to the hotel system in a later phase.</p></div><div class="experience">
-<article class="feature-card"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="copy"><span class="eyebrow" style="color:#ffdb7b">RESTAURANT</span><h3>Enjoy every bite</h3><p>From satisfying meals to memorable dinners, discover the Regular and VVIP restaurant experiences.</p><a class="btn btn-white" href="#contact">Ask for the Menu →</a></div></article>
+<article class="feature-card"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="copy"><span class="eyebrow" style="color:#ffdb7b">RESTAURANT</span><h3>Enjoy every bite</h3><p>From satisfying meals to memorable dinners, discover the Regular and VVIP restaurant experiences.</p><button class="btn btn-white" type="button" id="openFoodMenu">View Menu & Plan Meal →</button></div></article>
 <article class="feature-card"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="copy"><span class="eyebrow" style="color:#ffdb7b">BAR & LOUNGE</span><h3>Cheers to good times</h3><p>Unwind at our bars, catch up with friends and enjoy the atmosphere.</p><a class="btn btn-white" href="#contact">Make an Enquiry →</a></div></article>
 </div></div></section>
 <section class="section" id="events"><div class="wrap"><div class="section-head"><span class="eyebrow">MEET • CELEBRATE • CONNECT</span><h2 class="serif">Every occasion deserves a place</h2><p>From professional gatherings to evenings out, explore what MWISHO Tourist Hotel can offer.</p></div><div class="grid3">
@@ -153,6 +155,18 @@ footer .brand-tagline{color:#ffcf4a}
 <section class="banner"><span class="eyebrow" style="color:#ffdb7b">EXPERIENCE MWISHO</span><h2 class="serif">Your next memorable visit starts here.</h2><p>Explore accommodation, dining and events in one welcoming destination.</p><button class="btn btn-white" data-book>Plan Your Stay →</button></section>
 <section class="section section-white" id="promotions"><div class="wrap"><div class="section-head"><span class="eyebrow">WHAT'S HAPPENING AT MWISHO</span><h2 class="serif">Advertisements & Upcoming Events</h2><p>Discover announcements, promotions and upcoming hotel experiences.</p></div><div class="mw-promotion-grid" id="mw-promotion-grid"></div><p class="mw-promotions-empty" id="mw-promotions-empty">Upcoming announcements will appear here.</p></div></section>
 <section class="section section-white" id="gallery"><div class="wrap"><div class="section-head"><span class="eyebrow">A GLIMPSE OF THE EXPERIENCE</span><h2 class="serif">Moments worth sharing</h2><p>Explore photos and videos published by MWISHO Tourist Hotel.</p></div><div class="gallery"><p class="gallery-loading-note" role="status">Loading hotel gallery…</p></div><p class="gallery-caption">Published MWISHO Tourist Hotel photos and videos appear here.</p></div></section>
+<dialog id="mwFoodMenuDialog" class="mw-food-dialog" aria-label="Restaurant food menu">
+ <div class="mw-food-head"><div><small>MWISHO TOURIST HOTEL • TASTE OF CLASS</small><h2>Restaurant Menu & Meal Pre-order</h2></div><button id="mwCloseFoodMenu" type="button" aria-label="Close menu">✕ Close</button></div>
+ <p class="mw-food-safety">You can browse current kitchen menu prices and plan your meal. Online payments are being connected. Food orders are not submitted to the kitchen until full payment is verified.</p>
+ <div class="mw-food-list" id="mwFoodMenuItems"><p>Loading the latest POS food menu…</p></div>
+ <section class="mw-food-cart"><h3>Your Planned Meal</h3><div id="mwFoodCart"></div><p id="mwFoodTotal">Total: KES 0</p>
+ <div class="mw-food-dates"><label>Arrival date<input id="mwMealDate" type="date" required/></label><label>Arrival time<input id="mwMealTime" type="time" required/></label></div>
+ <label>Customer name<input id="mwMealName" autocomplete="name" maxlength="120"/></label>
+ <label>Phone number<input id="mwMealPhone" type="tel" autocomplete="tel" maxlength="25"/></label>
+ <button type="button" id="mwFoodCheckout" disabled>Pay & Confirm Food Order — Coming Soon</button>
+ <p role="status" id="mwFoodStatus">Payment is required before preparation. The hotel kitchen receives no unpaid website orders.</p>
+ </section>
+</dialog>
 <section class="section" id="contact"><div class="wrap contact-grid"><div><span class="eyebrow">WE'D LOVE TO HEAR FROM YOU</span><h2 class="serif">Let's make your visit special.</h2><p>Send an enquiry about rooms, dining, group visits, conferences or an upcoming celebration. This first preview does not send messages yet; official hotel contact details and a connected enquiry form will be added before launch.</p><div id="hotel-map-location" class="hotel-map-location" hidden>
  <h3>📍 Find MWISHO Tourist Hotel</h3>
  <p>Open our location in Google Maps and follow directions to the hotel.</p>
@@ -189,6 +203,53 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
 (()=>{
  const endpoint='https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-website-public';
  const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
+ const menuDialog=document.getElementById('mwFoodMenuDialog');
+ const foodCart=new Map();
+ let foodMenu=[];
+ const moneyFood=n=>'KES '+Number(n).toLocaleString('en-KE',{maximumFractionDigits:2});
+ async function openFoodMenu(){
+  menuDialog.showModal();
+  const area=document.getElementById('mwFoodMenuItems');
+  area.replaceChildren(document.createTextNode('Loading live kitchen menu…'));
+  try{
+   const result=await fetch(endpoint+'?resource=food_menu');
+   const data=await result.json();
+   if(!result.ok||!Array.isArray(data.menu))throw new Error(data.error||'Unable to retrieve menu');
+   foodMenu=data.menu;area.replaceChildren();
+   if(!foodMenu.length)area.textContent='No kitchen menu items are currently published.';
+   for(const item of foodMenu){
+    const row=document.createElement('div');row.className='mw-food-item';
+    const details=document.createElement('div');
+    const title=document.createElement('strong');title.textContent=item.name;
+    const price=document.createElement('span');price.textContent=moneyFood(item.price);
+    details.append(title,price);
+    const button=document.createElement('button');button.type='button';button.textContent='Add +';
+    button.addEventListener('click',()=>{foodCart.set(item.id,Math.min(20,(foodCart.get(item.id)||0)+1));renderFoodCart();});
+    row.append(details,button);area.appendChild(row);
+   }
+   renderFoodCart();
+  }catch(e){area.textContent='Menu unavailable: '+(e.message||'Try again later');}
+ }
+ function renderFoodCart(){
+  const cart=document.getElementById('mwFoodCart');cart.replaceChildren();
+  let total=0;
+  for(const [id,qty] of foodCart){
+   const item=foodMenu.find(x=>x.id===id);if(!item)continue;
+   total+=item.price*qty;
+   const row=document.createElement('div');row.className='mw-food-cart-item';
+   const label=document.createElement('span');label.textContent=item.name+' × '+qty;
+   const price=document.createElement('strong');price.textContent=moneyFood(item.price*qty);
+   const remove=document.createElement('button');remove.type='button';remove.textContent='−';remove.setAttribute('aria-label','Remove one '+item.name);
+   remove.addEventListener('click',()=>{qty<=1?foodCart.delete(id):foodCart.set(id,qty-1);renderFoodCart();});
+   row.append(label,price,remove);cart.appendChild(row);
+  }
+  if(!foodCart.size)cart.textContent='Choose meals above to prepare your cart.';
+  document.getElementById('mwFoodTotal').textContent='Planned total: '+moneyFood(total);
+ }
+ document.getElementById('openFoodMenu')?.addEventListener('click',openFoodMenu);
+ document.getElementById('mwCloseFoodMenu')?.addEventListener('click',()=>menuDialog.close());
+ menuDialog?.addEventListener('click',e=>{if(e.target===menuDialog)menuDialog.close();});
+ document.getElementById('mwMealDate').min=new Date().toLocaleDateString('en-CA');
  const roomDialog=document.getElementById('regularRoomCatalogue');
  const roomList=document.getElementById('regularRoomList');
  let roomRecords=[];
