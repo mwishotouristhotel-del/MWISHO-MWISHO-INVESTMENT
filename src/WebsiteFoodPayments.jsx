@@ -91,3 +91,5 @@ export default function WebsiteFoodPayments({supabase}){
   {!orders.some(o=>o.status==='approved_for_kitchen')&&<p>No approved website kitchen orders.</p>}
   </div>
  </section>;
+
+}
