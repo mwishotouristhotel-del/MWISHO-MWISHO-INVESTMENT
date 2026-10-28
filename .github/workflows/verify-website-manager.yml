@@ -7,6 +7,7 @@ on:
       - 'src/WebsiteGalleryManager.jsx'
       - 'src/WebsiteGalleryManager.css'
       - 'src/WebsiteRoomsManager.jsx'
+      - 'src/WebsiteRoomRequests.jsx'
       - 'src/WebsiteRoomsManager.css'
       - 'src/WebsitePromotionsManager.jsx'
       - 'src/WebsitePromotionsManager.css'
@@ -48,6 +49,8 @@ jobs:
         run: node tests/website-manager/about-image-card.mjs
       - name: Verify up to five photos per room on Admin and customer site
         run: node tests/website-manager/room-five-photos.mjs
+      - name: Verify accommodation request flow safety
+        run: node tests/website-manager/room-requests.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
