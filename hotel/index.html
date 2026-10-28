@@ -346,7 +346,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
        if(u.protocol==='https:'&&(
         u.hostname==='maps.app.goo.gl'||
         (u.hostname==='goo.gl'&&u.pathname.startsWith('/maps'))||
-        (/^(www\\.|maps\\.)?google\\.(com|co\\.ke)$/.test(u.hostname)&&u.pathname.startsWith('/maps'))
+        (/^(www\.|maps\.)?google\.(com|co\.ke)$/.test(u.hostname)&&u.pathname.startsWith('/maps'))
        ))destination=u.href;
       }
      }catch{}
