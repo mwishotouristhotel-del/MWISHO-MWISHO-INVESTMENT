@@ -75,6 +75,10 @@ export default function WebsitePromotionsManager({supabase}){
  }
  return <section className="mw-promotions">
   <header><h3>Advertisements & Upcoming Events</h3><p>Manage website adverts, hotel announcements, events and optional customer popups.</p></header>
+  <div className="mw-promotion-choices">
+    <button type="button" className={form.kind==='advertisement'?'selected':''} onClick={()=>patch('kind','advertisement')}><strong>📣 Advertisements</strong><span>Special offers, promotions and announcements</span></button>
+    <button type="button" className={form.kind==='event'?'selected':''} onClick={()=>patch('kind','event')}><strong>📅 Upcoming Hotel Events</strong><span>Music, conferences, celebrations and hotel activities</span></button>
+   </div>
   <form className="mw-promo-form" onSubmit={submit}>
    <h4>Upload New Advertisement or Event</h4>
    <label>Content type<select value={form.kind} onChange={e=>patch('kind',e.target.value)}><option value="advertisement">Advertisement</option><option value="event">Upcoming Hotel Event</option></select></label>
