@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 import './WebsiteManager.css';
 import WebsiteGalleryManager from './WebsiteGalleryManager.jsx';
 import WebsitePromotionsManager from './WebsitePromotionsManager.jsx';
@@ -44,11 +44,26 @@ function hotelDirectionsLink(settings){
  const link=String(settings.google_maps_url||'').trim();
  return validHotelMapUrl(link)?link:'';
 }
-function WebsiteManager({supabase}){
- const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),[selected,setSelected]=useState('hero');
+const WEBSITE_TABS=['content','settings','gallery','promotions','traffic'];
+function safelyRead(key,fallback){
+ try{const value=JSON.parse(localStorage.getItem(key)||'null');return value??fallback;}catch{return fallback;}
+}
+function WebsiteManager({supabase,userId}){
+ const scope='mwisho-website-edit-'+(userId||'no-user');
+ const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),
+ [selected,setSelected]=useState(()=>safelyRead(scope+'-selected','hero'));
+ const cardDrafts=useRef(safelyRead(scope+'-card-drafts',{}));
+ const settingsDraft=useRef(safelyRead(scope+'-settings-draft',{}));
+ const cardTimers=useRef({}),settingsTimer=useRef(null);
+ const cardQueue=useRef({}),settingsQueue=useRef(Promise.resolve());
+ const [saveState,setSaveState]=useState('');
+ function keepDraft(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{}}
+
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
- const [tab,setTab]=useState('content');
+ const [tab,setTab]=useState(()=>{const value=safelyRead(scope+'-tab','content');return WEBSITE_TABS.includes(value)?value:'content';});
+ useEffect(()=>{keepDraft(scope+'-tab',tab)},[scope,tab]);
+ useEffect(()=>{keepDraft(scope+'-selected',selected)},[scope,selected]);
  const [imageNotice,setImageNotice]=useState(''),[imageError,setImageError]=useState(''),[imageUploadingSlug,setImageUploadingSlug]=useState('');
  const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
  async function refresh(){
@@ -59,11 +74,88 @@ function WebsiteManager({supabase}){
    supabase.from('hotel_website_traffic_daily').select('*').gte('date',new Date(Date.now()-90*86400000).toISOString().slice(0,10)).order('date',{ascending:false})
   ]);
   if(a.error||b.error||c.error) {setError(a.error?.message||b.error?.message||c.error?.message);return;}
-  setCards((a.data||[]).sort((x,y)=>x.display_order-y.display_order));setSettings(Object.fromEntries((b.data||[]).map(x=>[x.key,x.value])));setTraffic(c.data||[]);
+  setCards((a.data||[]).map(row=>({...row,...(cardDrafts.current[row.slug]||{})})).sort((x,y)=>x.display_order-y.display_order));
+  setSettings({...Object.fromEntries((b.data||[]).map(x=>[x.key,x.value])),...settingsDraft.current});
+  setTraffic(c.data||[]);
  }
  useEffect(()=>{refresh()},[]);
  const active=cards.find(c=>c.slug===selected);
- function edit(field,value){setCards(old=>old.map(x=>x.slug===selected?{...x,[field]:value}:x))}
+ // Drafts are saved immediately in this browser, then sent to Supabase after editing pauses.
+ // Save only changed columns, so an image upload cannot be overwritten by an older form save.
+ function edit(field,value){
+  const slug=selected;
+  const patch={...(cardDrafts.current[slug]||{}),[field]:value};
+  cardDrafts.current={...cardDrafts.current,[slug]:patch};
+  keepDraft(scope+'-card-drafts',cardDrafts.current);
+  setCards(old=>old.map(x=>x.slug===slug?{...x,[field]:value}:x));
+  setSaveState('Unsaved changes stored on this device · Auto-saving…');
+  clearTimeout(cardTimers.current[slug]);
+  cardTimers.current[slug]=setTimeout(()=>saveCardDraft(slug),1000);
+ }
+ async function saveCardDraft(slug){
+  clearTimeout(cardTimers.current[slug]);
+  const patch={...(cardDrafts.current[slug]||{})};
+  if(!Object.keys(patch).length)return;
+  if(patch.image_url && !/^https:\/\//i.test(patch.image_url)){
+   setSaveState('Invalid image URL · Draft retained');return;
+  }
+  const task=async()=>{
+   try{
+    const {data,error:e}=await supabase.from('hotel_website_content')
+     .update({...patch,updated_at:new Date().toISOString()}).eq('slug',slug).select('slug').single();
+    if(e||!data)throw new Error(e?.message||'No card updated');
+    const outstanding={...(cardDrafts.current[slug]||{})};
+    for(const [field,value] of Object.entries(patch)){
+     if(outstanding[field]===value)delete outstanding[field];
+    }
+    if(Object.keys(outstanding).length)cardDrafts.current[slug]=outstanding;
+    else delete cardDrafts.current[slug];
+    keepDraft(scope+'-card-drafts',cardDrafts.current);
+    setSaveState(Object.keys(outstanding).length?'Newer edits pending…':'All card changes saved');
+   }catch(e){setSaveState('Auto-save failed; draft kept on this device: '+(e.message||String(e)));}
+  };
+  cardQueue.current[slug]=(cardQueue.current[slug]||Promise.resolve()).then(task,task);
+  await cardQueue.current[slug];
+ }
+ function updateSetting(field,value){
+  const changes={...settingsDraft.current,[field]:value};
+  settingsDraft.current=changes;keepDraft(scope+'-settings-draft',changes);
+  setSettings(old=>({...old,[field]:value}));
+  setSaveState('Draft stored · Auto-saving settings…');
+  clearTimeout(settingsTimer.current);
+  settingsTimer.current=setTimeout(saveSettingsDraft,1100);
+ }
+ async function saveSettingsDraft(){
+  clearTimeout(settingsTimer.current);
+  const patch={...settingsDraft.current};
+  if(!Object.keys(patch).length)return;
+  const all={...settings,...patch};
+  const lat=String(all.hotel_latitude||'').trim(),lng=String(all.hotel_longitude||'').trim();
+  if(!validHotelMapUrl(all.google_maps_url)||
+     (lat&&!lng)||(!lat&&lng)||!validGeoCoordinate(lat,90)||!validGeoCoordinate(lng,180)){
+   setSaveState('Please complete valid map details · Draft retained');return;
+  }
+  const tik=String(all.tiktok||'').trim();
+  if(tik){
+   try{const u=new URL(tik);if(u.protocol!=='https:'||!['tiktok.com','www.tiktok.com','m.tiktok.com'].includes(u.hostname)||!u.pathname.startsWith('/@'))throw Error();}
+   catch{setSaveState('Complete a valid TikTok profile URL · Draft retained');return;}
+  }
+  const task=async()=>{
+   try{
+    const {error:e}=await supabase.from('hotel_website_settings')
+     .upsert(Object.entries(patch).map(([key,value])=>({key,value:String(value??''),updated_at:new Date().toISOString()})));
+    if(e)throw e;
+    const outstanding={...settingsDraft.current};
+    for(const [field,value] of Object.entries(patch)){
+     if(outstanding[field]===value)delete outstanding[field];
+    }
+    settingsDraft.current=outstanding;keepDraft(scope+'-settings-draft',outstanding);
+    setSaveState(Object.keys(outstanding).length?'Newer edits pending…':'Website settings saved');
+   }catch(e){setSaveState('Settings auto-save failed; draft kept: '+(e.message||String(e)));}
+  };
+  settingsQueue.current=settingsQueue.current.then(task,task);
+  await settingsQueue.current;
+ }
  async function saveCard(){
   if(!active)return;
   if(active.image_url&&!/^https:\/\//i.test(active.image_url)){setError('Please supply a secure HTTPS image URL.');return;}
@@ -215,6 +307,7 @@ function WebsiteManager({supabase}){
  return <article className="mw-web-admin">
   <div className="mw-web-head"><div><small>MWISHO TOURIST HOTEL · TASTE OF CLASS</small><h2>Hotel Website Management</h2><p>Customer website content, service photos and traffic — independent of hotel POS.</p></div><a href={SITE} target="_blank" rel="noreferrer">↗ Open Customer Website</a></div>
   <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
+  {saveState&&<p className="mw-web-autosave-status" role="status">{saveState}</p>}
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
   {tab==='gallery'&&<WebsiteGalleryManager supabase={supabase}/>}
   {tab==='promotions'&&<WebsitePromotionsManager supabase={supabase}/>}
@@ -261,19 +354,19 @@ function WebsiteManager({supabase}){
     <button type="button" className="mw-web-save" disabled={busy} onClick={saveCard}>{busy?'Saving…':'Save Changes'}</button>
    </>:<p>Website settings have not been initialized yet. Apply the isolated migration before using this panel.</p>}</div></div>}
   {tab==='settings'&&<div className="mw-web-editor mw-web-settings"><h3>Public Hotel Details</h3><p>Only add contact details approved for publication. The existing POS and payment details are not exposed.</p>
-   {[['tagline','Hotel tagline'],['contact_phone','Contact number'],['contact_email','Public email'],['whatsapp','WhatsApp number'],['facebook','Facebook link'],['instagram','Instagram link'],['tiktok','TikTok account link']].map(([key,label])=><label key={key}>{label}<input value={settings[key]||''} onChange={e=>setSettings(old=>({...old,[key]:e.target.value}))}/></label>)}
+   {[['tagline','Hotel tagline'],['contact_phone','Contact number'],['contact_email','Public email'],['whatsapp','WhatsApp number'],['facebook','Facebook link'],['instagram','Instagram link'],['tiktok','TikTok account link']].map(([key,label])=><label key={key}>{label}<input value={settings[key]||''} onChange={e=>updateSetting(key,e.target.value)}/></label>)}
    <fieldset style={{border:'1px solid #dce3ef',borderRadius:14,padding:16,margin:'16px 0'}}>
     <legend style={{fontWeight:800}}>📍 Hotel Location & Google Maps Directions</legend>
     <p className="mw-web-info">Open the hotel's place in Google Maps, tap Share → Copy link, and paste it below. For a direct Directions button, also paste the exact pin coordinates (latitude and longitude). No Google Maps API key is needed.</p>
     <label>Google Maps hotel location link
-      <input type="url" placeholder="https://maps.app.goo.gl/..." value={settings.google_maps_url||''} onChange={e=>setSettings(old=>({...old,google_maps_url:e.target.value}))}/>
+      <input type="url" placeholder="https://maps.app.goo.gl/..." value={settings.google_maps_url||''} onChange={e=>updateSetting('google_maps_url',e.target.value)}/>
     </label>
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
       <label>Hotel pin latitude
-        <input type="number" step="any" min="-90" max="90" placeholder="e.g. -0.123456" value={settings.hotel_latitude||''} onChange={e=>setSettings(old=>({...old,hotel_latitude:e.target.value}))}/>
+        <input type="number" step="any" min="-90" max="90" placeholder="e.g. -0.123456" value={settings.hotel_latitude||''} onChange={e=>updateSetting('hotel_latitude',e.target.value)}/>
       </label>
       <label>Hotel pin longitude
-        <input type="number" step="any" min="-180" max="180" placeholder="e.g. 34.123456" value={settings.hotel_longitude||''} onChange={e=>setSettings(old=>({...old,hotel_longitude:e.target.value}))}/>
+        <input type="number" step="any" min="-180" max="180" placeholder="e.g. 34.123456" value={settings.hotel_longitude||''} onChange={e=>updateSetting('hotel_longitude',e.target.value)}/>
       </label>
     </div>
     {hotelDirectionsLink(settings)&&<a className="mw-web-save" style={{display:'inline-block',marginTop:10}} href={hotelDirectionsLink(settings)} target="_blank" rel="noopener noreferrer">↗ Preview in Google Maps</a>}
