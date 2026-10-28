@@ -70,6 +70,7 @@ footer .brand-tagline{color:#ffcf4a}
 /* Dedicated Admin-managed About section photo: preserve proportions and avoid distortion. */
 #about .intro .image img{width:100%;height:100%;object-fit:contain;object-position:center;background:#f4f0f9}
 @media(max-width:700px){#about .intro .image{height:auto;min-height:320px}#about .intro .image img{height:auto;min-height:320px;max-height:540px;object-fit:contain}}
+.mw-room-photo-viewer{background:#f7f3fa}.mw-room-photo-viewer>img{width:100%;height:210px;object-fit:contain;background:#f6f2fb}.mw-room-photo-controls{display:flex;gap:14px;justify-content:center;align-items:center;padding:6px;color:#552c90;font-weight:700}.mw-room-photo-controls button{border:1px solid #cdb8e7;border-radius:9px;background:white;color:#5727a0;padding:3px 16px;font-size:23px}.mw-room-photo-thumbs{display:flex;gap:6px;overflow-x:auto;padding:5px 9px 10px}.mw-room-photo-thumbs button{padding:2px;border:1px solid #cdb9e4;background:white;border-radius:6px;flex:0 0 55px}.mw-room-photo-thumbs img{height:43px;width:100%;object-fit:contain}.mw-room-dialog .mw-room-list article .mw-room-photo-viewer img{object-fit:contain}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -109,8 +110,8 @@ footer .brand-tagline{color:#ffcf4a}
 <section class="section section-white" id="about"><div class="wrap intro"><div class="image"><img id="mw-about-hotel-photo" loading="lazy" decoding="async" src="assets/photo-placeholder.svg" alt="MWISHO Tourist Hotel About section photograph"/><div class="float-note"><strong>Stay • Dine • Celebrate</strong><div class="about-photo-caption" style="font-size:12px;color:#777;margin-top:5px">A complete hospitality experience</div></div></div><div><span class="eyebrow">MORE THAN A PLACE TO STAY</span><h2 class="serif">Thoughtful hospitality, wonderful memories.</h2><p>Whether you're visiting for a peaceful getaway, a delicious meal, a special event or a lively evening out, MWISHO Tourist Hotel brings your plans together in one welcoming destination.</p><p>Discover our accommodation, VVIP and Regular dining experiences, nightlife and conference offerings.</p><div class="features"><span><b>✦</b> Comfortable stays</span><span><b>✦</b> Great dining</span><span><b>✦</b> Event experiences</span></div><a href="#rooms" class="btn btn-outline">Explore our experiences →</a></div></div></section>
 <section class="section" id="rooms"><div class="wrap"><div class="section-head"><span class="eyebrow">REST & RECHARGE</span><h2 class="serif">Find your kind of comfort</h2><p>Browse our accommodation experiences. Room categories, prices and live availability will be published once confirmed by hotel management.</p></div><div class="grid3">
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ACCOMMODATION</span><h3>Regular Rooms</h3><p>A relaxed retreat with the comfort and convenience you need for a pleasant stay.</p><div class="tile-footer"><small>Rates to be confirmed</small><button class="textbtn" id="viewRegularRooms" type="button" aria-haspopup="dialog" aria-controls="regularRoomCatalogue">View Regular Rooms →</button></div></div></article>
-<article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ENHANCED COMFORT</span><h3>VVIP Rooms</h3><p>A more exclusive accommodation experience for guests seeking added comfort.</p><div class="tile-footer"><small>Rates to be confirmed</small><button class="textbtn" data-room="VVIP Rooms">Enquire →</button></div></div></article>
-<article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">SPECIAL OCCASIONS</span><h3>Extended Stays</h3><p>Planning a longer visit? Contact our team about arrangements suited to your stay.</p><div class="tile-footer"><small>Ask about options</small><button class="textbtn" data-room="Extended Stay">Enquire →</button></div></div></article>
+<article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ENHANCED COMFORT</span><h3>VVIP Rooms</h3><p>A more exclusive accommodation experience for guests seeking added comfort.</p><div class="tile-footer"><small>Rates to be confirmed</small><button class="textbtn" type="button" id="viewVvipRooms">View VVIP Rooms →</button><button class="textbtn" data-room="VVIP Rooms">Enquire →</button></div></div></article>
+<article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">SPECIAL OCCASIONS</span><h3>Extended Stays</h3><p>Planning a longer visit? Contact our team about arrangements suited to your stay.</p><div class="tile-footer"><small>Ask about options</small><button class="textbtn" type="button" id="viewExtendedRooms">View Extended Stays →</button><button class="textbtn" data-room="Extended Stay">Enquire →</button></div></div></article>
 </div></div></section>
 <section class="section section-white" id="dining"><div class="wrap"><div class="section-head"><span class="eyebrow">GOOD FOOD, GOOD COMPANY</span><h2 class="serif">Dine, unwind & enjoy</h2><p>Explore the experiences available across our restaurant, bar and entertainment areas. Menus and prices will be connected to the hotel system in a later phase.</p></div><div class="experience">
 <article class="feature-card"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="copy"><span class="eyebrow" style="color:#ffdb7b">RESTAURANT</span><h3>Enjoy every bite</h3><p>From satisfying meals to memorable dinners, discover the Regular and VVIP restaurant experiences.</p><a class="btn btn-white" href="#contact">Ask for the Menu →</a></div></article>
@@ -161,31 +162,57 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
  const roomDialog=document.getElementById('regularRoomCatalogue');
  const roomList=document.getElementById('regularRoomList');
- let regularRoomRecords=[];
- function showRegularRooms(){
+ let roomRecords=[];
+ let roomCategory="regular";
+ function showRegularRooms(category="regular"){
+  roomCategory=category;
+  renderRegularRooms(roomRecords);
   if(!roomDialog)return;
   roomDialog.showModal();
  }
  const roomTrigger=document.getElementById('viewRegularRooms');
- roomTrigger?.addEventListener('click',showRegularRooms);
+ roomTrigger?.addEventListener('click',()=>showRegularRooms('regular'));
+ document.getElementById('viewVvipRooms')?.addEventListener('click',()=>showRegularRooms('vvip'));
+ document.getElementById('viewExtendedRooms')?.addEventListener('click',()=>showRegularRooms('extended'));
+
  document.getElementById('closeRegularRooms')?.addEventListener('click',()=>roomDialog.close());
  roomDialog?.addEventListener('click',event=>{if(event.target===roomDialog)roomDialog.close();});
  function renderRegularRooms(rooms){
-  regularRoomRecords=Array.isArray(rooms)?rooms.filter(x=>x.category==='regular'):[];
+  roomRecords=Array.isArray(rooms)?rooms:[];
+  const selectedRooms=roomRecords.filter(x=>x.category===roomCategory);
+  const label={'regular':'Regular Rooms','vvip':'VVIP Rooms','extended':'Extended Stays'}[roomCategory]||'Rooms';
+  const dialogTitle=document.getElementById('regularRoomCatalogueTitle');if(dialogTitle)dialogTitle.textContent='Explore '+label;
   if(!roomList)return;
   roomList.replaceChildren();
-  if(!regularRoomRecords.length){
+  if(!selectedRooms.length){
    const empty=document.createElement('p');
    empty.textContent='Room types and packages will appear here once published by the hotel. For enquiries, use the Contact section.';
    roomList.appendChild(empty);return;
   }
   const kinds=[['bed_only','Bed Only'],['bed_breakfast','Bed & Breakfast'],['half_board','Half Board'],['full_board','Full Board']];
   const money=n=>'KES '+Number(n).toLocaleString('en-KE',{maximumFractionDigits:2});
-  for(const room of regularRoomRecords){
+  for(const room of selectedRooms){
    const article=document.createElement('article');
-   const src=normalizeImage(room.image_url);
-   const image=document.createElement('img');image.loading='lazy';image.alt=room.name||'Regular hotel room';
-   image.src=src||'assets/photo-placeholder.svg';article.appendChild(image);
+   const photos=(Array.isArray(room.room_photos)?room.room_photos:[]).map(p=>typeof p==='string'?p:p?.url).map(normalizeImage).filter(Boolean).slice(0,5);
+   if(!photos.length){const legacy=normalizeImage(room.image_url);if(legacy)photos.push(legacy);}
+   const gallery=document.createElement('div');gallery.className='mw-room-photo-viewer';
+   const image=document.createElement('img');image.loading='lazy';image.alt=(room.name||'Hotel room')+' photo 1 of '+photos.length;
+   image.src=photos[0]||'assets/photo-placeholder.svg';gallery.appendChild(image);
+   if(photos.length>1){
+    let index=0;
+    const controls=document.createElement('div');controls.className='mw-room-photo-controls';
+    const back=document.createElement('button');back.type='button';back.textContent='‹';back.setAttribute('aria-label','Previous photo of '+room.name);
+    const next=document.createElement('button');next.type='button';next.textContent='›';next.setAttribute('aria-label','Next photo of '+room.name);
+    const counter=document.createElement('span');counter.setAttribute('aria-live','polite');
+    const setPhoto=()=>{image.src=photos[index];image.alt=(room.name||'Hotel room')+' photo '+(index+1)+' of '+photos.length;counter.textContent=(index+1)+' / '+photos.length;};
+    back.addEventListener('click',()=>{index=(index-1+photos.length)%photos.length;setPhoto();});
+    next.addEventListener('click',()=>{index=(index+1)%photos.length;setPhoto();});
+    controls.append(back,counter,next);gallery.appendChild(controls);setPhoto();
+    const thumbs=document.createElement('div');thumbs.className='mw-room-photo-thumbs';
+    photos.forEach((url,i)=>{const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','Show room photo '+(i+1));const thumb=document.createElement('img');thumb.src=url;thumb.alt='';thumb.loading='lazy';button.appendChild(thumb);button.addEventListener('click',()=>{index=i;setPhoto();});thumbs.appendChild(button);});
+    gallery.appendChild(thumbs);
+   }
+   article.appendChild(gallery);
    const detail=document.createElement('div');detail.className='details';
    const heading=document.createElement('h3');heading.textContent=room.name||'Regular Room';
    const description=document.createElement('p');description.textContent=room.description||'Contact the hotel for further details.';

@@ -6,6 +6,8 @@ on:
       - 'src/WebsiteManager.css'
       - 'src/WebsiteGalleryManager.jsx'
       - 'src/WebsiteGalleryManager.css'
+      - 'src/WebsiteRoomsManager.jsx'
+      - 'src/WebsiteRoomsManager.css'
       - 'src/WebsitePromotionsManager.jsx'
       - 'src/WebsitePromotionsManager.css'
       - 'src/galleryUpload.js'
@@ -29,7 +31,7 @@ jobs:
       - name: Install static analyzer
         run: npm install --no-save --no-audit --no-fund eslint@9 globals@15 jsdom@26
       - name: Check undefined handlers and variables
-        run: npx eslint --config tests/website-manager/eslint.config.mjs src/WebsiteManager.jsx src/WebsiteGalleryManager.jsx src/WebsitePromotionsManager.jsx
+        run: npx eslint --config tests/website-manager/eslint.config.mjs src/WebsiteManager.jsx src/WebsiteGalleryManager.jsx src/WebsitePromotionsManager.jsx src/WebsiteRoomsManager.jsx
       - name: Render Website Management with React (smoke test)
         run: node tests/website-manager/render-smoke.mjs
       - name: Test upload and saved image URLs for hero and restaurant
@@ -44,6 +46,8 @@ jobs:
         run: node tests/website-manager/autosave-navigation.mjs
       - name: Verify About image Admin card and customer mapping
         run: node tests/website-manager/about-image-card.mjs
+      - name: Verify up to five photos per room on Admin and customer site
+        run: node tests/website-manager/room-five-photos.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website

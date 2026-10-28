@@ -1,3 +1,4 @@
+import './WebsiteRoomsManager.css';
 import React,{useEffect,useState} from 'react';
 import {prepareGalleryUpload} from './galleryUpload.js';
 
@@ -12,7 +13,8 @@ export default function WebsiteRoomsManager({supabase}){
  const [draft,setDraft]=useState(EMPTY);
  const [plans,setPlans]=useState(emptyPackages);
  const [selected,setSelected]=useState(null);
- const [file,setFile]=useState(null);
+ const [newFiles,setNewFiles]=useState([]);
+ const [photos,setPhotos]=useState([]);
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
@@ -25,7 +27,8 @@ export default function WebsiteRoomsManager({supabase}){
  useEffect(()=>{refresh();},[supabase]);
  const edit=(key,value)=>setDraft(d=>({...d,[key]:value}));
  function begin(item){
-  setSelected(item?.id||null);setFile(null);setError('');setMessage('');
+  setSelected(item?.id||null);setNewFiles([]);setError('');setMessage('');
+  setPhotos(item?(Array.isArray(item.room_photos)&&item.room_photos.length?item.room_photos.filter(p=>p&&/^https:\/\//.test(p.url)).slice(0,5):(item.image_url?[{url:item.image_url,path:item.image_storage_path||''}]:[])):[]);
   setDraft(item?{...item,amenities:(item.amenities||[]).join(', ')}:{...EMPTY,category:filter,display_order:(rooms.length+1)*10});
   const current=item?.package_rates && Object.keys(item.package_rates).length?item.package_rates:(item?{bed_only:{base_rate_kes:item.nightly_rate_kes,extra_guest_kes:0}}:{});
   setPlans(Object.fromEntries(PACKAGES.map(([key])=>[key,{base_rate_kes:current[key]?.base_rate_kes??'',extra_guest_kes:current[key]?.extra_guest_kes??''}])));
@@ -52,26 +55,31 @@ export default function WebsiteRoomsManager({supabase}){
   if(description.length>1500||amenities.length>25||amenities.some(a=>a.length>80)){setError('Keep the description under 1,500 characters and use up to 25 short amenities.');return;}
   if(!validUrl(draft.image_url)){setError('The room photo URL must be HTTPS.');return;}
   setBusy(true);
-  let uploadedPath='';
+  const newUploadPaths=[];
   try{
-   let image_url=draft.image_url||'',image_storage_path=draft.image_storage_path||'';
-   if(file){
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size===0)throw Error('Choose a JPG, PNG or WebP photo.');
-    setMessage('Preparing room photo…');
+   const uploadedPhotos=[...photos];
+   if(uploadedPhotos.length+newFiles.length>5)throw new Error('Each room may have a maximum of five photos.');
+   for(const [i,file] of newFiles.entries()){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size===0)throw new Error('Choose a valid JPG, PNG or WebP photo.');
+    setMessage('Preparing room photo '+(i+1)+' of '+newFiles.length+'…');
     const prepared=await prepareGalleryUpload(file,{optimize:true});
     const photo=prepared.file;
     const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[photo.type];
-    if(!ext)throw Error('Unsupported converted image format.');
-    uploadedPath='rooms/'+crypto.randomUUID()+'.'+ext;
-    const {error:uploadError}=await supabase.storage.from('mwisho-gallery').upload(uploadedPath,photo,{upsert:false,contentType:photo.type});
-    if(uploadError)throw uploadError;
-    image_url=supabase.storage.from('mwisho-gallery').getPublicUrl(uploadedPath).data?.publicUrl||'';
-    image_storage_path=uploadedPath;
+    if(!ext)throw new Error('Unsupported converted image format.');
+    const path='rooms/'+crypto.randomUUID()+'.'+ext;
+    const {error:uploadError}=await supabase.storage.from('mwisho-gallery').upload(path,photo,{upsert:false,contentType:photo.type});
+    if(uploadError)throw new Error('Room photo '+(i+1)+' upload failed: '+uploadError.message);
+    newUploadPaths.push(path);
+    const url=supabase.storage.from('mwisho-gallery').getPublicUrl(path).data?.publicUrl;
+    if(!url||!/^https:\/\//i.test(url))throw new Error('Photo uploaded but no secure URL was generated.');
+    uploadedPhotos.push({url,path});
    }
+   const image_url=uploadedPhotos[0]?.url||'';
+   const image_storage_path=uploadedPhotos[0]?.path||'';
    const payload={
     category:draft.category,name,description,nightly_rate_kes:rate,package_rates,
     max_guests:guests,amenities:[...new Set(amenities)],
-    image_url,image_storage_path,is_published:!!draft.is_published,
+    image_url,image_storage_path,room_photos:uploadedPhotos,is_published:!!draft.is_published,
     display_order:Number(draft.display_order)||100,updated_at:new Date().toISOString()
    };
    const query=selected?supabase.from('hotel_website_room_listings').update(payload).eq('id',selected):
@@ -79,10 +87,10 @@ export default function WebsiteRoomsManager({supabase}){
    const {error:saveError}=await query.select('id').single();
    if(saveError)throw saveError;
    setMessage(selected?'Room details updated.':'Room added successfully.');
-   setSelected(null);setDraft({...EMPTY,category:filter});setPlans(emptyPackages());setFile(null);await refresh();
+   setSelected(null);setDraft({...EMPTY,category:filter});setPlans(emptyPackages());setNewFiles([]);setPhotos([]);await refresh();
   }catch(err){
    setError(err?.message||String(err));
-   if(uploadedPath)await supabase.storage.from('mwisho-gallery').remove([uploadedPath]).catch(()=>{});
+   if(newUploadPaths.length)await supabase.storage.from('mwisho-gallery').remove(newUploadPaths).catch(()=>{});
   }finally{setBusy(false);}
  }
  async function remove(item){
@@ -109,6 +117,7 @@ export default function WebsiteRoomsManager({supabase}){
     {shown.map(room=><article key={room.id} style={{border:'1px solid #ddd6ed',padding:12,borderRadius:12,marginBottom:10}}>
       {room.image_url&&<img alt={room.name} src={room.image_url} loading="lazy" style={{width:'100%',height:140,objectFit:'contain',background:'#f6f3fc'}}/>}
       <strong>{room.name}</strong>
+      <p>{Array.isArray(room.room_photos)&&room.room_photos.length?room.room_photos.length:room.image_url?1:0} of 5 room photos</p>
       <p>From KES {Math.min(...Object.values(room.package_rates||{}).map(x=>Number(x.base_rate_kes)).filter(Number.isFinite),Number(room.nightly_rate_kes)).toLocaleString('en-KE')} per night · Up to {room.max_guests} guests</p>
       <small>{PACKAGES.filter(([key])=>room.package_rates?.[key]).map(([key,label])=>label).join(' · ')||'Legacy room rate'}</small>
       <small>{room.is_published?'Published':'Draft / hidden'} · {(room.amenities||[]).join(' • ')}</small>
@@ -138,8 +147,34 @@ export default function WebsiteRoomsManager({supabase}){
     <label>Maximum guests<input type="number" min="1" max="30" value={draft.max_guests} onChange={e=>edit('max_guests',e.target.value)}/></label>
     <label>Description<textarea value={draft.description} rows={4} maxLength={1500} onChange={e=>edit('description',e.target.value)} placeholder="Describe this room and its features"/></label>
     <label>Amenities (separate with commas)<textarea value={draft.amenities} rows={3} onChange={e=>edit('amenities',e.target.value)} placeholder="Wi-Fi, Private bathroom, TV, Hot shower"/></label>
-    <label>Room photo<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]||null)}/></label>
-    <label>Or HTTPS photo link<input type="url" value={draft.image_url||''} onChange={e=>edit('image_url',e.target.value)} placeholder="https://..."/></label>
+    <fieldset className="mw-room-photos">
+     <legend>Room photos ({photos.length+newFiles.length}/5)</legend>
+     <p>Add up to 5 photos for this room. The first photo becomes the cover. Existing photos stay published until you save changes.</p>
+     <div className="mw-room-photo-grid">
+      {photos.map((photo,i)=><div className="mw-room-photo" key={photo.path||photo.url}>
+       <img src={photo.url} alt={'Room photo '+(i+1)} loading="lazy"/>
+       <span>{i===0?'Cover image':'Photo '+(i+1)}</span>
+       <div className="mw-room-photo-actions">
+        <button type="button" disabled={busy||i===0} onClick={()=>setPhotos(old=>{const next=[...old];[next[i-1],next[i]]=[next[i],next[i-1]];return next;})}>←</button>
+        <button type="button" disabled={busy||i===photos.length-1} onClick={()=>setPhotos(old=>{const next=[...old];[next[i+1],next[i]]=[next[i],next[i+1]];return next;})}>→</button>
+        <button type="button" disabled={busy} onClick={()=>setPhotos(old=>old.filter((_,n)=>n!==i))}>Remove</button>
+       </div>
+      </div>)}
+      {newFiles.map((photo,i)=><div className="mw-room-photo new" key={photo.name+i}>
+       <span>New photo: {photo.name}</span>
+       <button type="button" disabled={busy} onClick={()=>setNewFiles(old=>old.filter((_,n)=>n!==i))}>Remove</button>
+      </div>)}
+     </div>
+     <label>Choose more room photos<input type="file" multiple disabled={busy||photos.length+newFiles.length>=5}
+      accept="image/jpeg,image/png,image/webp"
+      onChange={e=>{
+       const files=Array.from(e.target.files||[]);
+       if(files.some(f=>!['image/jpeg','image/png','image/webp'].includes(f.type)||!f.size)){setError('Use nonempty JPG, PNG or WebP photos only.');e.target.value='';return;}
+       if(photos.length+newFiles.length+files.length>5){setError('Maximum five photos per room. Remove an existing photo first.');e.target.value='';return;}
+       setError('');setNewFiles(old=>[...old,...files]);e.target.value='';
+      }}/>
+     </label>
+    </fieldset>
     <label>Display order<input type="number" value={draft.display_order} onChange={e=>edit('display_order',e.target.value)}/></label>
     <label><input type="checkbox" checked={!!draft.is_published} onChange={e=>edit('is_published',e.target.checked)}/> Publish on hotel website</label>
     <button className="mw-web-save" disabled={busy} type="submit">{busy?'Saving…':selected?'Save Room Changes':'Add Room Listing'}</button>
