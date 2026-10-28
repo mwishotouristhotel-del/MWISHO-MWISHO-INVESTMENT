@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {readFile,writeFile,unlink} from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import {build} from 'esbuild';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {JSDOM} from 'jsdom';
+const code=await readFile('src/WebsiteRoomsManager.jsx','utf8');
+const page=await readFile('hotel/index.html','utf8');
+const api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+assert(code.includes('multiple disabled={busy||photos.length+newFiles.length>=5}'),'Admin supports selecting multiple photos');
+assert(code.includes('photos.length+newFiles.length+files.length>5'),'Admin caps total images at five');
+assert(code.includes('room_photos:uploadedPhotos'),'Admin persists photo collection');
+assert(code.includes('setPhotos(old=>old.filter'),'Admin allows removing a photo');
+assert(code.includes('next[i-1]'),'Admin supports reordering photos');
+assert(code.includes('setDraft(item?'),'Existing rooms remain editable');
+assert(api.includes('room_photos,display_order'),'Public API returns room photo collection');
+assert(page.includes("photos.length>1"),'Customer photo controls show for several images');
+assert(page.includes('mw-room-photo-thumbs'),'Customer has thumbnail navigation');
+assert(page.includes('viewVvipRooms')&&page.includes('viewExtendedRooms'),'All three categories accessible');
+const temp='.rooms-five-photos-test.mjs';
+await build({entryPoints:['src/WebsiteRoomsManager.jsx'],bundle:true,platform:'node',format:'esm',outfile:temp,external:['react','react-dom'],loader:{'.css':'empty'},logLevel:'silent'});
+try{
+ const {default:Rooms}=await import(pathToFileURL(join(process.cwd(),temp)).href);
+ const html=renderToStaticMarkup(React.createElement(Rooms,{supabase:{from:()=>{throw new Error('render cannot fetch')}}}));
+ assert(html.includes('Choose more room photos'));
+ assert(html.includes('Room Packages'));
+ const dom=new JSDOM(page);
+ assert(dom.window.document.getElementById('regularRoomCatalogue'));
+ assert(dom.window.document.getElementById('viewVvipRooms'));
+ assert(dom.window.document.getElementById('viewExtendedRooms'));
+}finally{await unlink(temp).catch(()=>{});}
+console.log('PASS: room editor, five-photo limit, image reordering, three customer categories and production-safe React render');
