@@ -11,7 +11,7 @@ assert(d.getElementById('mwMealTime'));
 assert(d.getElementById('mwFoodMpesaCode'),'transaction code is required for manual cashier verification');
 assert(d.getElementById('mwFoodCheckout').textContent.includes('Verification'));
 assert(html.includes('foodCart.set('));
-assert(html.includes('payment is required before preparation')||html.includes('Payment is required before preparation'));
+assert(html.includes('Cashier/Admin verification is required before preparation'));
 assert(api.includes("resource')==='food_menu'"));
 assert(api.includes(".eq('preparation_area','kitchen')"));
 assert(api.includes(".eq('hotel_stock_only',false)"));
