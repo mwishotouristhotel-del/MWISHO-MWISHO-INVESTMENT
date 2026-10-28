@@ -1,6 +1,6 @@
 import React,{act} from 'react';
 import {build} from 'esbuild';
-import {createRoot} from 'react-dom/client';
+
 import {JSDOM} from 'jsdom';
 import {unlink} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
@@ -10,6 +10,8 @@ const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:'https://example
 globalThis.window=dom.window;globalThis.document=dom.window.document;globalThis.localStorage=dom.window.localStorage;
 Object.defineProperty(globalThis,'navigator',{configurable:true,value:dom.window.navigator});
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+globalThis.Event=dom.window.Event;globalThis.Node=dom.window.Node;
+const {createRoot}=await import('react-dom/client');
 const dest='.website-autosave-smoke.mjs';
 await build({entryPoints:['src/WebsiteManager.jsx'],bundle:true,format:'esm',platform:'node',
  outfile:dest,external:['react','react-dom'],loader:{'.css':'empty'},logLevel:'silent'});
