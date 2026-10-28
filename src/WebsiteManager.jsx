@@ -20,6 +20,30 @@ const WEBSITE_DEFAULT_IMAGES={
  'private-events':'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=850&q=80'
 };
 function serviceImage(card){return card?.image_url||WEBSITE_DEFAULT_IMAGES[card?.slug]||'';}
+function validHotelMapUrl(value){
+ const raw=String(value||'').trim();
+ if(!raw)return true;
+ try{
+  const u=new URL(raw);
+  return u.protocol==='https:' && (
+   ['maps.app.goo.gl','goo.gl'].includes(u.hostname) && (u.hostname!=='goo.gl'||u.pathname.startsWith('/maps'))
+   || /^(www\.|maps\.)?google\.(com|co\.ke)$/.test(u.hostname) && u.pathname.startsWith('/maps')
+  ) && raw.length<=2048;
+ }catch{return false}
+}
+function validGeoCoordinate(raw,limit){
+ if(String(raw??'').trim()==='')return true;
+ const n=Number(raw);
+ return Number.isFinite(n)&&n>=-limit&&n<=limit;
+}
+function hotelDirectionsLink(settings){
+ const lat=String(settings.hotel_latitude||'').trim(),lng=String(settings.hotel_longitude||'').trim();
+ if(lat&&lng&&validGeoCoordinate(lat,90)&&validGeoCoordinate(lng,180)){
+  return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);
+ }
+ const link=String(settings.google_maps_url||'').trim();
+ return validHotelMapUrl(link)?link:'';
+}
 function WebsiteManager({supabase}){
  const [cards,setCards]=useState([]),[settings,setSettings]=useState({}),[traffic,setTraffic]=useState([]),[selected,setSelected]=useState('hero');
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
@@ -170,7 +194,12 @@ function WebsiteManager({supabase}){
  }
  async function saveSettings(){
   setBusy(true);setError('');setMessage('');
-  const allowed=['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok'];
+  const allowed=['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok','google_maps_url','hotel_latitude','hotel_longitude'];
+  if(!validHotelMapUrl(settings.google_maps_url)){setError('Enter a valid HTTPS Google Maps share link (maps.app.goo.gl or google.com/maps).');setBusy(false);return;}
+  const lat=String(settings.hotel_latitude||'').trim(),lng=String(settings.hotel_longitude||'').trim();
+  if((lat&&!lng)||(!lat&&lng)||!validGeoCoordinate(lat,90)||!validGeoCoordinate(lng,180)){
+   setError('Enter both valid latitude (-90 to 90) and longitude (-180 to 180), or leave both blank.');setBusy(false);return;
+  }
   const tiktok=String(settings.tiktok||'').trim();
   if(tiktok){try{const u=new URL(tiktok);if(u.protocol!=='https:'||!['tiktok.com','www.tiktok.com','m.tiktok.com'].includes(u.hostname)||!u.pathname.startsWith('/@'))throw Error();}catch{setError('Enter a valid TikTok profile URL such as https://www.tiktok.com/@youraccount');setBusy(false);return;}}
   const {error:e}=await supabase.from('hotel_website_settings').upsert(allowed.map(key=>({key,value:settings[key]||'',updated_at:new Date().toISOString()})));
@@ -233,6 +262,23 @@ function WebsiteManager({supabase}){
    </>:<p>Website settings have not been initialized yet. Apply the isolated migration before using this panel.</p>}</div></div>}
   {tab==='settings'&&<div className="mw-web-editor mw-web-settings"><h3>Public Hotel Details</h3><p>Only add contact details approved for publication. The existing POS and payment details are not exposed.</p>
    {[['tagline','Hotel tagline'],['contact_phone','Contact number'],['contact_email','Public email'],['whatsapp','WhatsApp number'],['facebook','Facebook link'],['instagram','Instagram link'],['tiktok','TikTok account link']].map(([key,label])=><label key={key}>{label}<input value={settings[key]||''} onChange={e=>setSettings(old=>({...old,[key]:e.target.value}))}/></label>)}
+   <fieldset style={{border:'1px solid #dce3ef',borderRadius:14,padding:16,margin:'16px 0'}}>
+    <legend style={{fontWeight:800}}>📍 Hotel Location & Google Maps Directions</legend>
+    <p className="mw-web-info">Open the hotel's place in Google Maps, tap Share → Copy link, and paste it below. For a direct Directions button, also paste the exact pin coordinates (latitude and longitude). No Google Maps API key is needed.</p>
+    <label>Google Maps hotel location link
+      <input type="url" placeholder="https://maps.app.goo.gl/..." value={settings.google_maps_url||''} onChange={e=>setSettings(old=>({...old,google_maps_url:e.target.value}))}/>
+    </label>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:12}}>
+      <label>Hotel pin latitude
+        <input type="number" step="any" min="-90" max="90" placeholder="e.g. -0.123456" value={settings.hotel_latitude||''} onChange={e=>setSettings(old=>({...old,hotel_latitude:e.target.value}))}/>
+      </label>
+      <label>Hotel pin longitude
+        <input type="number" step="any" min="-180" max="180" placeholder="e.g. 34.123456" value={settings.hotel_longitude||''} onChange={e=>setSettings(old=>({...old,hotel_longitude:e.target.value}))}/>
+      </label>
+    </div>
+    {hotelDirectionsLink(settings)&&<a className="mw-web-save" style={{display:'inline-block',marginTop:10}} href={hotelDirectionsLink(settings)} target="_blank" rel="noopener noreferrer">↗ Preview in Google Maps</a>}
+    <p className="mw-web-info">Only saved locations appear on the public website. If you remove the map link and both coordinates, the Directions section disappears.</p>
+   </fieldset>
    <p className="mw-web-info">Online reservations and payments remain disabled until the accommodation backend is tested.</p><button className="mw-web-save" type="button" disabled={busy} onClick={saveSettings}>Save Website Settings</button></div>}
   {tab==='traffic'&&<div className="mw-web-editor"><div className="mw-web-traffic-top"><h3>Website Customer Traffic</h3><div><select aria-label="Traffic reporting period" value={period} onChange={e=>setPeriod(e.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><button type="button" onClick={refresh}>Refresh</button><button type="button" onClick={exportCsv}>Export CSV</button></div></div>
    <div className="mw-web-metrics"><div><small>Recorded page views</small><strong>{views.toLocaleString('en-KE')}</strong></div><div><small>Pages visited</small><strong>{topPages.length}</strong></div><div><small>Reporting period</small><strong>{period} days</strong></div></div>

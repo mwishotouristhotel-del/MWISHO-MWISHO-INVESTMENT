@@ -44,7 +44,14 @@ footer .brand-tagline{color:#ffcf4a}
 #gallery .gallery-image-trigger:focus-visible{outline:3px solid #6330ab;outline-offset:-3px}
 #gallery .gallery-entry video{width:100%;height:auto;max-height:360px;object-fit:contain}
 #gallery .gallery-entry figcaption{line-height:1.5}
-</style></head><body>
+</style><style>
+.hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
+.hotel-map-location[hidden]{display:none!important}
+.hotel-map-location h3{margin:0 0 6px;font-size:19px}
+.hotel-map-location p{margin:0 0 16px;line-height:1.5}
+.hotel-map-location .btn{display:inline-flex;align-items:center;text-align:center;max-width:100%;white-space:normal}
+</style>
+</head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
 <section class="hero" id="home"><div class="wrap"><div class="eyebrow">WELCOME TO MWISHO TOURIST HOTEL</div><h1 class="serif">Taste Of Class.<br/>Memorable moments.</h1><p>Relax in comfort, enjoy exceptional dining and celebrate life's finest moments. Discover the warmth of hospitality at MWISHO Tourist Hotel.</p><div class="hero-actions"><button class="btn btn-primary" data-book>Explore & Book Rooms →</button><a class="btn btn-white" href="#about">Discover Our Hotel</a></div></div></section>
@@ -66,7 +73,11 @@ footer .brand-tagline{color:#ffcf4a}
 <section class="banner"><span class="eyebrow" style="color:#ffdb7b">EXPERIENCE MWISHO</span><h2 class="serif">Your next memorable visit starts here.</h2><p>Explore accommodation, dining and events in one welcoming destination.</p><button class="btn btn-white" data-book>Plan Your Stay →</button></section>
 <section class="section section-white" id="promotions"><div class="wrap"><div class="section-head"><span class="eyebrow">WHAT'S HAPPENING AT MWISHO</span><h2 class="serif">Advertisements & Upcoming Events</h2><p>Discover announcements, promotions and upcoming hotel experiences.</p></div><div class="mw-promotion-grid" id="mw-promotion-grid"></div><p class="mw-promotions-empty" id="mw-promotions-empty">Upcoming announcements will appear here.</p></div></section>
 <section class="section section-white" id="gallery"><div class="wrap"><div class="section-head"><span class="eyebrow">A GLIMPSE OF THE EXPERIENCE</span><h2 class="serif">Moments worth sharing</h2><p>Illustrative photography for the first website preview. We will replace these pictures with approved photos of the actual hotel before publication.</p></div><div class="gallery"><img loading="lazy" src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=550&q=75" alt="Illustrative hotel"/><img loading="lazy" src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=550&q=75" alt="Illustrative dining"/><img loading="lazy" src="https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=550&q=75" alt="Illustrative room"/><img loading="lazy" src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=550&q=75" alt="Illustrative bar"/></div><p class="gallery-caption">Photography shown is illustrative and does not represent verified MWISHO facilities.</p></div></section>
-<section class="section" id="contact"><div class="wrap contact-grid"><div><span class="eyebrow">WE'D LOVE TO HEAR FROM YOU</span><h2 class="serif">Let's make your visit special.</h2><p>Send an enquiry about rooms, dining, group visits, conferences or an upcoming celebration. This first preview does not send messages yet; official hotel contact details and a connected enquiry form will be added before launch.</p><div class="features"><span><b>✦</b> Room enquiries</span><span><b>✦</b> Group events</span><span><b>✦</b> Dining</span></div></div><form id="contactForm" class="form"><input name="name" aria-label="Your name" placeholder="Your full name" required/><input name="email" aria-label="Email address" type="email" placeholder="Email address" required/><select name="topic" aria-label="Enquiry type"><option>Accommodation enquiry</option><option>Restaurant & Bar</option><option>Conference / Event</option><option>General enquiry</option></select><textarea name="message" aria-label="Your message" placeholder="Tell us how we can help" required></textarea><button class="btn btn-primary" type="submit">Preview Enquiry →</button><div class="status" id="contactStatus" role="status"></div></form></div></section>
+<section class="section" id="contact"><div class="wrap contact-grid"><div><span class="eyebrow">WE'D LOVE TO HEAR FROM YOU</span><h2 class="serif">Let's make your visit special.</h2><p>Send an enquiry about rooms, dining, group visits, conferences or an upcoming celebration. This first preview does not send messages yet; official hotel contact details and a connected enquiry form will be added before launch.</p><div id="hotel-map-location" class="hotel-map-location" hidden>
+ <h3>📍 Find MWISHO Tourist Hotel</h3>
+ <p>Open our location in Google Maps and follow directions to the hotel.</p>
+ <a id="hotel-map-directions" class="btn btn-primary" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps">📍 Get Directions on Google Maps ↗</a>
+</div><div class="features"><span><b>✦</b> Room enquiries</span><span><b>✦</b> Group events</span><span><b>✦</b> Dining</span></div></div><form id="contactForm" class="form"><input name="name" aria-label="Your name" placeholder="Your full name" required/><input name="email" aria-label="Email address" type="email" placeholder="Email address" required/><select name="topic" aria-label="Enquiry type"><option>Accommodation enquiry</option><option>Restaurant & Bar</option><option>Conference / Event</option><option>General enquiry</option></select><textarea name="message" aria-label="Your message" placeholder="Tell us how we can help" required></textarea><button class="btn btn-primary" type="submit">Preview Enquiry →</button><div class="status" id="contactStatus" role="status"></div></form></div></section>
 </main><footer><div class="wrap"><div class="footgrid"><div><a href="#home" class="brand" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><p>Taste Of Class. Stay in comfort. Dine with joy. Celebrate memorable moments.</p></div><div><h4>Explore</h4><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events & Conferences</a><a href="#gallery">Gallery</a></div><div><h4>Information</h4><a href="#about">About us</a><a href="#contact">Contact us</a><a href="#contact">Room enquiries</a><div id="website-social-links" aria-label="Official social media accounts"></div></div></div><div class="copyright"><span>© <span id="year"></span> MWISHO Tourist Hotel. All rights reserved.</span><span>Customer website preview • Bookings and payments not yet active</span></div></div></footer>
 <div class="modal" id="bookingModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="dialog"><div class="modal-brand"><img src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/></div><button class="close" id="closeModal" aria-label="Close">×</button><span class="eyebrow">PLAN YOUR VISIT</span><h2 id="modalTitle">Accommodation enquiry</h2><p>Tell us what kind of stay you are interested in. Live booking and payment will be activated after integration with the hotel management system.</p><div class="notice">Preview only: this form does not reserve a room, send your details or collect payment.</div><form class="form" id="bookingForm" style="margin-top:18px"><select id="roomType" aria-label="Room type"><option>Regular Rooms</option><option>VVIP Rooms</option><option>Extended Stay</option></select><input id="modalCheckin" type="date" required aria-label="Check-in date"/><input id="modalCheckout" type="date" required aria-label="Check-out date"/><select id="modalGuests" aria-label="Number of guests"><option value="1">1 Guest</option><option value="2">2 Guests</option><option value="3">3 Guests</option><option value="4">4 Guests</option><option value="5">5+ Guests</option></select><button class="btn btn-primary" type="submit">Preview Request →</button><div class="status" id="bookingStatus" role="status"></div></form></div></div>
 <script>
@@ -317,6 +328,31 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
       socialRoot.appendChild(a);
      }catch{}
     }
+   }
+   const locationRoot=document.getElementById('hotel-map-location');
+   const directions=document.getElementById('hotel-map-directions');
+   if(locationRoot&&directions){
+    const lat=String(settings.hotel_latitude||'').trim();
+    const lng=String(settings.hotel_longitude||'').trim();
+    const validCoord=(s,range)=>s!==''&&Number.isFinite(Number(s))&&Number(s)>=-range&&Number(s)<=range;
+    let destination='';
+    if(validCoord(lat,90)&&validCoord(lng,180)){
+     destination='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng);
+    }else{
+     try{
+      const raw=String(settings.google_maps_url||'').trim();
+      if(raw.length<=2048){
+       const u=new URL(raw);
+       if(u.protocol==='https:'&&(
+        u.hostname==='maps.app.goo.gl'||
+        (u.hostname==='goo.gl'&&u.pathname.startsWith('/maps'))||
+        (/^(www\.|maps\.)?google\.(com|co\.ke)$/.test(u.hostname)&&u.pathname.startsWith('/maps'))
+       ))destination=u.href;
+      }
+     }catch{}
+    }
+    if(destination){directions.href=destination;locationRoot.hidden=false;}
+    else locationRoot.hidden=true;
    }
    const contact=document.querySelector('#contact .contact-grid>div:first-child');
    if(contact){
