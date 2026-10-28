@@ -13,8 +13,7 @@ try{
  const {default:Manager}=await import(pathToFileURL(join(process.cwd(),output)).href);
  const html=renderToStaticMarkup(React.createElement(Manager,{supabase:{from:()=>{throw new Error('Do not access network while server-rendering');}}}));
  assert(html.includes('Upcoming Events'));
- assert(html.includes('5-second countdown'));
- assert(html.includes('No countdown'));
+ assert(html.includes('Activate popup'));
  assert(html.includes('Upcoming Hotel Events'));
  assert(html.includes('Advertisement'));
 }finally{await unlink(output).catch(()=>{});}
