@@ -132,7 +132,7 @@ footer .brand-tagline{color:#ffcf4a}
   flex-basis:62px;width:62px;height:56px;
  }
 }
-.mw-room-availability{padding:14px 0 5px;display:grid;gap:11px}.mw-room-availability h4{font-size:16px;margin:4px 0;color:#492b82}.mw-room-availability>p{font-size:12px;color:#655b75;line-height:1.5}.mw-room-request-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mw-room-request-fields label{display:grid;gap:5px;color:#46335f;font-size:12px;font-weight:700}.mw-room-request-fields input{display:block;width:100%;min-width:0;padding:10px;border:1px solid #d5c7e9;border-radius:8px;font-size:15px}.mw-room-availability .mw-room-similar{background:#fff;border:1px solid #6330ab;color:#6330ab;padding:11px;border-radius:8px;font-weight:700}.mw-room-request-status{font-weight:650}@media(max-width:450px){.mw-room-request-fields{grid-template-columns:1fr}}</style>
+.mw-room-availability{padding:14px 0 5px;display:grid;gap:11px}.mw-room-availability h4{font-size:16px;margin:4px 0;color:#492b82}.mw-room-availability>p{font-size:12px;color:#655b75;line-height:1.5}.mw-room-request-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mw-room-request-fields label{display:grid;gap:5px;color:#46335f;font-size:12px;font-weight:700}.mw-room-request-fields input{display:block;width:100%;min-width:0;padding:10px;border:1px solid #d5c7e9;border-radius:8px;font-size:15px}.mw-room-availability .mw-room-similar{background:#fff;border:1px solid #6330ab;color:#6330ab;padding:11px;border-radius:8px;font-weight:700}.mw-room-request-status{font-weight:650}@media(max-width:450px){.mw-room-request-fields{grid-template-columns:1fr}}.mw-food-payment{background:#fff8e3;border:1px solid #f3d571;border-radius:10px;padding:14px;margin:14px 0;font-size:14px;line-height:1.6}.mw-food-payment[hidden]{display:none!important}.mw-food-payment strong{color:#542a94}.mw-food-cart #mwFoodCheckout:not(:disabled){background:#6330ab;color:white;cursor:pointer}</style>
 </head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
@@ -157,13 +157,19 @@ footer .brand-tagline{color:#ffcf4a}
 <section class="section section-white" id="gallery"><div class="wrap"><div class="section-head"><span class="eyebrow">A GLIMPSE OF THE EXPERIENCE</span><h2 class="serif">Moments worth sharing</h2><p>Explore photos and videos published by MWISHO Tourist Hotel.</p></div><div class="gallery"><p class="gallery-loading-note" role="status">Loading hotel gallery…</p></div><p class="gallery-caption">Published MWISHO Tourist Hotel photos and videos appear here.</p></div></section>
 <dialog id="mwFoodMenuDialog" class="mw-food-dialog" aria-label="Restaurant food menu">
  <div class="mw-food-head"><div><small>MWISHO TOURIST HOTEL • TASTE OF CLASS</small><h2>Restaurant Menu & Meal Pre-order</h2></div><button id="mwCloseFoodMenu" type="button" aria-label="Close menu">✕ Close</button></div>
- <p class="mw-food-safety">You can browse current kitchen menu prices and plan your meal. Online payments are being connected. Food orders are not submitted to the kitchen until full payment is verified.</p>
+ <p class="mw-food-safety">You can browse current kitchen menu prices and plan your meal. Pay directly to the hotel's displayed M-Pesa Till. Submit your transaction code for manual verification. Kitchen preparation starts only after staff approval.</p>
  <div class="mw-food-list" id="mwFoodMenuItems"><p>Loading the latest POS food menu…</p></div>
  <section class="mw-food-cart"><h3>Your Planned Meal</h3><div id="mwFoodCart"></div><p id="mwFoodTotal">Total: KES 0</p>
  <div class="mw-food-dates"><label>Arrival date<input id="mwMealDate" type="date" required/></label><label>Arrival time<input id="mwMealTime" type="time" required/></label></div>
  <label>Customer name<input id="mwMealName" autocomplete="name" maxlength="120"/></label>
  <label>Phone number<input id="mwMealPhone" type="tel" autocomplete="tel" maxlength="25"/></label>
- <button type="button" id="mwFoodCheckout" disabled>Pay & Confirm Food Order — Coming Soon</button>
+ <div class="mw-food-payment" id="mwFoodPayment" hidden>
+ <strong>Pay using M-Pesa Buy Goods</strong>
+ <p>Hotel Till Number: <strong id="mwFoodTill"></strong></p>
+ <p>Pay the exact planned total in M-Pesa, then enter the transaction code from your confirmation SMS. The hotel verifies payment manually.</p>
+ <label>M-Pesa transaction code<input id="mwFoodMpesaCode" placeholder="e.g. TABC123456" autocomplete="off" maxlength="15" autocapitalize="characters"/></label>
+ </div>
+ <button type="button" id="mwFoodCheckout" disabled>Submit Payment for Verification</button>
  <p role="status" id="mwFoodStatus">Payment is required before preparation. The hotel kitchen receives no unpaid website orders.</p>
  </section>
 </dialog>
@@ -204,11 +210,31 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  const endpoint='https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-website-public';
  const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
  const menuDialog=document.getElementById('mwFoodMenuDialog');
+ let foodOrderingEnabled=false;
+ let verifiedTill='';
+ const foodCheckout=document.getElementById('mwFoodCheckout');
+ const foodStatus=document.getElementById('mwFoodStatus');
+ async function loadFoodPaymentOptions(){
+  try{
+   const result=await fetch(endpoint+'?resource=food_payment_config');
+   const payload=await result.json();
+   foodOrderingEnabled=!!payload.enabled;
+   verifiedTill=String(payload.till||'');
+   const paymentSection=document.getElementById('mwFoodPayment');
+   paymentSection.hidden=!foodOrderingEnabled;
+   document.getElementById('mwFoodTill').textContent=verifiedTill;
+   foodStatus.textContent=foodOrderingEnabled?
+    'Payment must be verified by the hotel before the kitchen receives your order.':
+    'Manual M-Pesa ordering is not yet enabled. You can browse and plan your meal.';
+   renderFoodCart();
+  }catch{foodOrderingEnabled=false;foodCheckout.disabled=true;foodStatus.textContent='Unable to load payment settings. Please contact the hotel.';}
+ }
  const foodCart=new Map();
  let foodMenu=[];
  const moneyFood=n=>'KES '+Number(n).toLocaleString('en-KE',{maximumFractionDigits:2});
  async function openFoodMenu(){
   menuDialog.showModal();
+  loadFoodPaymentOptions();
   const area=document.getElementById('mwFoodMenuItems');
   area.replaceChildren(document.createTextNode('Loading live kitchen menu…'));
   try{
@@ -245,7 +271,32 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   }
   if(!foodCart.size)cart.textContent='Choose meals above to prepare your cart.';
   document.getElementById('mwFoodTotal').textContent='Planned total: '+moneyFood(total);
+  foodCheckout.disabled=!foodOrderingEnabled||!foodCart.size;
  }
+ foodCheckout?.addEventListener('click',async()=>{
+  if(!foodOrderingEnabled||!foodCart.size)return;
+  const date=document.getElementById('mwMealDate').value;
+  const time=document.getElementById('mwMealTime').value;
+  const name=document.getElementById('mwMealName').value.trim();
+  const phone=document.getElementById('mwMealPhone').value.trim();
+  const code=document.getElementById('mwFoodMpesaCode').value.trim().toUpperCase();
+  if(!date||!time||name.length<2||phone.length<9||! /^[A-Z0-9]{8,15}$/.test(code)){
+    foodStatus.textContent='Enter your name, phone, arrival date/time and valid M-Pesa code.';return;
+  }
+  foodCheckout.disabled=true;foodStatus.textContent='Submitting payment proof for hotel verification…';
+  try{
+   const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
+    action:'submit_food_payment',customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
+    mpesa_reference:code,items:[...foodCart].map(([id,qty])=>({id,qty}))
+   })});
+   const payload=await response.json();
+   if(!response.ok||!payload.ok)throw new Error(payload.error||'Submission failed');
+   foodCart.clear();renderFoodCart();
+   foodStatus.textContent='Order reference '+payload.order_id+'. '+payload.message;
+   document.getElementById('mwFoodMpesaCode').value='';
+  }catch(e){foodStatus.textContent=e.message||'Unable to submit. Please retry.';}
+  finally{foodCheckout.disabled=!foodOrderingEnabled||!foodCart.size;}
+ });
  document.getElementById('openFoodMenu')?.addEventListener('click',openFoodMenu);
  document.getElementById('mwCloseFoodMenu')?.addEventListener('click',()=>menuDialog.close());
  menuDialog?.addEventListener('click',e=>{if(e.target===menuDialog)menuDialog.close();});
