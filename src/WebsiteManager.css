@@ -113,3 +113,27 @@
  .mw-web-admin .mw-web-tabs button{min-width:0;min-height:46px;padding:9px!important;font-size:12px;text-align:center}
 }
 @media(max-width:350px){.mw-web-admin .mw-web-list{gap:6px!important}.mw-web-admin .mw-web-list>button{padding:7px!important}}
+
+/* Mobile service card selector stays accessible above the editing panel. */
+.mw-web-mobile-switcher{display:none}
+@media(max-width:650px){
+ .mw-web-admin .mw-web-mobile-switcher{
+  display:flex!important;flex-direction:column;gap:8px;
+  position:sticky;top:62px;z-index:15;
+  background:#fff;padding:12px 10px;
+  border:1px solid #e5d9f1;border-radius:12px;
+  box-shadow:0 4px 15px rgba(54,29,94,.09);
+  min-width:0;width:100%;
+ }
+ .mw-web-mobile-switcher label{font-weight:750;color:#50278b;font-size:13px}
+ .mw-web-mobile-switcher select{
+  width:100%;max-width:100%;font-size:16px;
+  background:#f8f4fd;border:1px solid #a88ccd;
+  border-radius:9px;padding:12px 10px;color:#35214e;
+ }
+ .mw-web-mobile-switcher button{
+  align-self:flex-start;border:0;background:transparent;
+  color:#5d30a0;padding:6px 0;font-weight:700;font-size:13px;
+ }
+ .mw-web-admin .mw-web-editor{scroll-margin-top:230px!important}
+}
