@@ -2,6 +2,6 @@
 insert into public.hotel_website_content
  (slug,title,subtitle,description,image_url,enabled,display_order,placement)
 values
- ('about-hotel','Stay • Dine • Celebrate','MORE THAN A PLACE TO STAY',
-  'A complete hospitality experience','',true,5,'hero')
+ ('about-hotel','Stay • Dine • Celebrate','A complete hospitality experience',
+  'Homepage About section photo','',true,5,'hero')
 on conflict (slug) do nothing;
