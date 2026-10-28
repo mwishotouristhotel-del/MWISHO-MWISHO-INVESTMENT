@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {readFile,unlink} from 'node:fs/promises';
+import {build} from 'esbuild';
+import {pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {JSDOM} from 'jsdom';
+const page=await readFile('hotel/index.html','utf8');
+const api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const mgr=await readFile('src/WebsiteManager.jsx','utf8');
+const sql=await readFile('supabase/migrations/20261028_room_availability_requests.sql','utf8');
+assert(page.includes('Check This Room Availability'));
+assert(page.includes('Recommend a Similar Room for Me'));
+assert(page.includes("action:'room_request'"));
+assert(page.includes('not yet a confirmed booking'),'customer must not see false booking confirmation');
+assert(api.includes("data?.action==='room_request'"));
+assert(api.includes("eq('is_published',true)"));
+assert(sql.includes('enable row level security'));
+assert(!sql.includes('grant select,insert,update,delete on public.hotel_website_room_requests to anon'));
+assert(mgr.includes("tab==='room_requests'"));
+const temp='.room-requests-smoke.mjs';
+await build({entryPoints:['src/WebsiteRoomRequests.jsx'],bundle:true,platform:'node',format:'esm',outfile:temp,external:['react','react-dom'],logLevel:'silent'});
+try{
+ const {default:Queue}=await import(pathToFileURL(join(process.cwd(),temp)).href);
+ const html=renderToStaticMarkup(React.createElement(Queue,{supabase:{from:()=>{throw Error('no database access during server render')}}}));
+ assert(html.includes('Accommodation Availability'));
+ assert(html.includes('not confirmed bookings'));
+}finally{await unlink(temp).catch(()=>{});}
+const doc=new JSDOM(page).window.document;
+assert(doc.getElementById('regularRoomCatalogue'));
+console.log('PASS: customer room requests, private queue, staff recommendation UI and non-booking safety text');
