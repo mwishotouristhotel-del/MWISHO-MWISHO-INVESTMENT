@@ -266,7 +266,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
      dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
      dialog.showModal();
      if(selected.popup_mode==='five_seconds'){
-      let seconds=5;countdown.textContent='Closes automatically in '+seconds+' seconds';
+      let seconds=15;countdown.textContent='Closes automatically in '+seconds+' seconds';
       timer=setInterval(()=>{seconds--;if(seconds<=0)dismiss();else countdown.textContent='Closes automatically in '+seconds+' seconds';},1000);
      }
     }

@@ -44,8 +44,8 @@ async function browserScenario(mode){
  const popup=window.document.querySelector('.mw-promotion-popup');
  assert(popup&&popup.open,'popup opened for published event');
  if(mode==='five_seconds'){
-  assert(popup.textContent.includes('5 seconds'),'5 second countdown visible');
-  for(let n=0;n<5;n++)for(const fn of [...timers.values()])fn();
+  assert(popup.textContent.includes('15 seconds'),'15 second countdown visible');
+  for(let n=0;n<15;n++)for(const fn of [...timers.values()])fn();
   assert(!window.document.querySelector('.mw-promotion-popup'),'countdown auto-dismisses popup');
  }else{
   assert(!popup.textContent.includes('Closes automatically'),'manual popup has no countdown');
