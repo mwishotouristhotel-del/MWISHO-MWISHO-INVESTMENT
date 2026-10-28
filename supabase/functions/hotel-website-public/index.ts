@@ -17,7 +17,7 @@ Deno.serve(async(req:Request)=>{
    const [cards,settings,gallery]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
     db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok']),
-    db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80)
+    db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,thumbnail_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80)
    ]);
    if(cards.error||settings.error||gallery.error)return respond({error:'content unavailable'},503);
    return respond({cards:cards.data,gallery:gallery.data||[],settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
