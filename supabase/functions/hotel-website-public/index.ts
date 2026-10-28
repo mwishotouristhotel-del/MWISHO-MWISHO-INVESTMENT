@@ -44,6 +44,12 @@ Deno.serve(async(req:Request)=>{
    const {data:room,error:roomError}=await db.from('hotel_website_room_listings')
       .select('id,max_guests').eq('id',data.room_id).eq('is_published',true).maybeSingle();
    if(roomError||!room||guests>Number(room.max_guests))return respond({error:'Room cannot accommodate this request.'},400);
+   const {count:recentCount,error:throttleError}=await db.from('hotel_website_room_requests')
+    .select('id',{count:'exact',head:true})
+    .eq('customer_contact',contact)
+    .gte('created_at',new Date(Date.now()-3600000).toISOString());
+   if(throttleError)return respond({error:'Unable to process requests at the moment.'},503);
+   if((recentCount||0)>=3)return respond({error:'Too many recent requests. Please contact the hotel directly.'},429);
    const {error:insertError}=await db.from('hotel_website_room_requests').insert({
     room_id:room.id,request_kind:kind,check_in:inDate,check_out:outDate,guests,
     package_key:data.package_key,customer_name:name,customer_contact:contact,note,status:'pending'
