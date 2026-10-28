@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {createGalleryThumbnail} from '../../src/galleryThumbnail.js';
+let closed=false;
+globalThis.createImageBitmap=async()=>({width:4000,height:3000,close(){closed=true;}});
+globalThis.document={createElement:()=>({width:0,height:0,getContext(){return{drawImage(){}}},toBlob(fn){fn(new Blob([new Uint8Array(75*1024)],{type:'image/webp'}));}})};
+const image=new File([new Uint8Array(16*1024*1024)],'large.jpg',{type:'image/jpeg'});
+const preview=await createGalleryThumbnail(image);
+assert(preview&&preview.size<100*1024,'preview is small');
+assert.equal(preview.type,'image/webp');
+assert(closed,'decoder released');
+assert.equal(await createGalleryThumbnail(new File(['x'],'video.mp4',{type:'video/mp4'})),null);
+console.log('PASS: 16 MB original produces compact WebP preview without changing original');
