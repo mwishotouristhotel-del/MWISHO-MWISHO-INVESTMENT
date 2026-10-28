@@ -7,6 +7,7 @@ on:
       - 'src/WebsiteGalleryManager.jsx'
       - 'src/WebsiteGalleryManager.css'
       - 'src/WebsiteRoomsManager.jsx'
+      - 'src/WebsiteFoodPayments.jsx'
       - 'src/WebsiteRoomRequests.jsx'
       - 'src/WebsiteRoomsManager.css'
       - 'src/WebsitePromotionsManager.jsx'
@@ -53,6 +54,8 @@ jobs:
         run: node tests/website-manager/room-requests.mjs
       - name: Verify food pre-order payment gate
         run: node tests/website-manager/food-preorder-gate.mjs
+      - name: Verify manual M-Pesa and food payment approval workflow
+        run: node tests/website-manager/manual-mpesa-food.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
