@@ -310,6 +310,7 @@ function WebsiteManager({supabase,userId}){
   <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['rooms','🛏️ Rooms & Rates'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
   {saveState&&<p className="mw-web-autosave-status" role="status">{saveState}</p>}
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
+  {tab==='rooms'&&<WebsiteRoomsManager supabase={supabase}/>}
   {tab==='gallery'&&<WebsiteGalleryManager supabase={supabase} userId={userId}/>}
   {tab==='promotions'&&<WebsitePromotionsManager supabase={supabase} userId={userId}/>}
   {tab==='content'&&<div className="mw-web-layout"><aside className="mw-web-list" aria-label="Website sections"><div className="mw-web-list-heading"><strong>Manage Service Cards</strong><small>Choose a section to edit its image and text</small></div><div className="mw-web-new-card">
