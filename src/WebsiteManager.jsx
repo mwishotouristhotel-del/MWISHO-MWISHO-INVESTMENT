@@ -67,6 +67,13 @@ function WebsiteManager({supabase,userId}){
  useEffect(()=>{keepDraft(scope+'-selected',selected)},[scope,selected]);
  const [imageNotice,setImageNotice]=useState(''),[imageError,setImageError]=useState(''),[imageUploadingSlug,setImageUploadingSlug]=useState('');
  const [newCard,setNewCard]=useState({title:'',placement:'events'});const [adding,setAdding]=useState(false);
+ const editorRef=useRef(null);
+ function selectServiceCard(slug){
+  setSelected(slug);setMessage('');setImageNotice('');setImageError('');
+  if(window.matchMedia('(max-width: 650px)').matches){
+   window.requestAnimationFrame(()=>editorRef.current?.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+ }
  async function refresh(){
   setError('');
   const [a,b,c]=await Promise.all([
@@ -321,13 +328,13 @@ function WebsiteManager({supabase,userId}){
   <button type="submit" disabled={busy}>Create Card</button>
  </form>}
  </div>
- {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>{setSelected(c.slug);setMessage('');setImageNotice('');setImageError('')}} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
+ {cards.slice().sort((a,b)=>a.display_order-b.display_order).map(c=><button type="button" key={c.slug} onClick={()=>selectServiceCard(c.slug)} className={selected===c.slug?'current':''} aria-current={selected===c.slug?'true':undefined}>
  <span className="mw-web-list-icon" aria-hidden="true">{serviceImage(c)?<img className="mw-web-list-image" src={serviceImage(c)} alt="" loading="lazy"/>:'🖼️'}</span>
  <span className="mw-web-list-name">{c.title}</span>
  <small className="mw-web-list-status">{c.enabled?'Visible':'Hidden'}</small>
  <small className="mw-web-area">{(PLACEMENTS.find(([id])=>id===(c.placement||DEFAULT_PLACEMENT[c.slug]))||['','Homepage'])[1]}</small>
  </button>)}</aside>
-  <div className="mw-web-editor">{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{serviceImage(active)?<img src={serviceImage(active)} alt={'Preview of '+active.title}/>:<div>No image selected. Upload a hotel photo to show here.</div>}</div>{!active.image_url&&<p className="mw-web-default-note">Illustrative preview from the customer website. No custom photo has been saved for this card yet. Upload a replacement image below to publish your own hotel photo.</p>}
+  <div className="mw-web-editor" ref={editorRef}>{active?<><h3>{active.title} <small>({active.slug})</small></h3><div className="mw-web-preview">{serviceImage(active)?<img src={serviceImage(active)} alt={'Preview of '+active.title}/>:<div>No image selected. Upload a hotel photo to show here.</div>}</div>{!active.image_url&&<p className="mw-web-default-note">Illustrative preview from the customer website. No custom photo has been saved for this card yet. Upload a replacement image below to publish your own hotel photo.</p>}
     <div className="mw-web-card-controls">
   <span>Section: <strong>{(PLACEMENTS.find(([id])=>id===(active.placement||DEFAULT_PLACEMENT[active.slug]))||['','Homepage'])[1]}</strong></span>
   {active.slug!=='hero'&&<>
