@@ -96,7 +96,7 @@ export default function WebsitePromotionsManager({supabase,userId}){
    <div className="mw-promo-popup span2">
     <label className="check"><input type="checkbox" checked={form.popup_enabled} onChange={e=>patch('popup_enabled',e.target.checked)}/> Activate popup on customer website</label>
     {form.popup_enabled&&<fieldset><legend>Popup behavior</legend>
-      <label><input type="radio" name="popup_mode" checked={form.popup_mode==='five_seconds'} onChange={()=>patch('popup_mode','five_seconds')}/> 5-second countdown (automatically closes)</label>
+      <label><input type="radio" name="popup_mode" checked={form.popup_mode==='five_seconds'} onChange={()=>patch('popup_mode','five_seconds')}/> 15-second countdown (automatically closes)</label>
       <label><input type="radio" name="popup_mode" checked={form.popup_mode==='manual'} onChange={()=>patch('popup_mode','manual')}/> No countdown (customer closes manually)</label>
      </fieldset>}
     <p>Popups appear at most once per browser session for each advertisement or event.</p>
@@ -112,7 +112,7 @@ export default function WebsitePromotionsManager({supabase,userId}){
     <div><strong>{item.title}</strong><p>{item.kind==='event'?'Upcoming Event':'Advertisement'} · {item.is_published?'Published':'Draft'}</p>
     {item.event_date&&<small>Event: {new Date(item.event_date).toLocaleString('en-KE')}</small>}
     <label className="check"><input type="checkbox" checked={item.popup_enabled} disabled={working!==null} onChange={e=>update(item,{popup_enabled:e.target.checked})}/> Show popup</label>
-    {item.popup_enabled&&<label>Popup mode<select disabled={working!==null} value={item.popup_mode} onChange={e=>update(item,{popup_mode:e.target.value})}><option value="five_seconds">5-second countdown</option><option value="manual">No countdown</option></select></label>}
+    {item.popup_enabled&&<label>Popup mode<select disabled={working!==null} value={item.popup_mode} onChange={e=>update(item,{popup_mode:e.target.value})}><option value="five_seconds">15-second countdown</option><option value="manual">No countdown</option></select></label>}
     <div className="mw-promo-actions"><button disabled={working!==null} onClick={()=>update(item,{is_published:!item.is_published})}>{item.is_published?'Unpublish':'Publish'}</button><button disabled={working!==null} onClick={()=>remove(item)} className="danger">Delete</button></div>
     </div>
   </article>)}</div>
