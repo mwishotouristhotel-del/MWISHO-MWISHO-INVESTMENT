@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import './WebsiteGalleryManager.css';
 import {prepareGalleryUpload} from './galleryUpload.js';
+import {createGalleryThumbnail} from './galleryThumbnail.js';
 
 const MAX_BYTES=10*1024*1024;
 const TYPE_MAP={'image/jpeg':'photo','image/png':'photo','image/webp':'photo','video/mp4':'video','video/webm':'video'};
@@ -33,6 +34,7 @@ export default function WebsiteGalleryManager({supabase}){
   setBusy(true);setError('');setStatus('Preparing gallery media…');
   let path='';
   let uploaded=false;
+  let thumbnailPath='';
   try{
    const prepared=await prepareGalleryUpload(file,{optimize:optimizePhotos});
    const uploadFile=prepared.file;
@@ -44,12 +46,23 @@ export default function WebsiteGalleryManager({supabase}){
    uploaded=true;
    const publicUrl=supabase.storage.from('mwisho-gallery').getPublicUrl(path).data?.publicUrl;
    if(!publicUrl||!publicUrl.startsWith('https://'))throw new Error('Storage upload returned no secure media link.');
+   let thumbnailUrl='';
+   if(TYPE_MAP[uploadFile.type]==='photo'){
+    setStatus('Preparing a fast-loading gallery preview…');
+    const preview=await createGalleryThumbnail(uploadFile);
+    if(preview){
+     thumbnailPath='thumbs/'+crypto.randomUUID()+'.webp';
+     const {error:thumbError}=await supabase.storage.from('mwisho-gallery').upload(thumbnailPath,preview,{contentType:'image/webp',upsert:false});
+     if(thumbError)thumbnailPath='';
+     else thumbnailUrl=supabase.storage.from('mwisho-gallery').getPublicUrl(thumbnailPath).data?.publicUrl||'';
+    }
+   }
    const nextOrder=Math.max(0,...items.map(x=>Number(x.display_order)||0))+10;
    setStatus('Media uploaded. Saving gallery details…');
    const {data,error:dbError}=await supabase.from('hotel_website_gallery').insert({
      title:title.trim().slice(0,120),description:description.trim().slice(0,500),
      media_type:TYPE_MAP[uploadFile.type],mime_type:uploadFile.type,file_size:uploadFile.size,
-     object_path:path,media_url:publicUrl,is_published:publish,display_order:nextOrder
+     object_path:path,media_url:publicUrl,thumbnail_path:thumbnailPath,thumbnail_url:thumbnailUrl,is_published:publish,display_order:nextOrder
    }).select('id,media_url').single();
    if(dbError||!data)throw new Error('Gallery record failed: '+(dbError?.message||'No saved row returned'));
    setStatus('Gallery '+TYPE_MAP[file.type]+' saved'+(publish?' and published.':' as draft.'));
@@ -57,7 +70,7 @@ export default function WebsiteGalleryManager({supabase}){
    await refresh();
   }catch(e){
    setError(e?.message||String(e));setStatus('Upload was not published.');
-   if(uploaded&&path)await supabase.storage.from('mwisho-gallery').remove([path]).catch(()=>{});
+   if(uploaded&&path)await supabase.storage.from('mwisho-gallery').remove([path,...(thumbnailPath?[thumbnailPath]:[])]).catch(()=>{});
   }finally{setBusy(false);}
  }
  async function update(item,patch){
@@ -77,7 +90,7 @@ export default function WebsiteGalleryManager({supabase}){
   try{
    const {error:e}=await supabase.from('hotel_website_gallery').delete().eq('id',item.id);
    if(e)throw e;
-   const {error:storageError}=await supabase.storage.from('mwisho-gallery').remove([item.object_path]);
+   const {error:storageError}=await supabase.storage.from('mwisho-gallery').remove([item.object_path,...(item.thumbnail_path?[item.thumbnail_path]:[])]);
    if(storageError)setStatus('Gallery entry removed. Media cleanup needs attention: '+storageError.message);
    else setStatus('Gallery photo/video deleted.');
    await refresh();
@@ -98,6 +111,28 @@ export default function WebsiteGalleryManager({supabase}){
   }catch(e){setError('Could not reorder: '+(e?.message||String(e)));}
   finally{setWorkingId(null);}
  }
+ async function optimizeExisting(item){
+  if(item.media_type!=='photo'||workingId!==null)return;
+  setWorkingId(item.id);setError('');setStatus('Downloading photo to generate a small gallery preview…');
+  let previewPath='';
+  try{
+   const response=await fetch(item.media_url,{mode:'cors'});
+   if(!response.ok)throw new Error('Could not retrieve original image (HTTP '+response.status+').');
+   const original=await response.blob();
+   const thumbnail=await createGalleryThumbnail(original);
+   if(!thumbnail)throw new Error('Browser could not process this image. Try Chrome with image conversion support.');
+   previewPath='thumbs/'+crypto.randomUUID()+'.webp';
+   const {error:uploadError}=await supabase.storage.from('mwisho-gallery').upload(previewPath,thumbnail,{contentType:'image/webp',upsert:false});
+   if(uploadError)throw uploadError;
+   const thumbUrl=supabase.storage.from('mwisho-gallery').getPublicUrl(previewPath).data?.publicUrl;
+   if(!thumbUrl)throw new Error('Thumbnail URL missing.');
+   const {error:e}=await supabase.from('hotel_website_gallery').update({thumbnail_url:thumbUrl,thumbnail_path:previewPath,updated_at:new Date().toISOString()}).eq('id',item.id);
+   if(e)throw e;
+   if(item.thumbnail_path&&item.thumbnail_path!==previewPath)await supabase.storage.from('mwisho-gallery').remove([item.thumbnail_path]);
+   await refresh();setStatus('Fast preview generated for '+(item.title||'gallery photo')+'.');
+  }catch(e){setError('Preview optimization failed: '+(e?.message||String(e)));if(previewPath)await supabase.storage.from('mwisho-gallery').remove([previewPath]).catch(()=>{});}
+  finally{setWorkingId(null);}
+ }
  const published=items.filter(x=>x.is_published).length;
  return <section className="mw-gallery-admin">
   <div className="mw-gallery-heading"><div><h3>Gallery Photos & Videos</h3><p>Upload, publish, reorder or remove media for the public hotel Gallery.</p></div><div className="mw-gallery-stats">{items.length} media • {published} published</div></div>
@@ -113,11 +148,12 @@ export default function WebsiteGalleryManager({supabase}){
   {error&&<p className="mw-gallery-error" role="alert">{error}</p>}
   {status&&<p className="mw-gallery-status" role="status">{status}</p>}
   <div className="mw-gallery-grid">{items.map((item,i)=><article className="mw-gallery-card" key={item.id}>
-    {item.media_type==='video'?<video preload="none" controls playsInline src={item.media_url}/>:<img loading="lazy" src={item.media_url} alt={item.title||'Hotel gallery photograph'}/>}
+    {item.media_type==='video'?<video preload="none" controls playsInline src={item.media_url}/>:<img loading="lazy" decoding="async" src={item.thumbnail_url||item.media_url} alt={item.title||'Hotel gallery photograph'}/>}
     <div className="mw-gallery-card-body">
      <div className="mw-gallery-card-head"><strong>{item.title|| (item.media_type==='video'?'Hotel video':'Hotel photo')}</strong><span>{item.is_published?'Published':'Draft'}</span></div>
      <small>{item.media_type==='video'?'Video':'Photo'} · {(Number(item.file_size)/1048576).toFixed(2)} MB</small>
      <div className="mw-gallery-actions">
+      {item.media_type==='photo'&&<button type="button" disabled={workingId!==null} onClick={()=>optimizeExisting(item)}>{item.thumbnail_url?'Refresh Preview':'Make Fast Preview'}</button>}
       <button type="button" disabled={workingId!==null} onClick={()=>update(item,{is_published:!item.is_published})}>{item.is_published?'Unpublish':'Publish'}</button>
       <button type="button" disabled={i===0||workingId!==null} onClick={()=>move(item,-1)}>↑ Earlier</button>
       <button type="button" disabled={i===items.length-1||workingId!==null} onClick={()=>move(item,1)}>↓ Later</button>
