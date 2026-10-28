@@ -13,8 +13,8 @@ returns boolean language sql immutable set search_path='' as $$
    or (e.val->>'extra_guest_kes')::numeric < 0
    or (e.val->>'base_rate_kes')::numeric > 10000000
    or (e.val->>'extra_guest_kes')::numeric > 10000000
- )) false
-$$;
+ ),false)
+$;
 -- Room-specific meal plans; separate rates and extra-guest charges per package.
 -- Existing nightly_rate_kes remains for backwards compatibility with other readers.
 alter table public.hotel_website_room_listings
