@@ -37,7 +37,7 @@ footer .brand-tagline{color:#ffcf4a}
 .hero:before{background:linear-gradient(90deg,rgba(15,28,47,.89),rgba(15,28,47,.42) 61%,rgba(0,0,0,.1)),var(--hero-managed-image,url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1800&q=85')) center/cover}
 [hidden]{display:none!important}
 .website-public-contact{border-left:3px solid var(--yellow);padding-left:14px}
-.gallery-entry{margin:0;border-radius:8px;overflow:hidden;background:#f6f1fc;min-width:0}.gallery-entry img,.gallery-entry video{display:block;width:100%;height:225px;object-fit:cover;border:0;background:#141627}.gallery-entry figcaption{padding:10px 12px;color:#45335f;font-size:12px;line-height:1.5}.gallery-entry video{cursor:pointer}@media(max-width:700px){.gallery-entry img,.gallery-entry video{height:175px}}</style></head><body>
+.gallery-entry{margin:0;border-radius:8px;overflow:hidden;background:#f6f1fc;min-width:0}.gallery-entry img,.gallery-entry video{display:block;width:100%;height:225px;object-fit:cover;border:0;background:#141627}.gallery-entry figcaption{padding:10px 12px;color:#45335f;font-size:12px;line-height:1.5}.gallery-entry video{cursor:pointer}@media(max-width:700px){.gallery-entry img,.gallery-entry video{height:175px}}.gallery-entry{position:relative;display:flex;flex-direction:column}.gallery-entry img{width:100%;height:225px;object-fit:contain;background:#f3eef6}.gallery-open-full{position:absolute;right:10px;bottom:52px;background:#6330ab;color:#fff;border:0;border-radius:6px;padding:8px 11px;cursor:pointer;font-size:12px;font-weight:700}.gallery-lightbox{border:0;border-radius:12px;max-width:min(94vw,1250px);max-height:94vh;padding:16px;background:#211c2c;color:white;overflow:auto}.gallery-lightbox::backdrop{background:#090513dc}.gallery-lightbox img{display:block;max-height:78vh;max-width:89vw;width:auto;height:auto;margin:auto;object-fit:contain}.gallery-lightbox-close{background:#ffcf4a;border:0;border-radius:6px;padding:9px 15px;margin-bottom:10px;cursor:pointer}.gallery-lightbox-note{text-align:center;color:white}@media(max-width:700px){.gallery-entry img{height:175px}.gallery-open-full{bottom:42px}}</style></head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
 <main>
 <section class="hero" id="home"><div class="wrap"><div class="eyebrow">WELCOME TO MWISHO TOURIST HOTEL</div><h1 class="serif">Taste Of Class.<br/>Memorable moments.</h1><p>Relax in comfort, enjoy exceptional dining and celebrate life's finest moments. Discover the warmth of hospitality at MWISHO Tourist Hotel.</p><div class="hero-actions"><button class="btn btn-primary" data-book>Explore & Book Rooms →</button><a class="btn btn-white" href="#about">Discover Our Hotel</a></div></div></section>
@@ -156,6 +156,26 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
    });
    // Gallery is public only for entries explicitly published by authorized hotel Admin.
    // Build DOM with textContent; never insert captions as HTML.
+   function openGalleryPhoto(src,title){
+    let dialog=document.getElementById('mw-gallery-lightbox');
+    if(!dialog){
+     dialog=document.createElement('dialog');dialog.id='mw-gallery-lightbox';dialog.className='gallery-lightbox';
+     const close=document.createElement('button');close.type='button';close.className='gallery-lightbox-close';close.textContent='✕ Close';
+     close.addEventListener('click',()=>dialog.close());
+     const image=document.createElement('img');image.alt='';
+     const note=document.createElement('p');note.className='gallery-lightbox-note';
+     dialog.append(close,image,note);document.body.appendChild(dialog);
+     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+    }
+    const image=dialog.querySelector('img');
+    const note=dialog.querySelector('.gallery-lightbox-note');
+    image.removeAttribute('src');
+    image.alt=title;
+    note.textContent='Loading full-resolution photo…';
+    image.onload=()=>{note.textContent='';};
+    image.onerror=()=>{note.textContent='Full-resolution image could not be loaded. Please try again.';};
+    image.src=src;dialog.showModal();
+   }
    const galleryContainer=document.querySelector('#gallery .gallery');
    const galleryCaption=document.querySelector('#gallery .gallery-caption');
    if(galleryContainer&&Array.isArray(gallery)&&gallery.length){
@@ -170,9 +190,14 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
       media.controls=true;media.preload='metadata';media.playsInline=true;
       media.setAttribute('aria-label',entry.title||'Hotel gallery video');
      }else{
-      media=document.createElement('img');media.loading='lazy';media.alt=entry.title||'MWISHO Tourist Hotel photograph';
+      media=document.createElement('img');media.loading='lazy';media.decoding='async';media.alt=entry.title||'MWISHO Tourist Hotel photograph';
+      media.src=normalizeImage(entry.thumbnail_url)||source;
+      const open=document.createElement('button');open.type='button';open.className='gallery-open-full';open.textContent='View full photo';open.setAttribute('aria-label','View full photo: '+(entry.title||'Hotel gallery'));
+      open.addEventListener('click',()=>openGalleryPhoto(source,entry.title||'MWISHO Tourist Hotel photograph'));
+      figure.appendChild(open);
      }
-     media.src=source;figure.appendChild(media);
+     if(entry.media_type==='video')media.src=source;
+     figure.insertBefore(media,figure.firstChild);
      if(entry.title||entry.description){
       const label=document.createElement('figcaption');
       label.textContent=[entry.title,entry.description].filter(Boolean).join(' — ');
