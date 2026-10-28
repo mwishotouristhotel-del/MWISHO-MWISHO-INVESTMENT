@@ -51,6 +51,8 @@ jobs:
         run: node tests/website-manager/room-five-photos.mjs
       - name: Verify accommodation request flow safety
         run: node tests/website-manager/room-requests.mjs
+      - name: Verify food pre-order payment gate
+        run: node tests/website-manager/food-preorder-gate.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
