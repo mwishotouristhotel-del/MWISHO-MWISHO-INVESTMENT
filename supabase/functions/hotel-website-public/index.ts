@@ -38,6 +38,39 @@ Deno.serve(async(req:Request)=>{
    return respond({cards:cards.data,rooms:rooms.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='submit_food_preorder'){
+   const name=String(data.customer_name||'').trim();
+   const phone=String(data.phone||'').trim();
+   const reference=String(data.mpesa_reference||'').trim().toUpperCase();
+   const arrival=String(data.arrival_at||'');
+   const arriveMs=Date.parse(arrival);
+   const requests=Array.isArray(data.items)?data.items:[];
+   if(name.length<2||name.length>120||phone.length<7||phone.length>25||
+    !/^[A-Z0-9]{8,15}$/.test(reference)||!Number.isFinite(arriveMs)||
+    arriveMs<Date.now()+20*60000||arriveMs>Date.now()+30*86400000||
+    requests.length<1||requests.length>30)return respond({error:'Check customer, arrival, M-Pesa code and meals.'},400);
+   const quantities=new Map<string,number>();
+   for(const x of requests){
+    if(typeof x?.id!=='string'||!/^[0-9a-f-]{36}$/i.test(x.id)||
+     !Number.isInteger(x.qty)||x.qty<1||x.qty>20)return respond({error:'Invalid meal selection'},400);
+    quantities.set(x.id,(quantities.get(x.id)||0)+x.qty);
+   }
+   if([...quantities.values()].some(n=>n>20))return respond({error:'Meal limit exceeded'},400);
+   const {data:products,error:e}=await db.from('products').select('id,name,price')
+    .in('id',[...quantities.keys()]).eq('active',true).eq('hotel_stock_only',false)
+    .eq('preparation_area','kitchen').gt('price',0);
+   if(e||!products||products.length!==quantities.size)return respond({error:'Menu changed. Refresh and try again.'},409);
+   const items=products.map((x:any)=>({id:x.id,name:x.name,qty:quantities.get(x.id),
+    unit_price:Number(x.price),line_total:Number(x.price)*quantities.get(x.id)!}));
+   const total=items.reduce((sum:number,x:any)=>sum+x.line_total,0);
+   if(!Number.isFinite(total)||total<=0)return respond({error:'Invalid order total'},400);
+   const {error:saveError}=await db.from('hotel_website_food_preorders').insert({
+    customer_name:name,phone,mpesa_reference:reference,arrival_at:new Date(arriveMs).toISOString(),
+    items,total_kes:total,status:'pending_verification'
+   });
+   if(saveError)return respond({error:saveError.code==='23505'?'Transaction code already submitted.':'Request could not be saved.'},saveError.code==='23505'?409:503);
+   return respond({ok:true,status:'pending_verification',total_kes:total,message:'Submitted for cashier verification. No preparation until manually approved.'});
+  }
   if(data?.action==='room_request'){
    const kind=data.request_kind;
    const iso=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));

@@ -72,7 +72,7 @@ footer .brand-tagline{color:#ffcf4a}
 @media(max-width:700px){#about .intro .image{height:auto;min-height:320px}#about .intro .image img{height:auto;min-height:320px;max-height:540px;object-fit:contain}}
 .mw-room-photo-viewer{background:#f7f3fa}.mw-room-photo-viewer>img{width:100%;height:210px;object-fit:contain;background:#f6f2fb}.mw-room-photo-controls{display:flex;gap:14px;justify-content:center;align-items:center;padding:6px;color:#552c90;font-weight:700}.mw-room-photo-controls button{border:1px solid #cdb8e7;border-radius:9px;background:white;color:#5727a0;padding:3px 16px;font-size:23px}.mw-room-photo-thumbs{display:flex;gap:6px;overflow-x:auto;padding:5px 9px 10px}.mw-room-photo-thumbs button{padding:2px;border:1px solid #cdb9e4;background:white;border-radius:6px;flex:0 0 55px}.mw-room-photo-thumbs img{height:43px;width:100%;object-fit:contain}.mw-room-dialog .mw-room-list article .mw-room-photo-viewer img{object-fit:contain}
 
-.mw-food-dialog{width:min(96vw,850px);max-height:90vh;overflow-y:auto;background:#fff;border:0;border-radius:17px;padding:22px;color:#302146}.mw-food-dialog::backdrop{background:#0f0919bb}.mw-food-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.mw-food-head h2{font-family:'Playfair Display',serif;font-size:25px;margin:8px 0}.mw-food-head small{color:#6a30aa}.mw-food-head button{background:#ffcf4a;border:0;border-radius:7px;padding:9px}.mw-food-safety{background:#fff7dc;border-left:4px solid #ffca48;padding:12px;line-height:1.55;font-size:13px}.mw-food-list{display:grid;gap:10px;margin:15px 0}.mw-food-item,.mw-food-cart-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9dff3;border-radius:8px}.mw-food-item div{display:grid;gap:4px}.mw-food-item span{font-size:13px;color:#6b5b7c}.mw-food-item button,.mw-food-cart-item button{border:0;border-radius:7px;background:#6330ab;color:#fff;padding:9px 12px;flex-shrink:0}.mw-food-cart{background:#faf8fd;border-radius:12px;padding:16px;display:grid;gap:12px}.mw-food-cart h3{color:#4e2b83}.mw-food-cart label{display:grid;gap:5px;font-weight:700;font-size:12px}.mw-food-cart input{padding:11px;border:1px solid #d7c9e8;border-radius:8px;width:100%;min-width:0;font-size:16px}.mw-food-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mw-food-cart #mwFoodCheckout{padding:13px;border:0;border-radius:8px;background:#ad9bc4;color:white;cursor:not-allowed}.mw-food-cart #mwFoodStatus{font-size:12px;color:#5d506c}@media(max-width:580px){.mw-food-dialog{padding:13px}.mw-food-dates{grid-template-columns:1fr}.mw-food-head h2{font-size:20px}}
+.mw-food-dialog{width:min(96vw,850px);max-height:90vh;overflow-y:auto;background:#fff;border:0;border-radius:17px;padding:22px;color:#302146}.mw-food-dialog::backdrop{background:#0f0919bb}.mw-food-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.mw-food-head h2{font-family:'Playfair Display',serif;font-size:25px;margin:8px 0}.mw-food-head small{color:#6a30aa}.mw-food-head button{background:#ffcf4a;border:0;border-radius:7px;padding:9px}.mw-food-safety{background:#fff7dc;border-left:4px solid #ffca48;padding:12px;line-height:1.55;font-size:13px}.mw-food-list{display:grid;gap:10px;margin:15px 0}.mw-food-item,.mw-food-cart-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9dff3;border-radius:8px}.mw-food-item div{display:grid;gap:4px}.mw-food-item span{font-size:13px;color:#6b5b7c}.mw-food-item button,.mw-food-cart-item button{border:0;border-radius:7px;background:#6330ab;color:#fff;padding:9px 12px;flex-shrink:0}.mw-food-cart{background:#faf8fd;border-radius:12px;padding:16px;display:grid;gap:12px}.mw-food-cart h3{color:#4e2b83}.mw-food-cart label{display:grid;gap:5px;font-weight:700;font-size:12px}.mw-food-cart input{padding:11px;border:1px solid #d7c9e8;border-radius:8px;width:100%;min-width:0;font-size:16px}.mw-food-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mw-food-cart #mwFoodCheckout{padding:13px;border:0;border-radius:8px;background:#6330ab;color:white;cursor:pointer}.mw-food-cart #mwFoodStatus{font-size:12px;color:#5d506c}@media(max-width:580px){.mw-food-dialog{padding:13px}.mw-food-dates{grid-template-columns:1fr}.mw-food-head h2{font-size:20px}}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -163,8 +163,8 @@ footer .brand-tagline{color:#ffcf4a}
  <div class="mw-food-dates"><label>Arrival date<input id="mwMealDate" type="date" required/></label><label>Arrival time<input id="mwMealTime" type="time" required/></label></div>
  <label>Customer name<input id="mwMealName" autocomplete="name" maxlength="120"/></label>
  <label>Phone number<input id="mwMealPhone" type="tel" autocomplete="tel" maxlength="25"/></label>
- <button type="button" id="mwFoodCheckout" disabled>Pay & Confirm Food Order — Coming Soon</button>
- <p role="status" id="mwFoodStatus">Payment is required before preparation. The hotel kitchen receives no unpaid website orders.</p>
+ <label>M-Pesa transaction code (after payment)<input id="mwFoodMpesaCode" maxlength="15" autocomplete="off" placeholder="e.g. TBC1234567"/></label><button type="button" id="mwFoodCheckout">Submit for Payment Verification</button>
+ <p role="status" id="mwFoodStatus">Pay the hotel using its official payment instructions, then enter the M-Pesa transaction code. Cashier/Admin verification is required before preparation. Submission is NOT payment confirmation.</p>
  </section>
 </dialog>
 <section class="section" id="contact"><div class="wrap contact-grid"><div><span class="eyebrow">WE'D LOVE TO HEAR FROM YOU</span><h2 class="serif">Let's make your visit special.</h2><p>Send an enquiry about rooms, dining, group visits, conferences or an upcoming celebration. This first preview does not send messages yet; official hotel contact details and a connected enquiry form will be added before launch.</p><div id="hotel-map-location" class="hotel-map-location" hidden>
@@ -250,6 +250,31 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  document.getElementById('mwCloseFoodMenu')?.addEventListener('click',()=>menuDialog.close());
  menuDialog?.addEventListener('click',e=>{if(e.target===menuDialog)menuDialog.close();});
  document.getElementById('mwMealDate').min=new Date().toLocaleDateString('en-CA');
+ document.getElementById('mwFoodCheckout')?.addEventListener('click',async()=>{
+  const button=document.getElementById('mwFoodCheckout'),status=document.getElementById('mwFoodStatus');
+  const name=document.getElementById('mwMealName').value.trim(),phone=document.getElementById('mwMealPhone').value.trim();
+  const code=document.getElementById('mwFoodMpesaCode').value.trim().toUpperCase();
+  const date=document.getElementById('mwMealDate').value,time=document.getElementById('mwMealTime').value;
+  if(!foodCart.size||name.length<2||phone.length<7||!date||!time||!/^[A-Z0-9]{8,15}$/.test(code)){
+   status.textContent='Select meals, arrival date/time, name, phone and a valid M-Pesa transaction code.';return;
+  }
+  const arrival=new Date(date+'T'+time+':00+03:00');
+  if(!Number.isFinite(arrival.getTime())||arrival.getTime()<Date.now()+20*60000){
+   status.textContent='Select an arrival time at least 20 minutes ahead.';return;
+  }
+  button.disabled=true;status.textContent='Sending order for payment verification…';
+  try{
+   const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({action:'submit_food_preorder',customer_name:name,phone,
+     mpesa_reference:code,arrival_at:arrival.toISOString(),
+     items:[...foodCart].map(([id,qty])=>({id,qty}))})});
+   const result=await response.json();
+   if(!response.ok||!result.ok)throw Error(result.error||'Submission failed');
+   foodCart.clear();renderFoodCart();
+   status.textContent='Order submitted for cashier payment verification. Total '+moneyFood(result.total_kes)+'. Do not assume food is being prepared until hotel staff confirms.';
+  }catch(e){status.textContent=e.message||'Could not submit order. Try again.';}
+  finally{button.disabled=false;}
+ });
  const roomDialog=document.getElementById('regularRoomCatalogue');
  const roomList=document.getElementById('regularRoomList');
  let roomRecords=[];

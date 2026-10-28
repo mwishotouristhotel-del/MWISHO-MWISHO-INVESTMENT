@@ -8,6 +8,7 @@ on:
       - 'src/WebsiteGalleryManager.css'
       - 'src/WebsiteRoomsManager.jsx'
       - 'src/WebsiteRoomRequests.jsx'
+      - 'src/WebsiteFoodPreorders.jsx'
       - 'src/WebsiteRoomsManager.css'
       - 'src/WebsitePromotionsManager.jsx'
       - 'src/WebsitePromotionsManager.css'
