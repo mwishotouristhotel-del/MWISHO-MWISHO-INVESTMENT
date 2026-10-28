@@ -46,3 +46,4 @@ export default function WebsiteRoomRequests({supabase}){
   </article>)}
   </div>
  </section>;
+}
