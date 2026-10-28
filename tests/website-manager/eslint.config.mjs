@@ -1,6 +1,6 @@
 import globals from 'globals';
 export default [{
-  files: ['src/WebsiteManager.jsx','src/WebsiteGalleryManager.jsx'],
+  files: ['src/WebsiteManager.jsx','src/WebsiteGalleryManager.jsx','src/WebsitePromotionsManager.jsx'],
   languageOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
