@@ -94,6 +94,9 @@ footer .brand-tagline{color:#ffcf4a}
 .mw-room-list .btn{width:100%;margin-top:12px}
 .mw-room-disclaimer{color:#646575;font-size:12px;line-height:1.5}
 @media(max-width:600px){.mw-room-dialog{padding:15px}}
+.mw-room-rate-label{display:block;font-size:12px;font-weight:750;color:#3e2c5e;margin:12px 0 0}
+.mw-room-rate-label select{display:block;width:100%;max-width:100%;padding:11px;border:1px solid #d4c8e8;border-radius:8px;background:white;color:#33214f;margin-top:6px;font:inherit}
+.mw-room-price-breakdown{font-size:12px!important;line-height:1.5!important;color:#6b5b7b!important;margin:0}
 </style>
 </head><body>
 <header><div class="wrap nav"><a class="brand" href="#home" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><nav class="navlinks" id="navlinks" aria-label="Main navigation"><a href="#home">Home</a><a href="#about">About</a><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events</a><a href="#gallery">Gallery</a><a href="#contact">Contact</a></nav><button class="btn btn-primary" data-book>Book Your Stay ↗</button><button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div></header>
@@ -170,39 +173,77 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   roomList.replaceChildren();
   if(!regularRoomRecords.length){
    const empty=document.createElement('p');
-   empty.textContent='Room types and rates will appear here once published by the hotel. For enquiries, use the Contact section.';
+   empty.textContent='Room types and packages will appear here once published by the hotel. For enquiries, use the Contact section.';
    roomList.appendChild(empty);return;
   }
+  const kinds=[['bed_only','Bed Only'],['bed_breakfast','Bed & Breakfast'],['half_board','Half Board'],['full_board','Full Board']];
+  const money=n=>'KES '+Number(n).toLocaleString('en-KE',{maximumFractionDigits:2});
   for(const room of regularRoomRecords){
    const article=document.createElement('article');
    const src=normalizeImage(room.image_url);
    const image=document.createElement('img');image.loading='lazy';image.alt=room.name||'Regular hotel room';
-   image.src=src||'assets/photo-placeholder.svg';
-   article.appendChild(image);
+   image.src=src||'assets/photo-placeholder.svg';article.appendChild(image);
    const detail=document.createElement('div');detail.className='details';
    const heading=document.createElement('h3');heading.textContent=room.name||'Regular Room';
-   const price=document.createElement('div');price.className='rate';
-   price.textContent='KES '+Number(room.nightly_rate_kes||0).toLocaleString('en-KE')+' ';
-   const per=document.createElement('small');per.textContent='/ night';price.appendChild(per);
    const description=document.createElement('p');description.textContent=room.description||'Contact the hotel for further details.';
-   const guests=document.createElement('p');guests.textContent='Up to '+Number(room.max_guests||2)+' guests';
+   const capacity=Math.max(1,Math.min(30,Number(room.max_guests)||1));
+   const guests=document.createElement('p');guests.textContent='Maximum occupancy: '+capacity+' guest'+(capacity===1?'':'s');
    const amenities=document.createElement('div');amenities.className='amenities';
    for(const item of Array.isArray(room.amenities)?room.amenities.slice(0,25):[]){
     const span=document.createElement('span');span.textContent=item;amenities.appendChild(span);
    }
+   const allRates=room.package_rates&&typeof room.package_rates==='object'?room.package_rates:{};
+   // Legacy room listings remain viewable, even before the hotel configures their other meal packages.
+   const rates=Object.keys(allRates).length?allRates:{bed_only:{base_rate_kes:Number(room.nightly_rate_kes||0),extra_guest_kes:0}};
+   const available=kinds.filter(([key])=>{
+    const value=rates[key];return value&&Number.isFinite(Number(value.base_rate_kes))&&Number.isFinite(Number(value.extra_guest_kes))
+      &&Number(value.base_rate_kes)>=0&&Number(value.extra_guest_kes)>=0;
+   });
+   const label=document.createElement('label');label.className='mw-room-rate-label';label.textContent='Choose package';
+   const packageSelect=document.createElement('select');packageSelect.setAttribute('aria-label','Choose package for '+(room.name||'Regular Room'));
+   for(const [key,title] of available){
+    const option=document.createElement('option');option.value=key;option.textContent=title;packageSelect.appendChild(option);
+   }
+   const qtyLabel=document.createElement('label');qtyLabel.className='mw-room-rate-label';qtyLabel.textContent='Guests';
+   const guestSelect=document.createElement('select');guestSelect.setAttribute('aria-label','Number of guests for '+(room.name||'Regular Room'));
+   for(let n=1;n<=capacity;n++){
+    const option=document.createElement('option');option.value=String(n);option.textContent=n+' guest'+(n===1?'':'s');guestSelect.appendChild(option);
+   }
+   label.appendChild(packageSelect);qtyLabel.appendChild(guestSelect);
+   const price=document.createElement('div');price.className='rate';price.setAttribute('aria-live','polite');
+   const breakdown=document.createElement('p');breakdown.className='mw-room-price-breakdown';
+   const calculate=()=>{
+    const v=rates[packageSelect.value],count=Number(guestSelect.value);
+    if(!v)return null;
+    const base=Number(v.base_rate_kes),extra=Number(v.extra_guest_kes);
+    const total=base+Math.max(0,count-1)*extra;
+    price.textContent=money(total)+' per night';
+    breakdown.textContent=money(base)+' for first guest'+(count>1?' + '+(count-1)+' × '+money(extra)+' extra guest charge':'');
+    return {title:kinds.find(([k])=>k===packageSelect.value)?.[1]||'Room package',count,base,extra,total};
+   };
+   packageSelect.addEventListener('change',calculate);guestSelect.addEventListener('change',calculate);
    const enquire=document.createElement('button');enquire.type='button';enquire.className='btn btn-primary';enquire.textContent='Enquire About This Room';
    enquire.addEventListener('click',()=>{
+    const quote=calculate();if(!quote)return;
     roomDialog.close();
-    const contact=document.getElementById('contact');
-    const form=document.getElementById('contactForm');
-    if(form){form.topic.value='Accommodation enquiry';form.message.value='I would like to enquire about '+(room.name||'Regular Room')+' (KES '+Number(room.nightly_rate_kes||0).toLocaleString('en-KE')+' per night). Please confirm availability and booking arrangements.';}
+    const contact=document.getElementById('contact'),form=document.getElementById('contactForm');
+    if(form){
+     form.topic.value='Accommodation enquiry';
+     form.message.value='I would like to enquire about '+(room.name||'Regular Room')+
+      ', package: '+quote.title+', '+quote.count+' guest(s). Indicative nightly rate: '+money(quote.total)+
+      ' ('+money(quote.base)+' first guest + '+money(quote.extra)+' per extra guest). Please confirm availability, dates and booking arrangements.';
+    }
     contact?.scrollIntoView({behavior:'smooth'});
    });
-   detail.append(heading,price,description,guests,amenities,enquire);
+   detail.append(heading,description,guests,amenities);
+   if(available.length){
+    detail.append(label,qtyLabel,price,breakdown,enquire);calculate();
+   }else{
+    const note=document.createElement('p');note.textContent='Package prices are being prepared. Please contact the hotel.';detail.appendChild(note);
+   }
    article.appendChild(detail);roomList.appendChild(article);
   }
  }
-
  function updateText(el,text){if(el&&typeof text==='string'&&text)el.textContent=text}
  function applyCard(card,root){
   if(!root)return;

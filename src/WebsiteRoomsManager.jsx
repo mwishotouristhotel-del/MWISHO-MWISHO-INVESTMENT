@@ -3,11 +3,14 @@ import {prepareGalleryUpload} from './galleryUpload.js';
 
 const EMPTY={category:'regular',name:'',description:'',nightly_rate_kes:'',max_guests:2,amenities:'',image_url:'',image_storage_path:'',is_published:false,display_order:100};
 const CATEGORIES=[['regular','Regular Rooms'],['vvip','VVIP Rooms'],['extended','Extended Stay']];
+const PACKAGES=[['bed_only','Bed Only'],['bed_breakfast','Bed & Breakfast'],['half_board','Half Board'],['full_board','Full Board']];
+const emptyPackages=()=>Object.fromEntries(PACKAGES.map(([key])=>[key,{base_rate_kes:'',extra_guest_kes:''}]));
 const validUrl=value=>!value||(/^https:\/\//i.test(value)&&value.length<=2048);
 
 export default function WebsiteRoomsManager({supabase}){
  const [rooms,setRooms]=useState([]);
  const [draft,setDraft]=useState(EMPTY);
+ const [plans,setPlans]=useState(emptyPackages);
  const [selected,setSelected]=useState(null);
  const [file,setFile]=useState(null);
  const [busy,setBusy]=useState(false);
@@ -24,16 +27,27 @@ export default function WebsiteRoomsManager({supabase}){
  function begin(item){
   setSelected(item?.id||null);setFile(null);setError('');setMessage('');
   setDraft(item?{...item,amenities:(item.amenities||[]).join(', ')}:{...EMPTY,category:filter,display_order:(rooms.length+1)*10});
+  const current=item?.package_rates && Object.keys(item.package_rates).length?item.package_rates:(item?{bed_only:{base_rate_kes:item.nightly_rate_kes,extra_guest_kes:0}}:{});
+  setPlans(Object.fromEntries(PACKAGES.map(([key])=>[key,{base_rate_kes:current[key]?.base_rate_kes??'',extra_guest_kes:current[key]?.extra_guest_kes??''}])));
  }
  async function save(e){
   e.preventDefault();
   if(busy)return;
   setError('');setMessage('');
   const name=String(draft.name||'').trim(),description=String(draft.description||'').trim();
-  const rate=Number(draft.nightly_rate_kes),guests=Number(draft.max_guests);
+  const guests=Number(draft.max_guests);
+  const package_rates={};
+  for(const [key,label] of PACKAGES){
+   const p=plans[key]||{};
+   const base=String(p.base_rate_kes??'').trim(),extra=String(p.extra_guest_kes??'').trim();
+   if(!base && !extra)continue;
+   if(!base || !extra || !Number.isFinite(Number(base)) || !Number.isFinite(Number(extra)) || Number(base)<0 || Number(extra)<0 || Number(base)>10000000 || Number(extra)>10000000){setError(label+': enter both a valid base rate and extra guest charge (use 0 when free).');return;}
+   package_rates[key]={base_rate_kes:Number(base),extra_guest_kes:Number(extra)};
+  }
+  if(!Object.keys(package_rates).length){setError('Set at least one complete room package.');return;}
+  const rate=package_rates.bed_only?.base_rate_kes??Object.values(package_rates)[0].base_rate_kes;
   const amenities=String(draft.amenities||'').split(',').map(x=>x.trim()).filter(Boolean);
   if(name.length<2||name.length>120){setError('Enter a room name between 2 and 120 characters.');return;}
-  if(!String(draft.nightly_rate_kes).trim()||!Number.isFinite(rate)||rate<0){setError('Enter a valid room rate in KES per night.');return;}
   if(!Number.isInteger(guests)||guests<1||guests>30){setError('Maximum guests must be 1–30.');return;}
   if(description.length>1500||amenities.length>25||amenities.some(a=>a.length>80)){setError('Keep the description under 1,500 characters and use up to 25 short amenities.');return;}
   if(!validUrl(draft.image_url)){setError('The room photo URL must be HTTPS.');return;}
@@ -55,7 +69,7 @@ export default function WebsiteRoomsManager({supabase}){
     image_storage_path=uploadedPath;
    }
    const payload={
-    category:draft.category,name,description,nightly_rate_kes:rate,
+    category:draft.category,name,description,nightly_rate_kes:rate,package_rates,
     max_guests:guests,amenities:[...new Set(amenities)],
     image_url,image_storage_path,is_published:!!draft.is_published,
     display_order:Number(draft.display_order)||100,updated_at:new Date().toISOString()
@@ -65,7 +79,7 @@ export default function WebsiteRoomsManager({supabase}){
    const {error:saveError}=await query.select('id').single();
    if(saveError)throw saveError;
    setMessage(selected?'Room details updated.':'Room added successfully.');
-   setSelected(null);setDraft({...EMPTY,category:filter});setFile(null);await refresh();
+   setSelected(null);setDraft({...EMPTY,category:filter});setPlans(emptyPackages());setFile(null);await refresh();
   }catch(err){
    setError(err?.message||String(err));
    if(uploadedPath)await supabase.storage.from('mwisho-gallery').remove([uploadedPath]).catch(()=>{});
@@ -95,7 +109,8 @@ export default function WebsiteRoomsManager({supabase}){
     {shown.map(room=><article key={room.id} style={{border:'1px solid #ddd6ed',padding:12,borderRadius:12,marginBottom:10}}>
       {room.image_url&&<img alt={room.name} src={room.image_url} loading="lazy" style={{width:'100%',height:140,objectFit:'contain',background:'#f6f3fc'}}/>}
       <strong>{room.name}</strong>
-      <p>KES {Number(room.nightly_rate_kes).toLocaleString('en-KE')} per night · Up to {room.max_guests} guests</p>
+      <p>From KES {Math.min(...Object.values(room.package_rates||{}).map(x=>Number(x.base_rate_kes)).filter(Number.isFinite),Number(room.nightly_rate_kes)).toLocaleString('en-KE')} per night · Up to {room.max_guests} guests</p>
+      <small>{PACKAGES.filter(([key])=>room.package_rates?.[key]).map(([key,label])=>label).join(' · ')||'Legacy room rate'}</small>
       <small>{room.is_published?'Published':'Draft / hidden'} · {(room.amenities||[]).join(' • ')}</small>
       <div style={{display:'flex',gap:8,marginTop:10}}>
        <button type="button" onClick={()=>begin(room)} disabled={busy}>Edit</button>
@@ -108,7 +123,18 @@ export default function WebsiteRoomsManager({supabase}){
     <h4>{selected?'Edit Room':'Add Room'}</h4>
     <label>Room category<select value={draft.category} onChange={e=>edit('category',e.target.value)}>{CATEGORIES.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
     <label>Room name<input required maxLength={120} value={draft.name} onChange={e=>edit('name',e.target.value)} placeholder="e.g. Regular Double Room"/></label>
-    <label>Rate (KES per night)<input required type="number" min="0" step="0.01" value={draft.nightly_rate_kes} onChange={e=>edit('nightly_rate_kes',e.target.value)}/></label>
+    <fieldset style={{border:'1px solid #e3d9f3',borderRadius:12,padding:12,minWidth:0}}>
+     <legend style={{fontWeight:800}}>Room Packages & Pricing (KES per night)</legend>
+     <p style={{fontSize:13,lineHeight:1.6}}>Each package price includes the first guest. Set a separate charge for each additional guest on that package. Leave both fields empty to hide a package.</p>
+     {PACKAGES.map(([key,label])=><div key={key} style={{borderBottom:'1px solid #ece5f5',padding:'10px 0'}}>
+       <strong>{label}</strong>
+       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(145px,1fr))',gap:10}}>
+        <label>Base rate · 1 guest (KES)<input type="number" min="0" max="10000000" step="0.01" placeholder="Not offered" value={plans[key]?.base_rate_kes??''} onChange={e=>setPlans(old=>({...old,[key]:{...old[key],base_rate_kes:e.target.value}}))}/></label>
+        <label>Each extra guest (KES)<input type="number" min="0" max="10000000" step="0.01" placeholder="Not offered" value={plans[key]?.extra_guest_kes??''} onChange={e=>setPlans(old=>({...old,[key]:{...old[key],extra_guest_kes:e.target.value}}))}/></label>
+       </div>
+     </div>)}
+     <p style={{fontSize:12}}>Example: Bed & Breakfast KES 4,000 + KES 1,200 for each additional guest. Two guests pay KES 5,200 per night.</p>
+    </fieldset>
     <label>Maximum guests<input type="number" min="1" max="30" value={draft.max_guests} onChange={e=>edit('max_guests',e.target.value)}/></label>
     <label>Description<textarea value={draft.description} rows={4} maxLength={1500} onChange={e=>edit('description',e.target.value)} placeholder="Describe this room and its features"/></label>
     <label>Amenities (separate with commas)<textarea value={draft.amenities} rows={3} onChange={e=>edit('amenities',e.target.value)} placeholder="Wi-Fi, Private bathroom, TV, Hot shower"/></label>
