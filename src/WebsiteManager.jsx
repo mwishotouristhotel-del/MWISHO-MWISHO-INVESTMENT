@@ -1,6 +1,7 @@
 import React,{useEffect,useState,useRef} from 'react';
 import './WebsiteManager.css';
 import WebsiteGalleryManager from './WebsiteGalleryManager.jsx';
+import WebsiteRoomsManager from './WebsiteRoomsManager.jsx';
 import WebsitePromotionsManager from './WebsitePromotionsManager.jsx';
 const CARD_NAMES=['hero','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
 const DEFAULT_PLACEMENT={hero:'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
@@ -306,7 +307,7 @@ function WebsiteManager({supabase,userId}){
  function exportCsv(){const rows=[['Date','Page','Views'],...recent.map(x=>[x.date,x.page,x.views])];const content=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([content],{type:'text/csv'}));const a=document.createElement('a');a.href=url;a.download='MWISHO-Website-Traffic.csv';a.click();URL.revokeObjectURL(url)}
  return <article className="mw-web-admin">
   <div className="mw-web-head"><div><small>MWISHO TOURIST HOTEL · TASTE OF CLASS</small><h2>Hotel Website Management</h2><p>Customer website content, service photos and traffic — independent of hotel POS.</p></div><a href={SITE} target="_blank" rel="noreferrer">↗ Open Customer Website</a></div>
-  <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
+  <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['rooms','🛏️ Rooms & Rates'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
   {saveState&&<p className="mw-web-autosave-status" role="status">{saveState}</p>}
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
   {tab==='gallery'&&<WebsiteGalleryManager supabase={supabase} userId={userId}/>}
