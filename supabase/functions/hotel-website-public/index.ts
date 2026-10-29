@@ -45,6 +45,44 @@ Deno.serve(async(req:Request)=>{
    return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='conference_quote_request'){
+   const val=(key:string,max=3000)=>String(data[key]||'').trim().slice(0,max+1);
+   const organization_name=val('organization_name',150),organization_kra_pin=val('organization_kra_pin',15).toUpperCase();
+   const event_date=val('event_date',10),number_of_pax=Number(data.number_of_pax);
+   const organization_email=val('organization_email',254),organization_phone=val('organization_phone',30);
+   const contact_person=val('contact_person',120),contact_phone=val('contact_phone',30);
+   const requirements=val('requirements',3000),package_id=val('package_id',36);
+   const emailValid=(v:string)=>/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)&&v.length<=254;
+   const phoneValid=(v:string)=>/^\\+?[0-9 ()-]{9,30}$/.test(v);
+   const cc_emails=Array.isArray(data.cc_emails)?data.cc_emails.map((x:any)=>String(x).trim().toLowerCase()):[];
+   if(organization_name.length<2||organization_name.length>150||!/^[A-Z][0-9]{9}[A-Z]$/.test(organization_kra_pin)||
+      !Number.isInteger(number_of_pax)||number_of_pax<1||number_of_pax>10000||
+      !/^\\d{4}-\\d{2}-\\d{2}$/.test(event_date)||!Number.isFinite(Date.parse(event_date))||
+      event_date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})||
+      !emailValid(organization_email)||!phoneValid(organization_phone)||
+      contact_person.length<2||contact_person.length>120||!phoneValid(contact_phone)||
+      requirements.length>3000||cc_emails.length>5||cc_emails.some((x:string)=>!emailValid(x))||
+      (!package_id&&requirements.length<10))
+     return respond({error:'Complete the required organization, event, contact and package details.'},400);
+   let package_name='';
+   if(package_id){
+    if(!/^[0-9a-f-]{36}$/i.test(package_id))return respond({error:'Invalid conference package.'},400);
+    const {data:p,error:e}=await db.from('hotel_website_conference_packages').select('name').eq('id',package_id).eq('is_published',true).maybeSingle();
+    if(e||!p)return respond({error:'This conference package is unavailable. Please refresh.'},409);
+    package_name=p.name;
+   }
+   const {count,error:countError}=await db.from('hotel_website_conference_quotes').select('id',{count:'exact',head:true})
+      .eq('organization_email',organization_email).gte('created_at',new Date(Date.now()-3600000).toISOString());
+   if(countError)return respond({error:'Unable to validate request.'},503);
+   if((count||0)>=3)return respond({error:'Too many recent requests. Please contact the hotel.'},429);
+   const {data:created,error:e}=await db.from('hotel_website_conference_quotes').insert({
+     organization_name,organization_kra_pin,number_of_pax,event_date,
+     package_id:package_id||null,package_name,requirements,organization_email,organization_phone,
+     contact_person,contact_phone,cc_emails,status:'new'
+   }).select('id').single();
+   if(e||!created)return respond({error:'Could not submit the quotation request.'},503);
+   return respond({ok:true,request_id:created.id,status:'new',message:'Quotation request received for hotel Admin review.'});
+  }
   if(data?.action==='submit_food_payment'){
    const {data:settingsRows,error:settingsError}=await db.from('hotel_website_settings')
      .select('key,value').in('key',['mpesa_till_number','food_order_enabled']);
