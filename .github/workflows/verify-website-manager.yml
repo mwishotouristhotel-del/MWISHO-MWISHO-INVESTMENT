@@ -80,6 +80,8 @@ jobs:
         run: node tests/website-manager/conference-quote-days.mjs
       - name: Verify customer event ticket booking workflow
         run: node tests/website-manager/event-ticket-booking.mjs
+      - name: Verify customer booking SMS and email notifications
+        run: node tests/website-manager/customer-notifications.mjs
       - name: Verify customer enquiry to Admin inbox workflow
         run: node tests/website-manager/contact-enquiry-inbox.mjs
       - name: Build complete POS and Admin

@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const base='supabase/migrations/20261029_hotel_customer_notifications.sql';
+const sql=await readFile(base,'utf8');
+const edge=await readFile('supabase/functions/hotel-notifications/index.ts','utf8');
+const publicApi=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const admin=await readFile('src/WebsiteNotifications.jsx','utf8');
+const manager=await readFile('src/WebsiteManager.jsx','utf8');
+for(const name of ['hotel_website_room_requests','hotel_website_food_orders','hotel_website_event_ticket_requests','hotel_website_conference_quotes'])
+ assert(sql.includes(name),'Missing trigger for '+name);
+assert(sql.includes('unique(source_kind,source_id,event_key,channel)'));
+assert(sql.includes('vault.create_secret')&&sql.includes('vault.decrypted_secrets'));
+assert(sql.includes('sms_enabled boolean not null default false')&&sql.includes('email_enabled boolean not null default false'));
+assert(edge.includes('bulksms.afrinettelecom.co.ke')&&edge.includes('smtp.gmail.com'));
+assert(edge.includes(".eq('id',job.id).eq('status','pending')"));
+assert(publicApi.includes('dispatchNotifications();'));
+assert(admin.includes('Save Notification Settings')&&admin.includes('Gmail App Password'));
+assert(manager.includes('WebsiteNotifications'));
+assert((await readFile('hotel/index.html','utf8')).includes('id="mwMealEmail"'));
+console.log('PASS: Afrinet/Gmail configuration, four booking triggers, secured outbox and admin controls wired');
