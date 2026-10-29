@@ -31,17 +31,18 @@ Deno.serve(async(req:Request)=>{
    })),online_orders_enabled:false,payment_verified:false});
   }
   if(req.method==='GET'){
-   const [cards,settings,gallery,promotions,rooms]=await Promise.all([
+   const [cards,settings,gallery,promotions,rooms,conferencePackages]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
     db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok','google_maps_url','hotel_latitude','hotel_longitude']),
     db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,thumbnail_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80),
     db.from('hotel_website_promotions').select('id,kind,title,description,media_type,media_url,action_label,action_url,event_date,popup_enabled,popup_mode,display_order,starts_at,ends_at').eq('is_published',true).order('display_order').limit(40),
-    db.from('hotel_website_room_listings').select('id,category,name,description,nightly_rate_kes,package_rates,max_guests,amenities,image_url,room_photos,display_order').eq('is_published',true).order('display_order').limit(100)
+    db.from('hotel_website_room_listings').select('id,category,name,description,nightly_rate_kes,package_rates,max_guests,amenities,image_url,room_photos,display_order').eq('is_published',true).order('display_order').limit(100),
+    db.from('hotel_website_conference_packages').select('id,name,description,price_kes,price_unit,display_order').eq('is_published',true).order('display_order').limit(50)
    ]);
    if(cards.error||settings.error||gallery.error||promotions.error||rooms.error)return respond({error:'content unavailable'},503);
    const now=Date.now();
    const activePromotions=(promotions.data||[]).filter((x:any)=>(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>now));
-   return respond({cards:cards.data,rooms:rooms.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
+   return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
   if(data?.action==='submit_food_payment'){

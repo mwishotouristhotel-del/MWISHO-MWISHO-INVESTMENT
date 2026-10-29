@@ -66,6 +66,8 @@ jobs:
         run: node tests/website-manager/home-room-script-scope.mjs
       - name: Verify homepage shows published room categories
         run: node tests/website-manager/homepage-published-rooms.mjs
+      - name: Verify conference packages Admin and public website
+        run: node tests/website-manager/conference-packages.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
