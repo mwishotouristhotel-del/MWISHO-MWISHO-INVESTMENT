@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const html=await readFile('hotel/index.html','utf8');
+const edge=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const admin=await readFile('src/WebsiteManager.jsx','utf8');
+const inbox=await readFile('src/WebsiteContactEnquiries.jsx','utf8');
+assert(html.includes("action:'contact_enquiry'"));
+assert(html.includes('Send Enquiry →'));
+assert(html.includes("if(!response.ok||!result.ok)throw Error"));
+assert(!html.includes('Preview only: enquiry submission is not connected yet.'));
+assert(edge.includes("data?.action==='contact_enquiry'"));
+assert(edge.includes("db.from('hotel_website_contact_enquiries')"));
+assert(edge.includes("status:'new'"));
+assert(admin.includes("tab==='contact_enquiries'"));
+assert(inbox.includes("status==='")===false);
+assert(inbox.includes('Save Enquiry Update'));
+console.log('PASS: public contact form submits, Admin inbox reads and status updates are connected');

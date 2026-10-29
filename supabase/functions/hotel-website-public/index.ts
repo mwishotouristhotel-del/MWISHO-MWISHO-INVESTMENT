@@ -66,6 +66,25 @@ Deno.serve(async(req:Request)=>{
    if(!ticket)return respond({error:'Ticket booking not found. Check the number and try again.'},404);
    return respond({ok:true,ticket:{...ticket,payment_verified:!!ticket.payment_verified_at,payment_verified_at:undefined}});
   }
+  if(data?.action==='contact_enquiry'){
+   const name=String(data.name||'').trim(),email=String(data.email||'').trim().toLowerCase();
+   const topic=String(data.topic||'').trim(),message=String(data.message||'').trim();
+   if(name.length<2||name.length>120||email.length<5||email.length>254||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||
+      !['Accommodation enquiry','Restaurant & Bar','Conference / Event','General enquiry'].includes(topic)||
+      message.length<5||message.length>2000)
+     return respond({error:'Please enter a valid name, email, enquiry type and message.'},400);
+   const {count,error:limitError}=await db.from('hotel_website_contact_enquiries')
+     .select('id',{count:'exact',head:true}).eq('customer_email',email)
+     .gte('created_at',new Date(Date.now()-3600000).toISOString());
+   if(limitError)return respond({error:'Could not validate your enquiry. Please try again.'},503);
+   if((count||0)>=3)return respond({error:'Too many recent enquiries. Please contact the hotel directly.'},429);
+   const {data:created,error:saveError}=await db.from('hotel_website_contact_enquiries')
+     .insert({customer_name:name,customer_email:email,topic,message,status:'new'})
+     .select('id').single();
+   if(saveError||!created)return respond({error:'Unable to submit your enquiry. Please retry.'},503);
+   return respond({ok:true,reference:created.id,message:'Your enquiry has reached hotel administration.'});
+  }
   if(data?.action==='event_ticket_request'){
    const event_id=String(data.event_id||''),name=String(data.customer_name||'').trim();
    const phone=String(data.customer_phone||'').trim(),email=String(data.customer_email||'').trim();
