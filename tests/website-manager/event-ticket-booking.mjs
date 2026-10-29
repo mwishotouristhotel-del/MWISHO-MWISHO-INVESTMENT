@@ -12,4 +12,10 @@ assert(edge.includes('ticket_booking_enabled,ticket_price_kes,ticket_capacity'))
 assert(promotions.includes('Enable Book Ticket')&&promotions.includes('ticket_capacity'));
 assert(admin.includes("tab==='event_tickets'"));
 assert(queue.includes('Confirm after verification')&&queue.includes("status','pending_review'"));
+assert(html.includes('id="mwTicketTrackForm"')&&html.includes('id="mwTicketMpesa"'));
+assert(html.includes("action:'event_ticket_track'")&&html.includes('result.tracking_number'));
+assert(edge.includes("data?.action==='event_ticket_track'")&&edge.includes('mpesa_reference:mpesa_reference||null'));
+assert(edge.includes("resource')==='ticket_payment_config'")&&queue.includes('payment_verified_at'));
+const migration=await readFile('supabase/migrations/20261029_event_ticket_tracking_payment.sql','utf8');
+assert(migration.includes('website_ticket_tracking_unique')&&migration.includes('website_ticket_mpesa_reference_unique'));
 console.log('PASS: ticket configuration, customer request, public validation and Admin queue connected');
