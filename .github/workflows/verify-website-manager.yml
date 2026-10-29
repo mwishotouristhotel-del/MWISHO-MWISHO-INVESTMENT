@@ -76,6 +76,8 @@ jobs:
         run: node tests/website-manager/conference-card-navigation.mjs
       - name: Verify conference quotation number of days
         run: node tests/website-manager/conference-quote-days.mjs
+      - name: Verify customer event ticket booking workflow
+        run: node tests/website-manager/event-ticket-booking.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
