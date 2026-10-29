@@ -20,10 +20,15 @@ Deno.serve(async(req:Request)=>{
    return respond({enabled:settings.food_order_enabled==='true'&&/^\d{5,15}$/.test(till),till:/^\d{5,15}$/.test(till)?till:''});
   }
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='ticket_payment_config'){
-   const {data,error}=await db.from('hotel_website_settings').select('key,value').eq('key','mpesa_till_number').maybeSingle();
+   const {data,error}=await db.from('hotel_website_settings').select('key,value').in('key',[
+    'event_ticket_payment_method','event_ticket_till_number','event_ticket_paybill_number','event_ticket_paybill_account']);
    if(error)return respond({error:'Payment details temporarily unavailable.'},503);
-   const till=String(data?.value||'').trim();
-   return respond({till:/^\d{5,15}$/.test(till)?till:'',enabled:/^\d{5,15}$/.test(till)});
+   const v=Object.fromEntries((data||[]).map((x:any)=>[x.key,x.value]));
+   const method=v.event_ticket_payment_method==='paybill'?'paybill':'till';
+   const number=String(method==='paybill'?v.event_ticket_paybill_number:v.event_ticket_till_number||'').trim();
+   const account=method==='paybill'?String(v.event_ticket_paybill_account||'').trim():'';
+   const enabled=/^\d{5,15}$/.test(number)&&(method==='till'||account.length>0&&account.length<=60);
+   return respond({method,number:enabled?number:'',account:enabled?account:'',enabled});
   }
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_menu'){
    const {data:items,error:menuError}=await db.from('products')
