@@ -18,4 +18,9 @@ assert(edge.includes("data?.action==='event_ticket_track'")&&edge.includes('mpes
 assert(edge.includes("resource')==='ticket_payment_config'")&&queue.includes('payment_verified_at'));
 const migration=await readFile('supabase/migrations/20261029_event_ticket_tracking_payment.sql','utf8');
 assert(migration.includes('website_ticket_tracking_unique')&&migration.includes('website_ticket_mpesa_reference_unique'));
+const paymentSettings=await readFile('supabase/migrations/20261029_event_ticket_payment_settings.sql','utf8');
+assert(paymentSettings.includes("('event_ticket_till_number','9311663')"));
+assert(edge.includes('event_ticket_paybill_number')&&edge.includes('event_ticket_paybill_account'));
+assert(html.includes('mwTicketPaymentDetails')&&html.includes("config.method==='paybill'"));
+assert(queue.includes('Paybill Number')&&queue.includes('Save Ticket Payment Settings'));
 console.log('PASS: ticket configuration, customer request, public validation and Admin queue connected');
