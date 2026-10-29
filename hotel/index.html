@@ -162,6 +162,7 @@ footer .brand-tagline{color:#ffcf4a}
  <section class="mw-food-cart"><h3>Your Planned Meal</h3><div id="mwFoodCart"></div><p id="mwFoodTotal">Total: KES 0</p>
  <div class="mw-food-dates"><label>Arrival date<input id="mwMealDate" type="date" required/></label><label>Arrival time<input id="mwMealTime" type="time" required/></label></div>
  <label>Customer name<input id="mwMealName" autocomplete="name" maxlength="120"/></label>
+ <label>Order Instructions / Special Requests (optional)<textarea id="mwMealInstructions" rows="3" maxlength="1000" placeholder="e.g. Beef wet fry, less salt, no chilli, pack ugali separately"></textarea></label>
  <label>Phone number<input id="mwMealPhone" type="tel" autocomplete="tel" maxlength="25"/></label>
  <div class="mw-food-payment" id="mwFoodPayment" hidden>
  <strong>Pay using M-Pesa Buy Goods</strong>
@@ -287,7 +288,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   try{
    const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
     action:'submit_food_payment',customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
-    mpesa_reference:code,items:[...foodCart].map(([id,qty])=>({id,qty}))
+    mpesa_reference:code,order_instructions:document.getElementById('mwMealInstructions').value.trim(),items:[...foodCart].map(([id,qty])=>({id,qty}))
    })});
    const payload=await response.json();
    if(!response.ok||!payload.ok)throw new Error(payload.error||'Submission failed');
