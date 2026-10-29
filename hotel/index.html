@@ -198,7 +198,7 @@ const today=new Date(),tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDat
 function validateDates(start,end){return !!start&&!!end&&start>=iso(today)&&end>start}
 function openBooking(room){if(room)document.getElementById('roomType').value=room;document.getElementById('bookingStatus').textContent='';modal.classList.add('show');document.body.style.overflow='hidden';document.getElementById('closeModal').focus()}
 function closeBooking(){modal.classList.remove('show');document.body.style.overflow='';}
-document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>openRoomSearch()));
+document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>document.dispatchEvent(new Event('mwisho:open-room-search'))));
 document.querySelectorAll('[data-room]').forEach(b=>b.addEventListener('click',()=>openBooking(b.dataset.room)));
 document.querySelectorAll('[data-event]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('contactForm').topic.value='Conference / Event';document.getElementById('contactForm').message.value='I would like information about: '+b.dataset.event;document.getElementById('contact').scrollIntoView({behavior:'smooth'})}));
 document.getElementById('closeModal').addEventListener('click',closeBooking);modal.addEventListener('click',e=>{if(e.target===modal)closeBooking()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('show'))closeBooking()});
@@ -206,7 +206,7 @@ document.getElementById('quickBooking').addEventListener('submit',e=>{
  e.preventDefault();
  const a=document.getElementById('checkin').value,b=document.getElementById('checkout').value;
  if(!validateDates(a,b)){alert('Please select valid check-in and check-out dates.');return;}
- openRoomSearch();
+ document.dispatchEvent(new Event('mwisho:open-room-search'));
 });
 document.getElementById('bookingForm').addEventListener('submit',e=>{e.preventDefault();const a=document.getElementById('modalCheckin').value,b=document.getElementById('modalCheckout').value;document.getElementById('bookingStatus').textContent=validateDates(a,b)?'Preview complete. Online room availability and reservations are not active yet.':'Choose valid check-in and check-out dates.'});
 document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('contactStatus').textContent='Preview only: enquiry submission is not connected yet. No message was sent.'});
@@ -322,6 +322,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   if(roomSection)roomSection.scrollIntoView({behavior:'smooth',block:'start'});
   showRegularRooms('regular');
  }
+ document.addEventListener('mwisho:open-room-search',openRoomSearch);
  function showRegularRooms(category="regular"){
   roomCategory=category;
   renderRegularRooms(roomRecords);

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const html=await readFile('hotel/index.html','utf8');
+const blocks=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+const homepage=blocks.find(x=>x.includes("document.querySelectorAll('[data-book]')"));
+const rooms=blocks.find(x=>x.includes('function openRoomSearch()'));
+assert(homepage&&rooms&&homepage!==rooms,'homepage and room scripts are separate');
+assert(homepage.includes("document.dispatchEvent(new Event('mwisho:open-room-search'))"));
+assert(!homepage.includes("()=>openRoomSearch()"),'homepage must not call out-of-scope function');
+assert(rooms.includes("document.addEventListener('mwisho:open-room-search',openRoomSearch)"));
+assert(rooms.includes("showRegularRooms('regular')"));
+assert(rooms.includes('arrival.value=quickIn;departure.value=quickOut'));
+assert(rooms.includes("action:'room_request'"));
+console.log('PASS: both homepage controls dispatch an event handled in the room-workflow script');
