@@ -72,6 +72,7 @@ export default function WebsiteFoodPayments({supabase}){
     <strong>{o.customer_name} — KES {Number(o.total_kes).toLocaleString('en-KE')}</strong>
     <p>Phone: {o.customer_phone} · Arrives: {o.arrival_date} {o.arrival_time}</p>
     <p>Claimed Till: {o.till_number} · M-Pesa code: <strong>{o.mpesa_reference}</strong></p>
+    {o.order_instructions&&<p><strong>Customer instructions:</strong> {o.order_instructions}</p>}
     <ul>{(o.items||[]).map((x,i)=><li key={i}>{x.name} × {x.qty} — KES {Number(x.unit_price*x.qty).toLocaleString('en-KE')}</li>)}</ul>
     <label>Review notes<input value={reviewNotes[o.id]||''} maxLength={500} onChange={e=>setReviewNotes(v=>({...v,[o.id]:e.target.value}))}/></label>
     <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:12}}>
@@ -85,6 +86,7 @@ export default function WebsiteFoodPayments({supabase}){
   {orders.filter(o=>o.status==='approved_for_kitchen').map(o=><article key={o.id} style={{padding:14,border:'1px solid #b7dbce',borderRadius:10}}>
     <strong>{o.customer_name} — KES {Number(o.total_kes).toLocaleString('en-KE')}</strong>
     <p>Arrival {o.arrival_date} at {o.arrival_time} · {o.customer_phone}</p>
+    {o.order_instructions&&<p><strong>Preparation instructions:</strong> {o.order_instructions}</p>}
     <ul>{(o.items||[]).map((x,i)=><li key={i}>{x.name} × {x.qty}</li>)}</ul>
     <button disabled={busy} onClick={()=>complete(o)}>Mark Prepared / Completed</button>
   </article>)}
