@@ -1,0 +1,24 @@
+.mw-conf-workspace{width:100%;min-width:0;max-width:1360px;margin:0 auto;display:grid;gap:18px;color:#2c2440;font-size:13px}
+.mw-conf-header{border-radius:15px;padding:21px 24px;background:linear-gradient(105deg,#4f248b,#733eae);color:#fff}
+.mw-conf-eyebrow{font-size:10px;font-weight:800;letter-spacing:.12em;color:#ffe39b}
+.mw-conf-header h2{color:#fff;font-size:25px;margin:7px 0;line-height:1.2}
+.mw-conf-header p{color:#efe6fc;margin:0;font-size:13px;line-height:1.5}
+.mw-conf-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mw-conf-nav-card{display:flex;text-align:left;align-items:center;gap:12px;background:#fff;border:1px solid #e5dcf0;border-radius:12px;padding:14px 16px;min-width:0;cursor:pointer;box-shadow:0 2px 9px rgba(39,24,68,.04);color:#382452}
+.mw-conf-nav-card.active{border:2px solid #7543b5;background:#f8f3ff;box-shadow:0 3px 13px rgba(66,31,105,.09)}
+.mw-conf-nav-icon{width:38px;height:38px;border-radius:9px;background:#ede5f8;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mw-conf-nav-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mw-conf-nav-text strong{font-size:14px;line-height:1.3}
+.mw-conf-nav-text small{color:#726985;font-size:11.5px;line-height:1.4}
+.mw-conf-panel{background:#fff;border:1px solid #e7e0f0;border-radius:14px;padding:20px;min-width:0}
+.mw-conf-panel-heading{padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid #eee8f3}
+.mw-conf-section-label{font-size:10px;letter-spacing:.1em;color:#7959a4;font-weight:700}
+.mw-conf-panel-heading h3{font-size:18px;margin:5px 0 0;color:#4c2786}
+.mw-conf-panel>section{min-width:0}
+.mw-conf-panel>section>h3{font-size:17px;margin:6px 0}
+.mw-conf-panel article{box-sizing:border-box;min-width:0;background:#fff}
+.mw-conf-panel article strong{overflow-wrap:anywhere}
+.mw-conf-panel label{font-size:12px;font-weight:600;color:#46385e;display:block}
+.mw-conf-panel label input:not([type=checkbox]),.mw-conf-panel label select,.mw-conf-panel label textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box;font-size:13px;border:1px solid #dcd0e9;border-radius:7px;padding:9px;margin-top:5px}
+.mw-conf-panel button{min-height:36px;padding:9px 12px;font-size:12.5px;font-weight:700;border-radius:7px}
+@media(max-width:680px){.mw-conf-workspace{gap:12px}.mw-conf-header{padding:16px}.mw-conf-header h2{font-size:21px}.mw-conf-nav{grid-template-columns:1fr;gap:9px}.mw-conf-nav-card{padding:12px}.mw-conf-panel{padding:13px}.mw-conf-panel label input:not([type=checkbox]),.mw-conf-panel label select,.mw-conf-panel label textarea{font-size:16px}}
