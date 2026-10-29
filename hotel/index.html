@@ -320,7 +320,10 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   }
   const roomSection=document.getElementById('rooms');
   if(roomSection)roomSection.scrollIntoView({behavior:'smooth',block:'start'});
-  showRegularRooms('regular');
+  // Homepage search prioritizes a category with published room listings.
+  // The hotel currently publishes VVIP rooms, not Regular rooms.
+  const preferred=['regular','vvip','extended'].find(category=>roomRecords.some(room=>room.category===category));
+  showRegularRooms(preferred||'vvip');
  }
  document.addEventListener('mwisho:open-room-search',openRoomSearch);
  function showRegularRooms(category="regular"){
@@ -346,7 +349,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
   roomList.replaceChildren();
   if(!selectedRooms.length){
    const empty=document.createElement('p');
-   empty.textContent='Room types and packages will appear here once published by the hotel. For enquiries, use the Contact section.';
+   empty.textContent=roomRecords.length?'There are no published rooms in this category. Choose another room category.':'No room listings could be loaded. Please refresh or contact the hotel.';
    roomList.appendChild(empty);return;
   }
   const kinds=[['bed_only','Bed Only'],['bed_breakfast','Bed & Breakfast'],['half_board','Half Board'],['full_board','Full Board']];
