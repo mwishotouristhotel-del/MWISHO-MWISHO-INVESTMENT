@@ -7,6 +7,7 @@ export default function WebsiteEventTickets({supabase}){
  }
  useEffect(()=>{reload()},[supabase]);
  async function review(item,status){
+  if(status==='confirmed'&&Number(item.total_kes)>0&&!item.mpesa_reference){setError('A payment reference is required before confirming a paid ticket.');return;}
   if(!window.confirm(status==='confirmed'?'Have you verified all payment/booking requirements? Confirm reservation?':'Reject this ticket request?'))return;
   setBusy(true);setNotice('');setError('');
   try{
@@ -23,7 +24,7 @@ export default function WebsiteEventTickets({supabase}){
     }
    }
    const {data,error:e}=await supabase.from('hotel_website_event_ticket_requests')
-    .update({status,reviewed_by:user.id,reviewed_at:new Date().toISOString()})
+    .update({status,reviewed_by:user.id,reviewed_at:new Date().toISOString(),...(status==='confirmed'?{payment_verified_at:new Date().toISOString()}:{})})
     .eq('id',item.id).eq('status','pending_review').select('id').single();
    if(e||!data)throw Error(e?.message||'Request already reviewed.');
    setNotice('Ticket request '+(status==='confirmed'?'confirmed':'rejected')+'.');await reload();
@@ -36,7 +37,9 @@ export default function WebsiteEventTickets({supabase}){
   {!requests.length&&<p>No ticket requests submitted yet.</p>}
   {requests.map(x=><article key={x.id} style={{border:'1px solid #ded4ed',borderRadius:10,padding:13,display:'grid',gap:8}}>
    <strong>{x.event_title} — {x.quantity} ticket{x.quantity===1?'':'s'}</strong>
+   <span><strong>Ticket number:</strong> {x.tracking_number||'Legacy request'}</span>
    <span>{x.customer_name} · {x.customer_phone} · {x.customer_email}</span>
+   <span><strong>M-Pesa reference:</strong> {x.mpesa_reference||'Not provided'} · <strong>Payment:</strong> {x.payment_verified_at?'Verified by hotel':'Not verified'}</span>
    <span>{x.total_kes===null?'Price to confirm with hotel':'Total KES '+Number(x.total_kes).toLocaleString('en-KE')} · Status: {x.status.replaceAll('_',' ')}</span>
    {x.notes&&<p>Customer notes: {x.notes}</p>}
    <small>Submitted {new Date(x.created_at).toLocaleString('en-KE')}</small>
