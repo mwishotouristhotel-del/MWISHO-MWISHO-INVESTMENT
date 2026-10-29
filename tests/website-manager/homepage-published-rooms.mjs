@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const source=await readFile('hotel/index.html','utf8');
+assert(source.includes("const preferred=['regular','vvip','extended'].find(category=>roomRecords.some(room=>room.category===category))"));
+assert(source.includes("showRegularRooms(preferred||'vvip')"));
+assert(source.includes("const selectedRooms=roomRecords.filter(x=>x.category===roomCategory)"));
+assert(source.includes("if(validateDates(quickIn,quickOut)){arrival.value=quickIn;departure.value=quickOut;}"));
+const records=[{category:'vvip',name:'Room 101 V.I.P Standard'},{category:'vvip',name:'ROOM 201'}];
+const selected=['regular','vvip','extended'].find(c=>records.some(x=>x.category===c))||'vvip';
+assert.equal(selected,'vvip');
+assert.equal(records.filter(x=>x.category===selected).length,2);
+console.log('PASS: homepage selects published VVIP rooms when Regular category is empty');
