@@ -62,6 +62,8 @@ jobs:
         run: node tests/website-manager/food-instructions.mjs
       - name: Verify homepage room booking links
         run: node tests/website-manager/home-room-booking.mjs
+      - name: Verify homepage room search script scope
+        run: node tests/website-manager/home-room-script-scope.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
