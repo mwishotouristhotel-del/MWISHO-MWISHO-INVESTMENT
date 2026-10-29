@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const web=await readFile('hotel/index.html','utf8'),api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8'),admin=await readFile('src/WebsiteManager.jsx','utf8'),queue=await readFile('src/WebsiteConferenceQuotes.jsx','utf8');
+assert(web.includes('id="mwConferenceQuoteForm"')&&web.includes('id="mwQuotePackage"'));
+assert(web.includes("payload.action='conference_quote_request'"));
+assert(web.includes("new Option(p.name,p.id)"));
+assert(api.includes("data?.action==='conference_quote_request'"));
+assert(api.includes("db.from('hotel_website_conference_quotes').insert"));
+assert(admin.includes("tab==='conference_quotes'"));
+assert(queue.includes('Assign staff member')&&queue.includes("status:'new'")===false);
+console.log('PASS: quote request form, API validation, Admin assignment are connected');
