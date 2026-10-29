@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const html=await readFile('hotel/index.html','utf8');
-assert(html.includes("b.addEventListener('click',()=>openRoomSearch())"),'hero button routes to rooms');
+assert(html.includes("b.addEventListener('click',()=>document.dispatchEvent(new Event('mwisho:open-room-search')))"),'hero button routes to rooms');
 assert(html.includes("document.getElementById('quickBooking').addEventListener('submit'"),'quick booking submits');
 assert(html.includes("showRegularRooms('regular')"),'uses existing room catalogue');
 assert(html.includes('if(validateDates(quickIn,quickOut)){arrival.value=quickIn;departure.value=quickOut;}'),'selected dates carried to room form');
