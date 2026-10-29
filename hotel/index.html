@@ -71,6 +71,7 @@ footer .brand-tagline{color:#ffcf4a}
 #about .intro .image img{width:100%;height:100%;object-fit:contain;object-position:center;background:#f4f0f9}
 @media(max-width:700px){#about .intro .image{height:auto;min-height:320px}#about .intro .image img{height:auto;min-height:320px;max-height:540px;object-fit:contain}}
 .mw-room-photo-viewer{background:#f7f3fa}.mw-room-photo-viewer>img{width:100%;height:210px;object-fit:contain;background:#f6f2fb}.mw-room-photo-controls{display:flex;gap:14px;justify-content:center;align-items:center;padding:6px;color:#552c90;font-weight:700}.mw-room-photo-controls button{border:1px solid #cdb8e7;border-radius:9px;background:white;color:#5727a0;padding:3px 16px;font-size:23px}.mw-room-photo-thumbs{display:flex;gap:6px;overflow-x:auto;padding:5px 9px 10px}.mw-room-photo-thumbs button{padding:2px;border:1px solid #cdb9e4;background:white;border-radius:6px;flex:0 0 55px}.mw-room-photo-thumbs img{height:43px;width:100%;object-fit:contain}.mw-room-dialog .mw-room-list article .mw-room-photo-viewer img{object-fit:contain}
+.mw-room-photo-viewer>img,.mw-photo-zoomable{cursor:zoom-in}.mw-photo-zoomable:focus-visible,.mw-room-photo-viewer>img:focus-visible{outline:3px solid #7630bd;outline-offset:3px}.gallery-lightbox{width:min(96vw,1250px);max-height:96dvh;overflow:hidden}.gallery-lightbox img{max-width:calc(96vw - 45px);max-height:calc(96dvh - 145px);object-fit:contain}.mw-full-photo-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:10px}.mw-full-photo-controls button{border:1px solid #bda7db;border-radius:9px;background:#fff;color:#532b86;font-size:23px;min-width:45px;min-height:40px}.mw-full-photo-controls button[hidden]{display:none}.mw-full-photo-counter{font-size:13px;color:#fff}.gallery-lightbox-close{min-height:43px}
 
 .mw-food-dialog{width:min(96vw,850px);max-height:90vh;overflow-y:auto;background:#fff;border:0;border-radius:17px;padding:22px;color:#302146}.mw-food-dialog::backdrop{background:#0f0919bb}.mw-food-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.mw-food-head h2{font-family:'Playfair Display',serif;font-size:25px;margin:8px 0}.mw-food-head small{color:#6a30aa}.mw-food-head button{background:#ffcf4a;border:0;border-radius:7px;padding:9px}.mw-food-safety{background:#fff7dc;border-left:4px solid #ffca48;padding:12px;line-height:1.55;font-size:13px}.mw-food-list{display:grid;gap:10px;margin:15px 0}.mw-food-item,.mw-food-cart-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9dff3;border-radius:8px}.mw-food-item div{display:grid;gap:4px}.mw-food-item span{font-size:13px;color:#6b5b7c}.mw-food-item button,.mw-food-cart-item button{border:0;border-radius:7px;background:#6330ab;color:#fff;padding:9px 12px;flex-shrink:0}.mw-food-cart{background:#faf8fd;border-radius:12px;padding:16px;display:grid;gap:12px}.mw-food-cart h3{color:#4e2b83}.mw-food-cart label{display:grid;gap:5px;font-weight:700;font-size:12px}.mw-food-cart input{padding:11px;border:1px solid #d7c9e8;border-radius:8px;width:100%;min-width:0;font-size:16px}.mw-food-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mw-food-cart #mwFoodCheckout{padding:13px;border:0;border-radius:8px;background:#ad9bc4;color:white;cursor:not-allowed}.mw-food-cart #mwFoodStatus{font-size:12px;color:#5d506c}@media(max-width:580px){.mw-food-dialog{padding:13px}.mw-food-dates{grid-template-columns:1fr}.mw-food-head h2{font-size:20px}}
 .conference-package-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.conference-package-card{background:white;border:1px solid #e5dcef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}.conference-package-card h3{color:#4e268a;margin:0;font-size:19px}.conference-package-card p{color:#627184;line-height:1.55;flex:1;margin:0}.conference-package-price{color:#40226b}.conference-package-enquire{color:#622fa9;font-weight:700;text-decoration:none}@media(max-width:780px){.conference-package-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:550px){.conference-package-grid{grid-template-columns:1fr}}
@@ -228,6 +229,47 @@ footer .brand-tagline{color:#ffcf4a}
 <div class="modal" id="bookingModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="dialog"><div class="modal-brand"><img src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/></div><button class="close" id="closeModal" aria-label="Close">×</button><span class="eyebrow">PLAN YOUR VISIT</span><h2 id="modalTitle">Accommodation enquiry</h2><p>Tell us what kind of stay you are interested in. Live booking and payment will be activated after integration with the hotel management system.</p><div class="notice">Preview only: this form does not reserve a room, send your details or collect payment.</div><form class="form" id="bookingForm" style="margin-top:18px"><select id="roomType" aria-label="Room type"><option>Regular Rooms</option><option>VVIP Rooms</option><option>Extended Stay</option></select><input id="modalCheckin" type="date" required aria-label="Check-in date"/><input id="modalCheckout" type="date" required aria-label="Check-out date"/><select id="modalGuests" aria-label="Number of guests"><option value="1">1 Guest</option><option value="2">2 Guests</option><option value="3">3 Guests</option><option value="4">4 Guests</option><option value="5">5+ Guests</option></select><button class="btn btn-primary" type="submit">Preview Request →</button><div class="status" id="bookingStatus" role="status"></div></form></div></div>
 <script>
 const nav=document.getElementById('navlinks'),toggle=document.getElementById('menu-toggle'),modal=document.getElementById('bookingModal');
+// One accessible full-image viewer for published hotel photos, room galleries and posters.
+function openFullPhoto(src,title,photos=[src],initialIndex=0){
+ const images=photos.filter(url=>typeof url==='string'&&/^https:\/\//i.test(url));
+ if(!images.length)return;
+ let dialog=document.getElementById('mw-gallery-lightbox');
+ if(!dialog){
+  dialog=document.createElement('dialog');dialog.id='mw-gallery-lightbox';dialog.className='gallery-lightbox';
+  dialog.setAttribute('aria-label','Full-size hotel photograph');
+  const close=document.createElement('button');close.type='button';close.className='gallery-lightbox-close';close.textContent='✕ Close';close.addEventListener('click',()=>dialog.close());
+  const image=document.createElement('img');image.alt='';
+  const note=document.createElement('p');note.className='gallery-lightbox-note';note.setAttribute('role','status');
+  const controls=document.createElement('div');controls.className='mw-full-photo-controls';
+  const back=document.createElement('button');back.type='button';back.textContent='‹';back.setAttribute('aria-label','Previous full-size photo');
+  const count=document.createElement('span');count.className='mw-full-photo-counter';count.setAttribute('aria-live','polite');
+  const next=document.createElement('button');next.type='button';next.textContent='›';next.setAttribute('aria-label','Next full-size photo');
+  controls.append(back,count,next);dialog.append(close,image,note,controls);document.body.appendChild(dialog);
+  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+  dialog.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'){event.preventDefault();back.click();}if(event.key==='ArrowRight'){event.preventDefault();next.click();}});
+ }
+ const image=dialog.querySelector('img'),note=dialog.querySelector('.gallery-lightbox-note');
+ const back=dialog.querySelector('[aria-label="Previous full-size photo"]'),next=dialog.querySelector('[aria-label="Next full-size photo"]');
+ const counter=dialog.querySelector('.mw-full-photo-counter');let index=Math.max(0,images.indexOf(src));
+ if(Number.isInteger(initialIndex)&&initialIndex>=0&&initialIndex<images.length)index=initialIndex;
+ function show(){
+  image.removeAttribute('src');image.alt=title+' — photo '+(index+1)+' of '+images.length;
+  note.textContent='Loading full-resolution photo…';
+  image.onload=()=>{note.textContent='';};image.onerror=()=>{note.textContent='Full-resolution photo could not be loaded.';};
+  image.src=images[index];counter.textContent=(index+1)+' / '+images.length;
+  back.hidden=next.hidden=images.length<2;
+ }
+ back.onclick=()=>{index=(index-1+images.length)%images.length;show();};
+ next.onclick=()=>{index=(index+1)%images.length;show();};
+ show();if(!dialog.open)dialog.showModal();dialog.querySelector('.gallery-lightbox-close').focus();
+}
+// Images inside navigation controls retain their original actions.
+document.addEventListener('click',event=>{
+ const image=event.target.closest?.('main img');
+ if(!image||image.dataset.fullPhotoHandled||image.closest('button,a')||image.closest('.mw-room-photo-viewer'))return;
+ const src=image.dataset.fullPhotoSrc||image.currentSrc||image.src;
+ if(/^https:\/\//i.test(src))openFullPhoto(src,image.alt||'MWISHO Tourist Hotel photo');
+});
 document.getElementById('year').textContent=new Date().getFullYear();
 toggle.addEventListener('click',()=>{const open=nav.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'×':'☰'});
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.textContent='☰'}));
@@ -531,18 +573,23 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
    const gallery=document.createElement('div');gallery.className='mw-room-photo-viewer';
    const image=document.createElement('img');image.loading='lazy';image.alt=(room.name||'Hotel room')+' photo 1 of '+photos.length;
    image.src=photos[0]||'assets/photo-placeholder.svg';gallery.appendChild(image);
+   image.tabIndex=0;image.setAttribute('role','button');image.setAttribute('aria-label','Open full-size photo of '+(room.name||'hotel room'));
+   let selectedPhoto=0;
+   const openSelected=()=>{if(photos.length)openFullPhoto(photos[selectedPhoto],room.name||'Hotel room',photos,selectedPhoto);};
+   image.addEventListener('click',openSelected);
+   image.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openSelected();}});
    if(photos.length>1){
     let index=0;
     const controls=document.createElement('div');controls.className='mw-room-photo-controls';
     const back=document.createElement('button');back.type='button';back.textContent='‹';back.setAttribute('aria-label','Previous photo of '+room.name);
     const next=document.createElement('button');next.type='button';next.textContent='›';next.setAttribute('aria-label','Next photo of '+room.name);
     const counter=document.createElement('span');counter.setAttribute('aria-live','polite');
-    const setPhoto=()=>{image.src=photos[index];image.alt=(room.name||'Hotel room')+' photo '+(index+1)+' of '+photos.length;counter.textContent=(index+1)+' / '+photos.length;};
+    const setPhoto=()=>{selectedPhoto=index;image.src=photos[index];image.alt=(room.name||'Hotel room')+' photo '+(index+1)+' of '+photos.length;counter.textContent=(index+1)+' / '+photos.length;};
     back.addEventListener('click',()=>{index=(index-1+photos.length)%photos.length;setPhoto();});
     next.addEventListener('click',()=>{index=(index+1)%photos.length;setPhoto();});
     controls.append(back,counter,next);gallery.appendChild(controls);setPhoto();
     const thumbs=document.createElement('div');thumbs.className='mw-room-photo-thumbs';
-    photos.forEach((url,i)=>{const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','Show room photo '+(i+1));const thumb=document.createElement('img');thumb.src=url;thumb.alt='';thumb.loading='lazy';button.appendChild(thumb);button.addEventListener('click',()=>{index=i;setPhoto();});thumbs.appendChild(button);});
+    photos.forEach((url,i)=>{const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','Open full-size room photo '+(i+1));const thumb=document.createElement('img');thumb.src=url;thumb.alt='';thumb.loading='lazy';button.appendChild(thumb);button.addEventListener('click',()=>{index=i;setPhoto();openSelected();});thumbs.appendChild(button);});
     gallery.appendChild(thumbs);
    }
    article.appendChild(gallery);
@@ -725,24 +772,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
    // Gallery is public only for entries explicitly published by authorized hotel Admin.
    // Build DOM with textContent; never insert captions as HTML.
    function openGalleryPhoto(src,title){
-    let dialog=document.getElementById('mw-gallery-lightbox');
-    if(!dialog){
-     dialog=document.createElement('dialog');dialog.id='mw-gallery-lightbox';dialog.className='gallery-lightbox';
-     const close=document.createElement('button');close.type='button';close.className='gallery-lightbox-close';close.textContent='✕ Close';
-     close.addEventListener('click',()=>dialog.close());
-     const image=document.createElement('img');image.alt='';
-     const note=document.createElement('p');note.className='gallery-lightbox-note';
-     dialog.append(close,image,note);document.body.appendChild(dialog);
-     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
-    }
-    const image=dialog.querySelector('img');
-    const note=dialog.querySelector('.gallery-lightbox-note');
-    image.removeAttribute('src');
-    image.alt=title;
-    note.textContent='Loading full-resolution photo…';
-    image.onload=()=>{note.textContent='';};
-    image.onerror=()=>{note.textContent='Full-resolution image could not be loaded. Please try again.';};
-    image.src=src;dialog.showModal();
+    openFullPhoto(src,title);
    }
    const quoteForm=document.getElementById('mwConferenceQuoteForm');
    const packageSelect=document.getElementById('mwQuotePackage');
