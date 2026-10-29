@@ -75,6 +75,7 @@ footer .brand-tagline{color:#ffcf4a}
 .mw-food-dialog{width:min(96vw,850px);max-height:90vh;overflow-y:auto;background:#fff;border:0;border-radius:17px;padding:22px;color:#302146}.mw-food-dialog::backdrop{background:#0f0919bb}.mw-food-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.mw-food-head h2{font-family:'Playfair Display',serif;font-size:25px;margin:8px 0}.mw-food-head small{color:#6a30aa}.mw-food-head button{background:#ffcf4a;border:0;border-radius:7px;padding:9px}.mw-food-safety{background:#fff7dc;border-left:4px solid #ffca48;padding:12px;line-height:1.55;font-size:13px}.mw-food-list{display:grid;gap:10px;margin:15px 0}.mw-food-item,.mw-food-cart-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9dff3;border-radius:8px}.mw-food-item div{display:grid;gap:4px}.mw-food-item span{font-size:13px;color:#6b5b7c}.mw-food-item button,.mw-food-cart-item button{border:0;border-radius:7px;background:#6330ab;color:#fff;padding:9px 12px;flex-shrink:0}.mw-food-cart{background:#faf8fd;border-radius:12px;padding:16px;display:grid;gap:12px}.mw-food-cart h3{color:#4e2b83}.mw-food-cart label{display:grid;gap:5px;font-weight:700;font-size:12px}.mw-food-cart input{padding:11px;border:1px solid #d7c9e8;border-radius:8px;width:100%;min-width:0;font-size:16px}.mw-food-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mw-food-cart #mwFoodCheckout{padding:13px;border:0;border-radius:8px;background:#ad9bc4;color:white;cursor:not-allowed}.mw-food-cart #mwFoodStatus{font-size:12px;color:#5d506c}@media(max-width:580px){.mw-food-dialog{padding:13px}.mw-food-dates{grid-template-columns:1fr}.mw-food-head h2{font-size:20px}}
 .conference-package-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.conference-package-card{background:white;border:1px solid #e5dcef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}.conference-package-card h3{color:#4e268a;margin:0;font-size:19px}.conference-package-card p{color:#627184;line-height:1.55;flex:1;margin:0}.conference-package-price{color:#40226b}.conference-package-enquire{color:#622fa9;font-weight:700;text-decoration:none}@media(max-width:780px){.conference-package-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:550px){.conference-package-grid{grid-template-columns:1fr}}
 .conference-quote-box{background:#faf8ff;border:1px solid #e3d8ef;border-radius:15px;padding:24px}.conference-quote-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.conference-quote-form label{display:block;font-size:13px;font-weight:700;color:#4b3670}.conference-quote-form input,.conference-quote-form select,.conference-quote-form textarea{display:block;width:100%;box-sizing:border-box;margin-top:7px;border:1px solid #cfbfde;border-radius:9px;padding:12px;background:white;color:#30243d;font:inherit}.conference-quote-form .span2{grid-column:1/-1}.conference-quote-form button{justify-self:start}.conference-quote-form input:focus-visible,.conference-quote-form select:focus-visible,.conference-quote-form textarea:focus-visible{outline:2px solid #6731a9}@media(max-width:650px){.conference-quote-box{padding:14px}.conference-quote-form{grid-template-columns:1fr}.conference-quote-form input,.conference-quote-form select,.conference-quote-form textarea{font-size:16px}}
+#conference-packages[hidden],#conference-quotation[hidden]{display:none!important}.mw-conference-entry{cursor:pointer}.mw-conference-entry:focus-visible{outline:3px solid #7334bc;outline-offset:4px}.mw-conference-header-actions{display:flex;justify-content:flex-start;margin-bottom:14px}.mw-conference-back{background:#f3ecfa;border:1px solid #dfd2ee;color:#542e89;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}.mw-conference-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;margin:22px 0;padding:18px;background:#f6f0fc;border:1px solid #e4d9f0;border-radius:12px}.mw-conference-cta p{font-weight:700;margin:0;color:#43246d}.conference-package-quote{background:#6531a9;color:white;border:0;border-radius:7px;padding:10px 12px;cursor:pointer;font-weight:700;text-align:left}.conference-package-quote:hover{background:#4c238a}#conference-quotation{margin-top:20px;scroll-margin-top:105px}#conference-packages{scroll-margin-top:95px}@media(max-width:600px){.mw-conference-cta{align-items:stretch;flex-direction:column}.mw-conference-cta button{width:100%}}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -151,11 +152,13 @@ footer .brand-tagline{color:#ffcf4a}
 <article class="feature-card"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="copy"><span class="eyebrow" style="color:#ffdb7b">BAR & LOUNGE</span><h3>Cheers to good times</h3><p>Unwind at our bars, catch up with friends and enjoy the atmosphere.</p><a class="btn btn-white" href="#contact">Make an Enquiry →</a></div></article>
 </div></div></section>
 <section class="section" id="events"><div class="wrap"><div class="section-head"><span class="eyebrow">MEET • CELEBRATE • CONNECT</span><h2 class="serif">Every occasion deserves a place</h2><p>From professional gatherings to evenings out, explore what MWISHO Tourist Hotel can offer.</p></div><div class="grid3">
-<article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">BUSINESS</span><h3>Conferences</h3><p>Enquire about meetings, workshops and conferences tailored to your requirements.</p><button class="textbtn" data-event="Conference">Enquire →</button></div></article>
+<article class="tile mw-conference-entry" id="mwConferenceServiceCard" role="button" tabindex="0" aria-expanded="false" aria-controls="conference-packages"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel conference facility"/><div class="tile-body"><span class="kicker">BUSINESS</span><h3>Conferences</h3><p>Explore conference packages, meeting services and customized quotations.</p><button class="textbtn" type="button" id="mwViewConferencePackages">Explore Conference Packages →</button></div></article>
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">ENTERTAINMENT</span><h3>Night Club</h3><p>Discover vibrant evenings, entertainment and good company at our night club.</p><button class="textbtn" data-event="Night Club">Enquire →</button></div></article>
 <article class="tile"><img loading="lazy" src="assets/photo-placeholder.svg" alt="Hotel photo loading"/><div class="tile-body"><span class="kicker">CELEBRATIONS</span><h3>Private Events</h3><p>Planning a gathering or celebration? Tell us what you have in mind.</p><button class="textbtn" data-event="Private Event">Enquire →</button></div></article></div></div></section>
-<section class="section" id="conference-packages"><div class="wrap"><div class="section-head"><span class="eyebrow">MWISHO MEETINGS & CONFERENCES</span><h2 class="serif">Conference Packages & Services</h2><p>Choose from our available conference and event services. Contact the hotel for a quotation and availability.</p></div><div id="conference-package-list" class="conference-package-grid"></div></div></section>
-<div class="wrap" id="conference-quotation" style="margin-top:35px">
+<section class="section" id="conference-packages" hidden><div class="wrap"><div class="mw-conference-header-actions"><button class="mw-conference-back" type="button" id="mwCloseConferencePackages">← Back to Events</button></div><div class="section-head"><span class="eyebrow">MWISHO MEETINGS & CONFERENCES</span><h2 class="serif">Conference Packages & Services</h2><p>Choose from our available conference and event services. Contact the hotel for a quotation and availability.</p></div><div id="conference-package-list" class="conference-package-grid"></div>
+<div class="mw-conference-cta"><p>Need a tailored meeting or event quotation?</p><button class="btn btn-primary" type="button" id="mwOpenConferenceQuote">Request a Conference Quotation →</button></div>
+<div id="conference-quotation" hidden>
+
  <div class="conference-quote-box">
  <div class="section-head"><span class="eyebrow">CONFERENCE QUOTATIONS</span><h2 class="serif">Request a Conference Quotation</h2><p>Complete your organization and event details. Our team will review your request and prepare a quotation.</p></div>
  <form id="mwConferenceQuoteForm" class="conference-quote-form">
@@ -172,7 +175,7 @@ footer .brand-tagline{color:#ffcf4a}
  <label class="span2">Describe Your Requirements / Custom Package<textarea name="requirements" maxlength="3000" rows="4" placeholder="Meeting setup, catering, dietary needs, equipment, room layout and any other requests"></textarea></label>
  <button class="btn btn-primary span2" type="submit" id="mwQuoteSubmit">Submit Quotation Request</button>
  <p role="status" aria-live="polite" id="mwQuoteStatus" class="span2"></p>
- </form></div></div>
+ </form></div></div></div></section>
 <section class="banner"><span class="eyebrow" style="color:#ffdb7b">EXPERIENCE MWISHO</span><h2 class="serif">Your next memorable visit starts here.</h2><p>Explore accommodation, dining and events in one welcoming destination.</p><button class="btn btn-white" data-book>Plan Your Stay →</button></section>
 <section class="section section-white" id="promotions"><div class="wrap"><div class="section-head"><span class="eyebrow">WHAT'S HAPPENING AT MWISHO</span><h2 class="serif">Advertisements & Upcoming Events</h2><p>Discover announcements, promotions and upcoming hotel experiences.</p></div><div class="mw-promotion-grid" id="mw-promotion-grid"></div><p class="mw-promotions-empty" id="mw-promotions-empty">Upcoming announcements will appear here.</p></div></section>
 <section class="section section-white" id="gallery"><div class="wrap"><div class="section-head"><span class="eyebrow">A GLIMPSE OF THE EXPERIENCE</span><h2 class="serif">Moments worth sharing</h2><p>Explore photos and videos published by MWISHO Tourist Hotel.</p></div><div class="gallery"><p class="gallery-loading-note" role="status">Loading hotel gallery…</p></div><p class="gallery-caption">Published MWISHO Tourist Hotel photos and videos appear here.</p></div></section>
@@ -235,6 +238,33 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
 /* MWISHO website: isolated public content + privacy-conscious page views. */
 (()=>{
  const endpoint='https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-website-public';
+ const conferenceCard=document.getElementById('mwConferenceServiceCard');
+ const conferenceSection=document.getElementById('conference-packages');
+ const quotationSection=document.getElementById('conference-quotation');
+ function openConferencePackages(){
+  if(!conferenceSection)return;
+  conferenceSection.hidden=false;
+  conferenceCard?.setAttribute('aria-expanded','true');
+  conferenceSection.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+ function openConferenceQuotation(packageId=''){
+  openConferencePackages();
+  if(!quotationSection)return;
+  quotationSection.hidden=false;
+  const packageSelect=document.getElementById('mwQuotePackage');
+  if(packageSelect&&packageId)packageSelect.value=packageId;
+  quotationSection.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+ document.getElementById('mwViewConferencePackages')?.addEventListener('click',event=>{event.stopPropagation();openConferencePackages();});
+ conferenceCard?.addEventListener('click',event=>{if(event.target.closest('#mwViewConferencePackages'))return;openConferencePackages();});
+ conferenceCard?.addEventListener('keydown',event=>{if(event.target===conferenceCard&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openConferencePackages();}});
+ document.getElementById('mwCloseConferencePackages')?.addEventListener('click',()=>{
+  if(quotationSection)quotationSection.hidden=true;
+  conferenceSection.hidden=true;
+  conferenceCard?.setAttribute('aria-expanded','false');
+  conferenceCard?.scrollIntoView({behavior:'smooth',block:'center'});
+ });
+ document.getElementById('mwOpenConferenceQuote')?.addEventListener('click',()=>openConferenceQuotation());
  const quoteRequest=document.getElementById('mwConferenceQuoteForm');
  if(quoteRequest)quoteRequest.addEventListener('submit',async event=>{
    event.preventDefault();
@@ -641,7 +671,11 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
       const form=document.getElementById('contactForm');
       if(form){form.elements.topic.value='Conference / Event';form.elements.message.value='I would like to enquire about '+item.name+'.';}
      });
-     card.appendChild(link);return card;
+     card.appendChild(link);
+     const quoteButton=document.createElement('button');quoteButton.type='button';
+     quoteButton.className='conference-package-quote';quoteButton.textContent='Request Quotation →';
+     quoteButton.addEventListener('click',()=>openConferenceQuotation(item.id));
+     card.appendChild(quoteButton);return card;
     }));
    }
    // Only the public API supplies published, date-active promotions.
