@@ -189,7 +189,7 @@ footer .brand-tagline{color:#ffcf4a}
  <label>Phone Number *<input name="customer_phone" type="tel" required maxlength="30" autocomplete="tel"/></label>
  <label>Email Address *<input name="customer_email" type="email" required maxlength="254" autocomplete="email"/></label>
  <label>Number of Tickets *<input name="quantity" type="number" min="1" max="20" value="1" required/></label>
- <div class="span2" id="mwTicketPayment" hidden style="padding:16px;background:#f3eef9;border-radius:12px"><strong>Pay using M-Pesa Buy Goods</strong><p>Hotel Till Number: <strong id="mwTicketTill"></strong></p><p id="mwTicketTotal"></p><p>Pay the exact amount and enter the transaction reference from your M-Pesa confirmation SMS. The hotel verifies payment manually.</p><label>M-Pesa Transaction Reference *<input name="mpesa_reference" id="mwTicketMpesa" placeholder="e.g. TABC123456" maxlength="15" autocapitalize="characters" autocomplete="off"/></label></div>
+ <div class="span2" id="mwTicketPayment" hidden style="padding:16px;background:#f3eef9;border-radius:12px"><strong id="mwTicketPayHeading">Pay using M-Pesa</strong><p id="mwTicketPaymentDetails">Loading payment details…</p><p id="mwTicketTotal"></p><p>Pay the exact amount and enter the transaction reference from your M-Pesa confirmation SMS. The hotel verifies payment manually.</p><label>M-Pesa Transaction Reference *<input name="mpesa_reference" id="mwTicketMpesa" placeholder="e.g. TABC123456" maxlength="15" autocapitalize="characters" autocomplete="off"/></label></div>
  <label class="span2">Special Requests (Optional)<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
  <button class="btn btn-primary span2" type="submit" id="mwTicketSubmit">Submit Ticket Request</button><p class="span2" id="mwTicketStatus" role="status"></p>
  </form><p class="mw-room-disclaimer">Request only. The hotel must confirm availability and payment before issuing tickets.</p></div>
@@ -326,12 +326,14 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
    updateTicketTotal();
    ticketDialog.showModal();
    if(paid){
-    document.getElementById('mwTicketTill').textContent='Loading…';
+    document.getElementById('mwTicketPaymentDetails').textContent='Loading payment details…';
     try{
      const response=await fetch(endpoint+'?resource=ticket_payment_config');const config=await response.json();
-     if(!response.ok||!config.enabled)throw Error('Hotel payment Till is not yet configured. Please contact the hotel.');
-     ticketTill=config.till;document.getElementById('mwTicketTill').textContent=ticketTill;
-    }catch(error){document.getElementById('mwTicketTill').textContent='Not available';document.getElementById('mwTicketStatus').textContent=error.message;}
+     if(!response.ok||!config.enabled)throw Error('Hotel ticket payment details are not yet configured. Please contact the hotel.');
+     ticketTill=config.number;
+     document.getElementById('mwTicketPayHeading').textContent=config.method==='paybill'?'Pay using M-Pesa Paybill':'Pay using M-Pesa Buy Goods';
+     document.getElementById('mwTicketPaymentDetails').textContent=(config.method==='paybill'?'Paybill Number: ':'Till Number: ')+config.number+(config.method==='paybill'?' · Account Number: '+config.account:'');
+    }catch(error){document.getElementById('mwTicketPaymentDetails').textContent='Not available';document.getElementById('mwTicketStatus').textContent=error.message;}
    }
  }
  document.getElementById('mwCloseEventTicket')?.addEventListener('click',()=>ticketDialog.close());
@@ -339,7 +341,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  ticketForm?.addEventListener('submit',async e=>{
    e.preventDefault();
    if(!ticketEvent||!ticketForm.reportValidity())return;
-   if(Number(ticketEvent.ticket_price_kes)>0&&!ticketTill){document.getElementById('mwTicketStatus').textContent='Payment Till not available. Please contact the hotel.';return;}
+   if(Number(ticketEvent.ticket_price_kes)>0&&!ticketTill){document.getElementById('mwTicketStatus').textContent='Payment details not available. Please contact the hotel.';return;}
    const button=document.getElementById('mwTicketSubmit'),status=document.getElementById('mwTicketStatus');
    button.disabled=true;status.textContent='Sending your ticket request…';
    try{
