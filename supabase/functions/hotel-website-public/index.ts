@@ -19,6 +19,12 @@ Deno.serve(async(req:Request)=>{
    const till=String(settings.mpesa_till_number||'').trim();
    return respond({enabled:settings.food_order_enabled==='true'&&/^\d{5,15}$/.test(till),till:/^\d{5,15}$/.test(till)?till:''});
   }
+  if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='ticket_payment_config'){
+   const {data,error}=await db.from('hotel_website_settings').select('key,value').eq('key','mpesa_till_number').maybeSingle();
+   if(error)return respond({error:'Payment details temporarily unavailable.'},503);
+   const till=String(data?.value||'').trim();
+   return respond({till:/^\d{5,15}$/.test(till)?till:'',enabled:/^\d{5,15}$/.test(till)});
+  }
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_menu'){
    const {data:items,error:menuError}=await db.from('products')
     .select('id,name,price,preparation_options,hotel_image_path')
@@ -45,13 +51,25 @@ Deno.serve(async(req:Request)=>{
    return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='event_ticket_track'){
+   const tracking=String(data.tracking_number||'').trim().toUpperCase();
+   if(!/^MWT-[A-F0-9]{16}$/.test(tracking))return respond({error:'Enter a valid ticket tracking number.'},400);
+   const {data:ticket,error}=await db.from('hotel_website_event_ticket_requests')
+    .select('tracking_number,event_title,quantity,total_kes,status,payment_verified_at,created_at')
+    .eq('tracking_number',tracking).maybeSingle();
+   if(error)return respond({error:'Tracking is temporarily unavailable.'},503);
+   if(!ticket)return respond({error:'Ticket booking not found. Check the number and try again.'},404);
+   return respond({ok:true,ticket:{...ticket,payment_verified:!!ticket.payment_verified_at,payment_verified_at:undefined}});
+  }
   if(data?.action==='event_ticket_request'){
    const event_id=String(data.event_id||''),name=String(data.customer_name||'').trim();
    const phone=String(data.customer_phone||'').trim(),email=String(data.customer_email||'').trim();
    const quantity=Number(data.quantity),notes=String(data.notes||'').trim();
+   const mpesa_reference=String(data.mpesa_reference||'').trim().toUpperCase();
    if(!/^[0-9a-f-]{36}$/i.test(event_id)||name.length<2||name.length>120||
      !/^\+?[0-9 ()-]{9,30}$/.test(phone)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||
-     !Number.isInteger(quantity)||quantity<1||quantity>20||notes.length>1000)
+     !Number.isInteger(quantity)||quantity<1||quantity>20||notes.length>1000||
+     (mpesa_reference!==''&&!/^[A-Z0-9]{8,15}$/.test(mpesa_reference)))
      return respond({error:'Check your ticket booking details.'},400);
    const {data:event,error:evError}=await db.from('hotel_website_promotions')
     .select('id,kind,title,is_published,event_date,starts_at,ends_at,ticket_booking_enabled,ticket_price_kes,ticket_capacity')
@@ -77,12 +95,15 @@ Deno.serve(async(req:Request)=>{
    if(limitError)return respond({error:'Cannot process ticket request.'},503);
    if((count||0)>=3)return respond({error:'Too many requests. Contact the hotel.'},429);
    const price=event.ticket_price_kes===null?null:Number(event.ticket_price_kes);
+   if(price!==null&&price>0&&!mpesa_reference)
+    return respond({error:'Enter your M-Pesa transaction reference after paying the hotel Till.'},400);
    const {data:created,error:e}=await db.from('hotel_website_event_ticket_requests').insert({
      event_id,event_title:event.title,customer_name:name,customer_phone:phone,customer_email:email.toLowerCase(),
-     quantity,unit_price_kes:price,total_kes:price===null?null:price*quantity,notes,status:'pending_review'
-   }).select('id').single();
+     quantity,unit_price_kes:price,total_kes:price===null?null:price*quantity,notes,
+     mpesa_reference:mpesa_reference||null,status:'pending_review'
+   }).select('tracking_number').single();
    if(e||!created)return respond({error:'Ticket request could not be sent.'},503);
-   return respond({ok:true,request_id:created.id,status:'pending_review',
+   return respond({ok:true,tracking_number:created.tracking_number,status:'pending_review',
      message:'Ticket request sent for hotel review. This is not yet a confirmed or paid ticket.'});
   }
   if(data?.action==='conference_quote_request'){
