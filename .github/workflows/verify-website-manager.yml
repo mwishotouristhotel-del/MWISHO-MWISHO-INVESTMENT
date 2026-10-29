@@ -50,6 +50,8 @@ jobs:
         run: node tests/website-manager/about-image-card.mjs
       - name: Verify up to five photos per room on Admin and customer site
         run: node tests/website-manager/room-five-photos.mjs
+      - name: Verify customer full-size photo viewer
+        run: node tests/website-manager/fullscreen-photo-viewer.mjs
       - name: Verify accommodation request flow safety
         run: node tests/website-manager/room-requests.mjs
       - name: Verify food pre-order payment gate
