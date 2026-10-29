@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const page=await readFile('hotel/index.html','utf8');
+const api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const admin=await readFile('src/WebsiteManager.jsx','utf8');
+const editor=await readFile('src/WebsiteConferencePackages.jsx','utf8');
+assert(page.includes('id="conference-package-list"'));
+assert(page.includes('conference_packages=[]'));
+assert(page.includes("form.elements.topic.value='Conference / Event'"));
+assert(api.includes("db.from('hotel_website_conference_packages')"));
+assert(admin.includes("tab==='conference_packages'"));
+assert(editor.includes('price_kes')&&editor.includes('is_published'));
+console.log('PASS: conference Admin editor, public API, enquiry links and rate display connected');
