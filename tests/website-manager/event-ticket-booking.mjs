@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const html=await readFile('hotel/index.html','utf8');
+const edge=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const admin=await readFile('src/WebsiteManager.jsx','utf8');
+const promotions=await readFile('src/WebsitePromotionsManager.jsx','utf8');
+const queue=await readFile('src/WebsiteEventTickets.jsx','utf8');
+assert(html.includes('id="mwEventTicketDialog"')&&html.includes("action:'event_ticket_request'"));
+assert(html.includes("const ticket=ticketButton(item)")&&html.includes('const book=ticketButton(selected)'));
+assert(edge.includes("data?.action==='event_ticket_request'"));
+assert(edge.includes("status:'pending_review'")&&!edge.includes("status:'paid'"));
+assert(edge.includes('ticket_booking_enabled,ticket_price_kes,ticket_capacity'));
+assert(promotions.includes('Enable Book Ticket')&&promotions.includes('ticket_capacity'));
+assert(admin.includes("tab==='event_tickets'"));
+assert(queue.includes('Confirm after verification')&&queue.includes("status','pending_review'"));
+console.log('PASS: ticket configuration, customer request, public validation and Admin queue connected');
