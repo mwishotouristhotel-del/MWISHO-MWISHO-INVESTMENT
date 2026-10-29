@@ -55,6 +55,8 @@ Deno.serve(async(req:Request)=>{
    const name=String(data.customer_name||'').trim(),phone=String(data.customer_phone||'').trim();
    const reference=String(data.mpesa_reference||'').trim().toUpperCase();
    const date=String(data.arrival_date||''),time=String(data.arrival_time||'');
+   const instructions=String(data.order_instructions||'').trim();
+   if(instructions.length>1000)return respond({error:'Order instructions must be 1000 characters or fewer.'},400);
    if(name.length<2||name.length>120||!/^\+?[0-9 ]{9,25}$/.test(phone)||
        !/^[A-Z0-9]{8,15}$/.test(reference)||!/\d{4}-\d{2}-\d{2}/.test(date)||
        !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||
@@ -90,7 +92,7 @@ Deno.serve(async(req:Request)=>{
    if((recent||0)>=3)return respond({error:'Too many recent orders. Contact the hotel.'},429);
    const {data:inserted,error:insertError}=await db.from('hotel_website_food_orders').insert({
     customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
-    items,total_kes:amount,till_number:till,mpesa_reference:reference,
+    items,total_kes:amount,till_number:till,mpesa_reference:reference,order_instructions:instructions,
     status:'pending_verification'
    }).select('id').single();
    if(insertError){

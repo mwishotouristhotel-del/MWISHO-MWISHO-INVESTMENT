@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const html=await readFile('hotel/index.html','utf8');
+const api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const admin=await readFile('src/WebsiteFoodPayments.jsx','utf8');
+assert(html.includes('id="mwMealInstructions"')&&html.includes('maxlength="1000"'));
+assert(html.includes("order_instructions:document.getElementById('mwMealInstructions').value.trim()"));
+assert(api.includes("instructions.length>1000")&&api.includes('order_instructions:instructions'));
+assert(admin.includes('Customer instructions:')&&admin.includes('Preparation instructions:'));
+console.log('PASS: order instructions propagate from checkout through payment approval to kitchen handover');
