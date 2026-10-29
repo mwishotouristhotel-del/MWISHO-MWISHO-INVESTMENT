@@ -48,7 +48,7 @@ Deno.serve(async(req:Request)=>{
   if(data?.action==='conference_quote_request'){
    const val=(key:string,max=3000)=>String(data[key]||'').trim().slice(0,max+1);
    const organization_name=val('organization_name',150),organization_kra_pin=val('organization_kra_pin',15).toUpperCase();
-   const event_date=val('event_date',10),number_of_pax=Number(data.number_of_pax);
+   const event_date=val('event_date',10),number_of_pax=Number(data.number_of_pax),number_of_days=Number(data.number_of_days);
    const organization_email=val('organization_email',254),organization_phone=val('organization_phone',30);
    const contact_person=val('contact_person',120),contact_phone=val('contact_phone',30);
    const requirements=val('requirements',3000),package_id=val('package_id',36);
@@ -57,6 +57,7 @@ Deno.serve(async(req:Request)=>{
    const cc_emails=Array.isArray(data.cc_emails)?data.cc_emails.map((x:any)=>String(x).trim().toLowerCase()):[];
    if(organization_name.length<2||organization_name.length>150||!/^[A-Z][0-9]{9}[A-Z]$/.test(organization_kra_pin)||
       !Number.isInteger(number_of_pax)||number_of_pax<1||number_of_pax>10000||
+      !Number.isInteger(number_of_days)||number_of_days<1||number_of_days>365||
       !/^\d{4}-\d{2}-\d{2}$/.test(event_date)||!Number.isFinite(Date.parse(event_date))||
       event_date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})||
       !emailValid(organization_email)||!phoneValid(organization_phone)||
@@ -76,7 +77,7 @@ Deno.serve(async(req:Request)=>{
    if(countError)return respond({error:'Unable to validate request.'},503);
    if((count||0)>=3)return respond({error:'Too many recent requests. Please contact the hotel.'},429);
    const {data:created,error:e}=await db.from('hotel_website_conference_quotes').insert({
-     organization_name,organization_kra_pin,number_of_pax,event_date,
+     organization_name,organization_kra_pin,number_of_pax,number_of_days,event_date,
      package_id:package_id||null,package_name,requirements,organization_email,organization_phone,
      contact_person,contact_phone,cc_emails,status:'new'
    }).select('id').single();

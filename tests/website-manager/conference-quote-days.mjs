@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const page=await readFile('hotel/index.html','utf8');
+const api=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+const inbox=await readFile('src/WebsiteConferenceQuotes.jsx','utf8');
+assert(page.includes('name="number_of_days" required type="number" min="1" max="365"'));
+assert(api.includes('number_of_days=Number(data.number_of_days)'));
+assert(api.includes('!Number.isInteger(number_of_days)||number_of_days<1||number_of_days>365'));
+assert(api.includes('number_of_pax,number_of_days,event_date'));
+assert(inbox.includes('q.number_of_days??1'));
+console.log('PASS: conference quotation duration is validated, persisted and shown to Admin');
