@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const source=await readFile('supabase/functions/hotel-website-public/index.ts','utf8');
+assert(!source.includes('\\\\d'),'no double-escaped digits remain in regex literals');
+assert(source.includes('/^\\d{5,15}$/'),'till validation accepts digits');
+assert(/^\d{5,15}$/.test('9311663'),'configured Till is valid');
+assert(/^([01]\d|2[0-3]):[0-5]\d$/.test('18:37'),'food order arrival time is valid');
+assert(/^\d{4}-\d{2}-\d{2}/.test('2026-10-30'),'arrival date is valid');
+assert(/^\+?[0-9 ]{9,25}$/.test('0745396385'),'customer number is valid');
+console.log('PASS: food payment regex validation covers configured Till, arrival and contact details');

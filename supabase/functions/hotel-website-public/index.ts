@@ -17,7 +17,7 @@ Deno.serve(async(req:Request)=>{
    const {data}=await db.from('hotel_website_settings').select('key,value').in('key',['mpesa_till_number','food_order_enabled']);
    const settings=Object.fromEntries((data||[]).map((x:any)=>[x.key,x.value]));
    const till=String(settings.mpesa_till_number||'').trim();
-   return respond({enabled:settings.food_order_enabled==='true'&&/^\\d{5,15}$/.test(till),till:/^\\d{5,15}$/.test(till)?till:''});
+   return respond({enabled:settings.food_order_enabled==='true'&&/^\d{5,15}$/.test(till),till:/^\d{5,15}$/.test(till)?till:''});
   }
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_menu'){
    const {data:items,error:menuError}=await db.from('products')
@@ -50,14 +50,14 @@ Deno.serve(async(req:Request)=>{
    if(settingsError)return respond({error:'Food ordering temporarily unavailable.'},503);
    const options=Object.fromEntries((settingsRows||[]).map((x:any)=>[x.key,x.value]));
    const till=String(options.mpesa_till_number||'').trim();
-   if(options.food_order_enabled!=='true'||!/^\\d{5,15}$/.test(till))
+   if(options.food_order_enabled!=='true'||!/^\d{5,15}$/.test(till))
       return respond({error:'Food ordering has not been activated by the hotel.'},503);
    const name=String(data.customer_name||'').trim(),phone=String(data.customer_phone||'').trim();
    const reference=String(data.mpesa_reference||'').trim().toUpperCase();
    const date=String(data.arrival_date||''),time=String(data.arrival_time||'');
-   if(name.length<2||name.length>120||!/^\\+?[0-9 ]{9,25}$/.test(phone)||
-       !/^[A-Z0-9]{8,15}$/.test(reference)||!/\\d{4}-\\d{2}-\\d{2}/.test(date)||
-       !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)||
+   if(name.length<2||name.length>120||!/^\+?[0-9 ]{9,25}$/.test(phone)||
+       !/^[A-Z0-9]{8,15}$/.test(reference)||!/\d{4}-\d{2}-\d{2}/.test(date)||
+       !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||
        date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'}))
       return respond({error:'Check the name, phone, arrival time and M-Pesa code.'},400);
    if(!Array.isArray(data.items)||data.items.length<1||data.items.length>25)
