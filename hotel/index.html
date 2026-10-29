@@ -198,11 +198,16 @@ const today=new Date(),tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDat
 function validateDates(start,end){return !!start&&!!end&&start>=iso(today)&&end>start}
 function openBooking(room){if(room)document.getElementById('roomType').value=room;document.getElementById('bookingStatus').textContent='';modal.classList.add('show');document.body.style.overflow='hidden';document.getElementById('closeModal').focus()}
 function closeBooking(){modal.classList.remove('show');document.body.style.overflow='';}
-document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>openBooking()));
+document.querySelectorAll('[data-book]').forEach(b=>b.addEventListener('click',()=>openRoomSearch()));
 document.querySelectorAll('[data-room]').forEach(b=>b.addEventListener('click',()=>openBooking(b.dataset.room)));
 document.querySelectorAll('[data-event]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('contactForm').topic.value='Conference / Event';document.getElementById('contactForm').message.value='I would like information about: '+b.dataset.event;document.getElementById('contact').scrollIntoView({behavior:'smooth'})}));
 document.getElementById('closeModal').addEventListener('click',closeBooking);modal.addEventListener('click',e=>{if(e.target===modal)closeBooking()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('show'))closeBooking()});
-document.getElementById('quickBooking').addEventListener('submit',e=>{e.preventDefault();const a=document.getElementById('checkin').value,b=document.getElementById('checkout').value;if(!validateDates(a,b)){alert('Please select valid check-in and check-out dates.');return}document.getElementById('modalCheckin').value=a;document.getElementById('modalCheckout').value=b;document.getElementById('modalGuests').value=document.getElementById('guests').value;openBooking()});
+document.getElementById('quickBooking').addEventListener('submit',e=>{
+ e.preventDefault();
+ const a=document.getElementById('checkin').value,b=document.getElementById('checkout').value;
+ if(!validateDates(a,b)){alert('Please select valid check-in and check-out dates.');return;}
+ openRoomSearch();
+});
 document.getElementById('bookingForm').addEventListener('submit',e=>{e.preventDefault();const a=document.getElementById('modalCheckin').value,b=document.getElementById('modalCheckout').value;document.getElementById('bookingStatus').textContent=validateDates(a,b)?'Preview complete. Online room availability and reservations are not active yet.':'Choose valid check-in and check-out dates.'});
 document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('contactStatus').textContent='Preview only: enquiry submission is not connected yet. No message was sent.'});
 </script><script>
@@ -306,6 +311,17 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  const roomList=document.getElementById('regularRoomList');
  let roomRecords=[];
  let roomCategory="regular";
+ // Homepage booking controls use the same Rooms & Rates enquiry flow as the room cards.
+ function openRoomSearch(){
+  const a=document.getElementById('checkin').value;
+  const b=document.getElementById('checkout').value;
+  if(a&&b&&!validateDates(a,b)){
+   alert('Please choose a valid check-in and check-out date.');return;
+  }
+  const roomSection=document.getElementById('rooms');
+  if(roomSection)roomSection.scrollIntoView({behavior:'smooth',block:'start'});
+  showRegularRooms('regular');
+ }
  function showRegularRooms(category="regular"){
   roomCategory=category;
   renderRegularRooms(roomRecords);
@@ -317,7 +333,8 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  document.getElementById('viewVvipRooms')?.addEventListener('click',()=>showRegularRooms('vvip'));
  document.getElementById('viewExtendedRooms')?.addEventListener('click',()=>showRegularRooms('extended'));
 
- document.getElementById('closeRegularRooms')?.addEventListener('click',()=>roomDialog.close());
+ // Room selection from the homepage stays inside the existing room enquiry dialog.
+  document.getElementById('closeRegularRooms')?.addEventListener('click',()=>roomDialog.close());
  roomDialog?.addEventListener('click',event=>{if(event.target===roomDialog)roomDialog.close();});
  function renderRegularRooms(rooms){
   roomRecords=Array.isArray(rooms)?rooms:[];
@@ -396,13 +413,18 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
    packageSelect.addEventListener('change',calculate);guestSelect.addEventListener('change',calculate);
    const availability=document.createElement('form');availability.className='mw-room-availability';
    const title=document.createElement('h4');title.textContent='Check This Room Availability';
-   const notice=document.createElement('p');notice.textContent='Live availability is not connected to the Accommodation POS yet. Hotel staff will verify your dates and respond to your request.';
+   const notice=document.createElement('p');notice.textContent='Choose a room and submit an availability request. Hotel staff will confirm availability; this does not reserve the room automatically.';
    const fields=document.createElement('div');fields.className='mw-room-request-fields';
    const makeField=(caption,type,required=true)=>{
     const label=document.createElement('label');label.textContent=caption;
     const input=document.createElement('input');input.type=type;input.required=required;label.appendChild(input);fields.appendChild(label);return input;
    };
    const arrival=makeField('Check-in date','date'),departure=makeField('Check-out date','date');
+   const quickIn=document.getElementById('checkin').value;
+   const quickOut=document.getElementById('checkout').value;
+   if(validateDates(quickIn,quickOut)){arrival.value=quickIn;departure.value=quickOut;}
+   const desiredGuests=Math.max(1,Number(document.getElementById('guests').value)||1);
+   guestSelect.value=String(Math.min(capacity,desiredGuests));
    arrival.min=new Date().toLocaleDateString('en-CA');
    departure.min=arrival.min;
    arrival.addEventListener('change',()=>{departure.min=arrival.value;});

@@ -60,6 +60,8 @@ jobs:
         run: node tests/website-manager/payment-regex.mjs
       - name: Verify food order instructions are carried end-to-end
         run: node tests/website-manager/food-instructions.mjs
+      - name: Verify homepage room booking links
+        run: node tests/website-manager/home-room-booking.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website
