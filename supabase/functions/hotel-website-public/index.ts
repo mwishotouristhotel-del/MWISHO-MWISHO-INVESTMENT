@@ -12,6 +12,10 @@ Deno.serve(async(req:Request)=>{
  const url=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
  if(!url||!key)return respond({error:'not configured'},503);
  const db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+ const dispatchNotifications=()=>{
+  const job=fetch(url+'/functions/v1/hotel-notifications',{method:'POST',headers:{'authorization':'Bearer '+key,'content-type':'application/json'},body:'{}'}).catch(()=>{});
+  (globalThis as any).EdgeRuntime?.waitUntil?.(job);
+ };
  try{
   if(req.method==='GET' && new URL(req.url).searchParams.get('resource')==='food_payment_config'){
    const {data}=await db.from('hotel_website_settings').select('key,value').in('key',['mpesa_till_number','food_order_enabled']);
@@ -127,6 +131,7 @@ Deno.serve(async(req:Request)=>{
      mpesa_reference:mpesa_reference||null,status:'pending_review'
    }).select('tracking_number').single();
    if(e||!created)return respond({error:'Ticket request could not be sent.'},503);
+   dispatchNotifications();
    return respond({ok:true,tracking_number:created.tracking_number,status:'pending_review',
      message:'Ticket request sent for hotel review. This is not yet a confirmed or paid ticket.'});
   }
@@ -167,6 +172,7 @@ Deno.serve(async(req:Request)=>{
      contact_person,contact_phone,cc_emails,status:'new'
    }).select('id').single();
    if(e||!created)return respond({error:'Could not submit the quotation request.'},503);
+   dispatchNotifications();
    return respond({ok:true,request_id:created.id,status:'new',message:'Quotation request received for hotel Admin review.'});
   }
   if(data?.action==='submit_food_payment'){
@@ -215,8 +221,10 @@ Deno.serve(async(req:Request)=>{
      .gte('created_at',new Date(Date.now()-3600000).toISOString());
    if(throttleError)return respond({error:'Could not process your request.'},503);
    if((recent||0)>=3)return respond({error:'Too many recent orders. Contact the hotel.'},429);
+   const customer_email=String(data.customer_email||'').trim().toLowerCase();
+   if(customer_email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer_email))return respond({error:'Enter a valid email address.'},400);
    const {data:inserted,error:insertError}=await db.from('hotel_website_food_orders').insert({
-    customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
+    customer_name:name,customer_phone:phone,customer_email:customer_email||null,arrival_date:date,arrival_time:time,
     items,total_kes:amount,till_number:till,mpesa_reference:reference,order_instructions:instructions,
     status:'pending_verification'
    }).select('id').single();
@@ -224,6 +232,7 @@ Deno.serve(async(req:Request)=>{
     if(insertError.code==='23505')return respond({error:'This M-Pesa code is already submitted.'},409);
     return respond({error:'Unable to submit payment proof. Contact the hotel.'},503);
    }
+   dispatchNotifications();
    return respond({ok:true,order_id:inserted.id,status:'pending_verification',
     amount, message:'Payment proof submitted. The hotel must independently verify the transaction before preparation.'});
   }
@@ -255,6 +264,7 @@ Deno.serve(async(req:Request)=>{
     package_key:data.package_key,customer_name:name,customer_contact:contact,note,status:'pending'
    });
    if(insertError)return respond({error:'Unable to submit request. Please contact the hotel directly.'},503);
+   dispatchNotifications();
    return respond({ok:true,status:'pending',message:'Request received. Hotel staff must verify room availability before any booking is confirmed.'});
   }
   if(!data || typeof data.page!=='string'||!/^\/[a-z0-9/_-]{0,95}$/.test(data.page))return respond({error:'invalid page'},400);

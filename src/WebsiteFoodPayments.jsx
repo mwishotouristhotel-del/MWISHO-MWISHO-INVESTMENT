@@ -43,6 +43,7 @@ export default function WebsiteFoodPayments({supabase}){
    }).eq('id',order.id).eq('status','pending_verification').select('id').single();
    if(e||!data)throw Error(e?.message||'Order was already reviewed or is unavailable.');
    await refresh();
+   supabase.functions.invoke('hotel-notifications',{body:{action:'dispatch'}}).catch(()=>{});
    setNotice(approved?'Verified and approved for kitchen handover.':'Payment proof rejected.');
   }catch(e){setError(e.message||String(e));}
   finally{setBusy(false);}
@@ -53,7 +54,7 @@ export default function WebsiteFoodPayments({supabase}){
     .update({status:'completed'}).eq('id',order.id).eq('status','approved_for_kitchen')
     .select('id').single();
   if(e||!data)setError(e?.message||'Could not complete order');
-  else{await refresh();setNotice('Website food order marked completed.');}
+  else{await refresh();setNotice('Website food order marked completed.');supabase.functions.invoke('hotel-notifications',{body:{action:'dispatch'}}).catch(()=>{});}
   setBusy(false);
  }
  return <section className="mw-web-food-payments" style={{display:'grid',gap:16}}>

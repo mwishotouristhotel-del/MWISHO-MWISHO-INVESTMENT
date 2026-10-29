@@ -15,7 +15,7 @@ export default function WebsiteRoomRequests({supabase}){
   const {data,error:e}=await supabase.from('hotel_website_room_requests')
    .update({...patch,updated_at:new Date().toISOString()}).eq('id',request.id).select('id').single();
   if(e||!data)setError(e?.message||'Staff update not saved');
-  else {setNotice('Request updated for staff review.');await refresh();}
+  else {setNotice('Request updated for staff review.');await refresh();supabase.functions.invoke('hotel-notifications',{body:{action:'dispatch'}}).catch(()=>{});}
   setBusy('');
  }
  return <section className="mw-room-requests">

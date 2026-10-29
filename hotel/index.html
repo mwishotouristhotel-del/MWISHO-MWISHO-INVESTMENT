@@ -205,6 +205,7 @@ footer .brand-tagline{color:#ffcf4a}
  <label>Customer name<input id="mwMealName" autocomplete="name" maxlength="120"/></label>
  <label>Order Instructions / Special Requests (optional)<textarea id="mwMealInstructions" rows="3" maxlength="1000" placeholder="e.g. Beef wet fry, less salt, no chilli, pack ugali separately"></textarea></label>
  <label>Phone number<input id="mwMealPhone" type="tel" autocomplete="tel" maxlength="25"/></label>
+ <label>Email address (optional, for order updates)<input id="mwMealEmail" type="email" autocomplete="email" maxlength="254" placeholder="you@gmail.com"/></label>
  <div class="mw-food-payment" id="mwFoodPayment" hidden>
  <strong>Pay using M-Pesa Buy Goods</strong>
  <p>Hotel Till Number: <strong id="mwFoodTill"></strong></p>
@@ -497,6 +498,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
   const time=document.getElementById('mwMealTime').value;
   const name=document.getElementById('mwMealName').value.trim();
   const phone=document.getElementById('mwMealPhone').value.trim();
+  const email=document.getElementById('mwMealEmail').value.trim();
   const code=document.getElementById('mwFoodMpesaCode').value.trim().toUpperCase();
   if(!date||!time||name.length<2||phone.length<9||! /^[A-Z0-9]{8,15}$/.test(code)){
     foodStatus.textContent='Enter your name, phone, arrival date/time and valid M-Pesa code.';return;
@@ -504,7 +506,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
   foodCheckout.disabled=true;foodStatus.textContent='Submitting payment proof for hotel verification…';
   try{
    const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
-    action:'submit_food_payment',customer_name:name,customer_phone:phone,arrival_date:date,arrival_time:time,
+    action:'submit_food_payment',customer_name:name,customer_phone:phone,customer_email:email,arrival_date:date,arrival_time:time,
     mpesa_reference:code,order_instructions:document.getElementById('mwMealInstructions').value.trim(),items:[...foodCart].map(([id,qty])=>({id,qty}))
    })});
    const payload=await response.json();

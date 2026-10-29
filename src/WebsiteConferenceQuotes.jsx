@@ -30,11 +30,12 @@ export default function WebsiteConferenceQuotes({supabase}){
    }).eq('id',q.id).select('id').single();
    if(e||!updated)throw Error(e?.message||'Request could not be updated.');
    setNotice('Quotation request updated.');await refresh();
+   supabase.functions.invoke('hotel-notifications',{body:{action:'dispatch'}}).catch(()=>{});
   }catch(e){setError(e.message||String(e));}finally{setBusy(false);}
  }
  return <section style={{display:'grid',gap:15}}>
   <h3>Conference Quotation Requests</h3>
-  <p>Review requests and assign an active staff member to prepare a quotation. Sending a quotation email is not automatic; CC recipients are saved for the quotation preparation stage.</p>
+  <p>Review requests and assign staff. Enabled notification channels send status updates; the actual prepared quotation document is still sent separately. CC recipients remain saved for quotation preparation.</p>
   {error&&<p role="alert" style={{color:'#b42331'}}>{error}</p>}{notice&&<p role="status" style={{color:'#197550'}}>{notice}</p>}
   <button type="button" disabled={busy} onClick={refresh}>Refresh Requests</button>
   {!quotes.length&&<p>No quotation requests have been submitted.</p>}

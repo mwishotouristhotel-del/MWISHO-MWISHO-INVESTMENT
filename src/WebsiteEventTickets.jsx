@@ -50,6 +50,7 @@ export default function WebsiteEventTickets({supabase}){
     .eq('id',item.id).eq('status','pending_review').select('id').single();
    if(e||!data)throw Error(e?.message||'Request already reviewed.');
    setNotice('Ticket request '+(status==='confirmed'?'confirmed':'rejected')+'.');await reload();
+   supabase.functions.invoke('hotel-notifications',{body:{action:'dispatch'}}).catch(()=>{});
   }catch(e){setError(e.message||String(e));}finally{setBusy(false);}
  }
  return <section className="mw-ticket-admin" style={{display:'grid',gap:13}}>
