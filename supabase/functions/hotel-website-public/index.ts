@@ -52,12 +52,12 @@ Deno.serve(async(req:Request)=>{
    const organization_email=val('organization_email',254),organization_phone=val('organization_phone',30);
    const contact_person=val('contact_person',120),contact_phone=val('contact_phone',30);
    const requirements=val('requirements',3000),package_id=val('package_id',36);
-   const emailValid=(v:string)=>/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)&&v.length<=254;
-   const phoneValid=(v:string)=>/^\\+?[0-9 ()-]{9,30}$/.test(v);
+   const emailValid=(v:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=254;
+   const phoneValid=(v:string)=>/^\+?[0-9 ()-]{9,30}$/.test(v);
    const cc_emails=Array.isArray(data.cc_emails)?data.cc_emails.map((x:any)=>String(x).trim().toLowerCase()):[];
    if(organization_name.length<2||organization_name.length>150||!/^[A-Z][0-9]{9}[A-Z]$/.test(organization_kra_pin)||
       !Number.isInteger(number_of_pax)||number_of_pax<1||number_of_pax>10000||
-      !/^\\d{4}-\\d{2}-\\d{2}$/.test(event_date)||!Number.isFinite(Date.parse(event_date))||
+      !/^\d{4}-\d{2}-\d{2}$/.test(event_date)||!Number.isFinite(Date.parse(event_date))||
       event_date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})||
       !emailValid(organization_email)||!phoneValid(organization_phone)||
       contact_person.length<2||contact_person.length>120||!phoneValid(contact_phone)||
