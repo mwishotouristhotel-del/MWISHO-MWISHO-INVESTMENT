@@ -76,6 +76,7 @@ footer .brand-tagline{color:#ffcf4a}
 .conference-package-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.conference-package-card{background:white;border:1px solid #e5dcef;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}.conference-package-card h3{color:#4e268a;margin:0;font-size:19px}.conference-package-card p{color:#627184;line-height:1.55;flex:1;margin:0}.conference-package-price{color:#40226b}.conference-package-enquire{color:#622fa9;font-weight:700;text-decoration:none}@media(max-width:780px){.conference-package-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:550px){.conference-package-grid{grid-template-columns:1fr}}
 .conference-quote-box{background:#faf8ff;border:1px solid #e3d8ef;border-radius:15px;padding:24px}.conference-quote-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.conference-quote-form label{display:block;font-size:13px;font-weight:700;color:#4b3670}.conference-quote-form input,.conference-quote-form select,.conference-quote-form textarea{display:block;width:100%;box-sizing:border-box;margin-top:7px;border:1px solid #cfbfde;border-radius:9px;padding:12px;background:white;color:#30243d;font:inherit}.conference-quote-form .span2{grid-column:1/-1}.conference-quote-form button{justify-self:start}.conference-quote-form input:focus-visible,.conference-quote-form select:focus-visible,.conference-quote-form textarea:focus-visible{outline:2px solid #6731a9}@media(max-width:650px){.conference-quote-box{padding:14px}.conference-quote-form{grid-template-columns:1fr}.conference-quote-form input,.conference-quote-form select,.conference-quote-form textarea{font-size:16px}}
 #conference-packages[hidden],#conference-quotation[hidden]{display:none!important}.mw-conference-entry{cursor:pointer}.mw-conference-entry:focus-visible{outline:3px solid #7334bc;outline-offset:4px}.mw-conference-header-actions{display:flex;justify-content:flex-start;margin-bottom:14px}.mw-conference-back{background:#f3ecfa;border:1px solid #dfd2ee;color:#542e89;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer}.mw-conference-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;margin:22px 0;padding:18px;background:#f6f0fc;border:1px solid #e4d9f0;border-radius:12px}.mw-conference-cta p{font-weight:700;margin:0;color:#43246d}.conference-package-quote{background:#6531a9;color:white;border:0;border-radius:7px;padding:10px 12px;cursor:pointer;font-weight:700;text-align:left}.conference-package-quote:hover{background:#4c238a}#conference-quotation{margin-top:20px;scroll-margin-top:105px}#conference-packages{scroll-margin-top:95px}@media(max-width:600px){.mw-conference-cta{align-items:stretch;flex-direction:column}.mw-conference-cta button{width:100%}}
+.mw-ticket-book-button{background:#6730ab;color:white;border:0;border-radius:8px;padding:10px 15px;font-weight:700;cursor:pointer;margin-top:10px}.mw-ticket-dialog{max-width:720px;width:calc(100% - 25px);max-height:90dvh;overflow-y:auto}.mw-ticket-form-wrap{padding:16px 22px 25px}.mw-ticket-form-wrap>p{line-height:1.6;color:#4b3b67}.mw-ticket-form-wrap .conference-quote-form{margin-top:14px}@media(max-width:600px){.mw-ticket-form-wrap{padding:12px}}
 </style><style>
 .hotel-map-location{margin:18px 0;padding:19px;border-radius:16px;background:linear-gradient(110deg,#f3ecff,#f3fbff);border:1px solid #d8d0f2;color:#172b40}
 .hotel-map-location[hidden]{display:none!important}
@@ -179,6 +180,18 @@ footer .brand-tagline{color:#ffcf4a}
  </form></div></div></div></section>
 <section class="banner"><span class="eyebrow" style="color:#ffdb7b">EXPERIENCE MWISHO</span><h2 class="serif">Your next memorable visit starts here.</h2><p>Explore accommodation, dining and events in one welcoming destination.</p><button class="btn btn-white" data-book>Plan Your Stay →</button></section>
 <section class="section section-white" id="promotions"><div class="wrap"><div class="section-head"><span class="eyebrow">WHAT'S HAPPENING AT MWISHO</span><h2 class="serif">Advertisements & Upcoming Events</h2><p>Discover announcements, promotions and upcoming hotel experiences.</p></div><div class="mw-promotion-grid" id="mw-promotion-grid"></div><p class="mw-promotions-empty" id="mw-promotions-empty">Upcoming announcements will appear here.</p></div></section>
+<dialog id="mwEventTicketDialog" class="mw-room-dialog mw-ticket-dialog" aria-labelledby="mwEventTicketTitle">
+ <div class="mw-room-dialog-top"><div><span class="eyebrow">MWISHO EVENTS</span><h2 class="serif" id="mwEventTicketTitle">Book Event Tickets</h2></div><button type="button" id="mwCloseEventTicket" aria-label="Close ticket booking">×</button></div>
+ <div class="mw-ticket-form-wrap"><p id="mwTicketSummary"></p>
+ <form id="mwEventTicketForm" class="conference-quote-form">
+ <label>Full Name *<input name="customer_name" required maxlength="120" autocomplete="name"/></label>
+ <label>Phone Number *<input name="customer_phone" type="tel" required maxlength="30" autocomplete="tel"/></label>
+ <label>Email Address *<input name="customer_email" type="email" required maxlength="254" autocomplete="email"/></label>
+ <label>Number of Tickets *<input name="quantity" type="number" min="1" max="20" value="1" required/></label>
+ <label class="span2">Special Requests (Optional)<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
+ <button class="btn btn-primary span2" type="submit" id="mwTicketSubmit">Submit Ticket Request</button><p class="span2" id="mwTicketStatus" role="status"></p>
+ </form><p class="mw-room-disclaimer">Request only. The hotel must confirm availability and payment before issuing tickets.</p></div>
+</dialog>
 <section class="section section-white" id="gallery"><div class="wrap"><div class="section-head"><span class="eyebrow">A GLIMPSE OF THE EXPERIENCE</span><h2 class="serif">Moments worth sharing</h2><p>Explore photos and videos published by MWISHO Tourist Hotel.</p></div><div class="gallery"><p class="gallery-loading-note" role="status">Loading hotel gallery…</p></div><p class="gallery-caption">Published MWISHO Tourist Hotel photos and videos appear here.</p></div></section>
 <dialog id="mwFoodMenuDialog" class="mw-food-dialog" aria-label="Restaurant food menu">
  <div class="mw-food-head"><div><small>MWISHO TOURIST HOTEL • TASTE OF CLASS</small><h2>Restaurant Menu & Meal Pre-order</h2></div><button id="mwCloseFoodMenu" type="button" aria-label="Close menu">✕ Close</button></div>
@@ -287,6 +300,35 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
     status.textContent='Request received. Reference: '+result.request_id+'. Hotel Admin will review and prepare your quotation.';
     quoteRequest.reset();
    }catch(e){status.textContent=e.message||'Submission failed. Please try again.';}
+   finally{button.disabled=false;}
+ });
+ const ticketDialog=document.getElementById('mwEventTicketDialog');
+ const ticketForm=document.getElementById('mwEventTicketForm');
+ let ticketEvent=null;
+ function openTicketBooking(event){
+   ticketEvent=event;
+   document.getElementById('mwEventTicketTitle').textContent='Book Ticket — '+event.title;
+   const price=event.ticket_price_kes===null?'Price on request':'KES '+Number(event.ticket_price_kes).toLocaleString('en-KE')+' per ticket';
+   document.getElementById('mwTicketSummary').textContent=price+'. Ticket requests require hotel confirmation.';
+   ticketForm.reset();document.getElementById('mwTicketStatus').textContent='';
+   ticketDialog.showModal();
+ }
+ document.getElementById('mwCloseEventTicket')?.addEventListener('click',()=>ticketDialog.close());
+ ticketDialog?.addEventListener('click',e=>{if(e.target===ticketDialog)ticketDialog.close();});
+ ticketForm?.addEventListener('submit',async e=>{
+   e.preventDefault();
+   if(!ticketEvent||!ticketForm.reportValidity())return;
+   const button=document.getElementById('mwTicketSubmit'),status=document.getElementById('mwTicketStatus');
+   button.disabled=true;status.textContent='Sending your ticket request…';
+   try{
+    const fields=Object.fromEntries(new FormData(ticketForm).entries());
+    const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({action:'event_ticket_request',event_id:ticketEvent.id,...fields})});
+    const result=await response.json();
+    if(!response.ok||!result.ok)throw Error(result.error||'Unable to submit ticket request');
+    status.textContent='Request received. Reference: '+result.request_id+'. The hotel will confirm ticket availability; this is not yet a paid ticket.';
+    ticketForm.reset();
+   }catch(error){status.textContent=error.message||'Ticket request failed.';}
    finally{button.disabled=false;}
  });
  const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
@@ -697,6 +739,12 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
      }
      el.src=mediaURL;return el;
    }
+   function ticketButton(item){
+     if(item.kind!=='event'||!item.ticket_booking_enabled)return null;
+     const b=document.createElement('button');b.type='button';b.className='mw-ticket-book-button';
+     b.textContent='🎟 Book Ticket';b.addEventListener('click',()=>openTicketBooking(item));
+     return b;
+   }
    function promotionLink(item){
      const href=normalizeImage(item.action_url);
      if(!href)return null;
@@ -717,6 +765,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
        }
        if(item.description){const p=document.createElement('p');p.textContent=item.description;content.appendChild(p);}
        const link=promotionLink(item);if(link)content.appendChild(link);
+       const ticket=ticketButton(item);if(ticket)content.appendChild(ticket);
        article.appendChild(content);return article;
      });
      promoGrid.replaceChildren(...nodes);if(promoEmpty)promoEmpty.hidden=true;
@@ -740,6 +789,7 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
      const media=promotionMedia(selected,true);if(media)wrap.appendChild(media);
      if(selected.description){const p=document.createElement('p');p.textContent=selected.description;wrap.appendChild(p);}
      const link=promotionLink(selected);if(link)wrap.appendChild(link);
+     const book=ticketButton(selected);if(book)wrap.appendChild(book);
      const countdown=document.createElement('p');countdown.className='mw-promotion-countdown';
      if(selected.popup_mode==='five_seconds')wrap.appendChild(countdown);
      dialog.appendChild(wrap);document.body.appendChild(dialog);

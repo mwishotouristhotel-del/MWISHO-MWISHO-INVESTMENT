@@ -7,6 +7,7 @@ import WebsiteFoodPayments from './WebsiteFoodPayments.jsx';
 import WebsiteConferencePackages from './WebsiteConferencePackages.jsx';
 import WebsiteConferenceQuotes from './WebsiteConferenceQuotes.jsx';
 import WebsitePromotionsManager from './WebsitePromotionsManager.jsx';
+import WebsiteEventTickets from './WebsiteEventTickets.jsx';
 const CARD_NAMES=['hero','about-hotel','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
 const DEFAULT_PLACEMENT={hero:'hero','about-hotel':'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
 const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
@@ -50,7 +51,7 @@ function hotelDirectionsLink(settings){
  const link=String(settings.google_maps_url||'').trim();
  return validHotelMapUrl(link)?link:'';
 }
-const WEBSITE_TABS=['content','settings','rooms','room_requests','food_payments','conference_packages','conference_quotes','gallery','promotions','traffic'];
+const WEBSITE_TABS=['content','settings','rooms','room_requests','food_payments','conference_packages','conference_quotes','event_tickets','gallery','promotions','traffic'];
 function safelyRead(key,fallback){
  try{const value=JSON.parse(localStorage.getItem(key)||'null');return value??fallback;}catch{return fallback;}
 }
@@ -319,7 +320,7 @@ function WebsiteManager({supabase,userId}){
  function exportCsv(){const rows=[['Date','Page','Views'],...recent.map(x=>[x.date,x.page,x.views])];const content=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const url=URL.createObjectURL(new Blob([content],{type:'text/csv'}));const a=document.createElement('a');a.href=url;a.download='MWISHO-Website-Traffic.csv';a.click();URL.revokeObjectURL(url)}
  return <article className="mw-web-admin">
   <div className="mw-web-head"><div><small>MWISHO TOURIST HOTEL · TASTE OF CLASS</small><h2>Hotel Website Management</h2><p>Customer website content, service photos and traffic — independent of hotel POS.</p></div><a href={SITE} target="_blank" rel="noreferrer">↗ Open Customer Website</a></div>
-  <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['rooms','🛏️ Rooms & Rates'],['room_requests','📩 Room Availability Requests'],['food_payments','💳 Food Payments'],['conference_packages','🏢 Conference Packages'],['conference_quotes','📄 Conference Quotations'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
+  <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['rooms','🛏️ Rooms & Rates'],['room_requests','📩 Room Availability Requests'],['food_payments','💳 Food Payments'],['conference_packages','🏢 Conference Packages'],['conference_quotes','📄 Conference Quotations'],['event_tickets','🎟️ Event Ticket Bookings'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
   {saveState&&<p className="mw-web-autosave-status" role="status">{saveState}</p>}
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
   {tab==='rooms'&&<WebsiteRoomsManager supabase={supabase}/>}
@@ -329,6 +330,7 @@ function WebsiteManager({supabase,userId}){
   {tab==='conference_quotes'&&<WebsiteConferenceQuotes supabase={supabase}/>}
   {tab==='gallery'&&<WebsiteGalleryManager supabase={supabase} userId={userId}/>}
   {tab==='promotions'&&<WebsitePromotionsManager supabase={supabase} userId={userId}/>}
+  {tab==='event_tickets'&&<WebsiteEventTickets supabase={supabase}/>}
   {tab==='content'&&<div className="mw-web-layout"><aside className="mw-web-list" aria-label="Website sections"><div className="mw-web-list-heading"><strong>Manage Service Cards</strong><small>Choose a section to edit its image and text</small></div><div className="mw-web-new-card">
  <button type="button" className="mw-web-add-button" onClick={()=>setAdding(v=>!v)} disabled={busy}>＋ Add Service Card</button>
  {adding&&<form className="mw-web-add-form" onSubmit={addCard}>
