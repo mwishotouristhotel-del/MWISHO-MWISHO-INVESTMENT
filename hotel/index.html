@@ -180,6 +180,7 @@ footer .brand-tagline{color:#ffcf4a}
  </form></div></div></div></section>
 <section class="banner"><span class="eyebrow" style="color:#ffdb7b">EXPERIENCE MWISHO</span><h2 class="serif">Your next memorable visit starts here.</h2><p>Explore accommodation, dining and events in one welcoming destination.</p><button class="btn btn-white" data-book>Plan Your Stay →</button></section>
 <section class="section section-white" id="promotions"><div class="wrap"><div class="section-head"><span class="eyebrow">WHAT'S HAPPENING AT MWISHO</span><h2 class="serif">Advertisements & Upcoming Events</h2><p>Discover announcements, promotions and upcoming hotel experiences.</p></div><div class="mw-promotion-grid" id="mw-promotion-grid"></div><p class="mw-promotions-empty" id="mw-promotions-empty">Upcoming announcements will appear here.</p></div></section>
+<section class="section section-white" id="ticket-tracking"><div class="wrap" style="max-width:760px"><div class="section-head"><span class="eyebrow">MWISHO EVENTS</span><h2 class="serif">Track Your Ticket Booking</h2><p>Enter the unique MWT booking number provided when you submitted your ticket request.</p></div><form id="mwTicketTrackForm" class="conference-quote-form"><label>Ticket Booking Number *<input name="tracking_number" required pattern="MWT-[A-Fa-f0-9]{16}" placeholder="MWT-1234567890ABCDEF" autocapitalize="characters" autocomplete="off"/></label><button class="btn btn-primary" type="submit">Track Ticket</button><p id="mwTicketTrackStatus" class="span2" role="status" aria-live="polite"></p></form></div></section>
 <dialog id="mwEventTicketDialog" class="mw-room-dialog mw-ticket-dialog" aria-labelledby="mwEventTicketTitle">
  <div class="mw-room-dialog-top"><div><span class="eyebrow">MWISHO EVENTS</span><h2 class="serif" id="mwEventTicketTitle">Book Event Tickets</h2></div><button type="button" id="mwCloseEventTicket" aria-label="Close ticket booking">×</button></div>
  <div class="mw-ticket-form-wrap"><p id="mwTicketSummary"></p>
@@ -188,6 +189,7 @@ footer .brand-tagline{color:#ffcf4a}
  <label>Phone Number *<input name="customer_phone" type="tel" required maxlength="30" autocomplete="tel"/></label>
  <label>Email Address *<input name="customer_email" type="email" required maxlength="254" autocomplete="email"/></label>
  <label>Number of Tickets *<input name="quantity" type="number" min="1" max="20" value="1" required/></label>
+ <div class="span2" id="mwTicketPayment" hidden style="padding:16px;background:#f3eef9;border-radius:12px"><strong>Pay using M-Pesa Buy Goods</strong><p>Hotel Till Number: <strong id="mwTicketTill"></strong></p><p id="mwTicketTotal"></p><p>Pay the exact amount and enter the transaction reference from your M-Pesa confirmation SMS. The hotel verifies payment manually.</p><label>M-Pesa Transaction Reference *<input name="mpesa_reference" id="mwTicketMpesa" placeholder="e.g. TABC123456" maxlength="15" autocapitalize="characters" autocomplete="off"/></label></div>
  <label class="span2">Special Requests (Optional)<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
  <button class="btn btn-primary span2" type="submit" id="mwTicketSubmit">Submit Ticket Request</button><p class="span2" id="mwTicketStatus" role="status"></p>
  </form><p class="mw-room-disclaimer">Request only. The hotel must confirm availability and payment before issuing tickets.</p></div>
@@ -305,19 +307,39 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
  const ticketDialog=document.getElementById('mwEventTicketDialog');
  const ticketForm=document.getElementById('mwEventTicketForm');
  let ticketEvent=null;
- function openTicketBooking(event){
+ let ticketTill='';
+ function updateTicketTotal(){
+   if(!ticketEvent)return;
+   const price=Number(ticketEvent.ticket_price_kes||0),quantity=Number(ticketForm.elements.quantity.value||1);
+   document.getElementById('mwTicketTotal').textContent='Amount to pay: KES '+(price*quantity).toLocaleString('en-KE');
+ }
+ ticketForm?.elements.quantity.addEventListener('input',updateTicketTotal);
+ async function openTicketBooking(event){
    ticketEvent=event;
    document.getElementById('mwEventTicketTitle').textContent='Book Ticket — '+event.title;
    const price=event.ticket_price_kes===null?'Price on request':'KES '+Number(event.ticket_price_kes).toLocaleString('en-KE')+' per ticket';
    document.getElementById('mwTicketSummary').textContent=price+'. Ticket requests require hotel confirmation.';
    ticketForm.reset();document.getElementById('mwTicketStatus').textContent='';
+   const paid=event.ticket_price_kes!==null&&Number(event.ticket_price_kes)>0;
+   const payment=document.getElementById('mwTicketPayment'),reference=document.getElementById('mwTicketMpesa');
+   payment.hidden=!paid;reference.required=paid;ticketTill='';
+   updateTicketTotal();
    ticketDialog.showModal();
+   if(paid){
+    document.getElementById('mwTicketTill').textContent='Loading…';
+    try{
+     const response=await fetch(endpoint+'?resource=ticket_payment_config');const config=await response.json();
+     if(!response.ok||!config.enabled)throw Error('Hotel payment Till is not yet configured. Please contact the hotel.');
+     ticketTill=config.till;document.getElementById('mwTicketTill').textContent=ticketTill;
+    }catch(error){document.getElementById('mwTicketTill').textContent='Not available';document.getElementById('mwTicketStatus').textContent=error.message;}
+   }
  }
  document.getElementById('mwCloseEventTicket')?.addEventListener('click',()=>ticketDialog.close());
  ticketDialog?.addEventListener('click',e=>{if(e.target===ticketDialog)ticketDialog.close();});
  ticketForm?.addEventListener('submit',async e=>{
    e.preventDefault();
    if(!ticketEvent||!ticketForm.reportValidity())return;
+   if(Number(ticketEvent.ticket_price_kes)>0&&!ticketTill){document.getElementById('mwTicketStatus').textContent='Payment Till not available. Please contact the hotel.';return;}
    const button=document.getElementById('mwTicketSubmit'),status=document.getElementById('mwTicketStatus');
    button.disabled=true;status.textContent='Sending your ticket request…';
    try{
@@ -326,10 +348,21 @@ document.getElementById('contactForm').addEventListener('submit',e=>{e.preventDe
       body:JSON.stringify({action:'event_ticket_request',event_id:ticketEvent.id,...fields})});
     const result=await response.json();
     if(!response.ok||!result.ok)throw Error(result.error||'Unable to submit ticket request');
-    status.textContent='Request received. Reference: '+result.request_id+'. The hotel will confirm ticket availability; this is not yet a paid ticket.';
+    status.textContent='Request received. Your tracking number: '+result.tracking_number+'. Save this number and use Track Your Ticket Booking below. Payment and availability await hotel confirmation.';
     ticketForm.reset();
    }catch(error){status.textContent=error.message||'Ticket request failed.';}
    finally{button.disabled=false;}
+ });
+ document.getElementById('mwTicketTrackForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();const form=e.currentTarget,status=document.getElementById('mwTicketTrackStatus');
+  const button=form.querySelector('button');button.disabled=true;status.textContent='Checking ticket booking…';
+  try{
+   const tracking_number=String(new FormData(form).get('tracking_number')||'').trim().toUpperCase();
+   const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'event_ticket_track',tracking_number})});
+   const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Unable to track ticket');
+   const t=result.ticket;
+   status.textContent=t.event_title+' · '+t.quantity+' ticket(s) · '+(t.total_kes===null?'Price to confirm':'KES '+Number(t.total_kes).toLocaleString('en-KE'))+' · '+(t.status==='confirmed'?'Confirmed ticket booking':t.status==='rejected'?'Rejected':t.status==='cancelled'?'Cancelled':'Awaiting hotel verification')+' · Payment '+(t.payment_verified?'verified':'not yet verified')+'.';
+  }catch(error){status.textContent=error.message||'Unable to check ticket.';}finally{button.disabled=false;}
  });
  const normalizeImage=s=>typeof s==='string'&&/^https:\/\//i.test(s)&&s.length<2048?s:null;
  const menuDialog=document.getElementById('mwFoodMenuDialog');
