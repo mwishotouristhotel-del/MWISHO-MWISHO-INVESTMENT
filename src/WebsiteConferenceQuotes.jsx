@@ -42,7 +42,7 @@ export default function WebsiteConferenceQuotes({supabase}){
    const current=edits[q.id]||{};
    return <article key={q.id} style={{border:'1px solid #e4d9ef',borderRadius:12,padding:16,display:'grid',gap:9}}>
     <strong>{q.organization_name} — {q.package_name||'Custom Requirements'}</strong>
-    <span>Event: {q.event_date} · {q.number_of_pax} pax · Submitted: {new Date(q.created_at).toLocaleString('en-KE')}</span>
+    <span>Event: {q.event_date} · {q.number_of_pax} pax · {q.number_of_days??1} day{Number(q.number_of_days??1)===1?'':'s'} · Submitted: {new Date(q.created_at).toLocaleString('en-KE')}</span>
     <span>KRA PIN: {q.organization_kra_pin}</span>
     <span>Organization: {q.organization_email} | {q.organization_phone}</span>
     <span>Contact: {q.contact_person} | {q.contact_phone}</span>
