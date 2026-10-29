@@ -4,7 +4,7 @@ import './WebsitePromotionsManager.css';
 const TYPES={'image/jpeg':'image','image/png':'image','image/webp':'image','video/mp4':'video','video/webm':'video'};
 const EXT={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm'};
 const VIDEO_MAX=10*1024*1024;
-const empty={kind:'advertisement',title:'',description:'',action_label:'',action_url:'',event_date:'',starts_at:'',ends_at:'',popup_enabled:false,popup_mode:'manual',is_published:true};
+const empty={kind:'advertisement',title:'',description:'',action_label:'',action_url:'',event_date:'',starts_at:'',ends_at:'',popup_enabled:false,popup_mode:'manual',is_published:true,ticket_booking_enabled:false,ticket_price_kes:'',ticket_capacity:''};
 const toLocal=v=>v?new Date(v).toISOString().slice(0,16):'';
 const toUtc=v=>v?new Date(v).toISOString():null;
 export default function WebsitePromotionsManager({supabase,userId}){
@@ -45,6 +45,9 @@ export default function WebsitePromotionsManager({supabase,userId}){
    setNotice('Saving '+form.kind+' details…');
    const record={...form,title:form.title.trim(),description:form.description.trim(),action_label:form.action_label.trim(),action_url:form.action_url.trim(),
     event_date:toUtc(form.event_date),starts_at:toUtc(form.starts_at),ends_at:toUtc(form.ends_at),
+    ticket_booking_enabled:form.kind==='event'&&!!form.ticket_booking_enabled,
+    ticket_price_kes:form.kind==='event'&&form.ticket_price_kes!==''?Number(form.ticket_price_kes):null,
+    ticket_capacity:form.kind==='event'&&form.ticket_capacity!==''?Number(form.ticket_capacity):null,
     media_type:TYPES[selected.type],media_url:url,media_path:storedPath,
     display_order:Math.max(0,...items.map(x=>Number(x.display_order)||0))+10};
    const {data,error:saveError}=await supabase.from('hotel_website_promotions').insert(record).select('id').single();
@@ -89,6 +92,14 @@ export default function WebsitePromotionsManager({supabase,userId}){
    <label className="span2">Description<textarea maxLength={1000} rows="3" value={form.description} onChange={e=>patch('description',e.target.value)}/></label>
    <label className="span2">Poster or short video (JPG, PNG, WebP, MP4 or WebM; video max 10 MB)<input key={media?.name||'none'} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" onChange={e=>selectFile(e.target.files?.[0])}/></label>
    <label>Event date/time (optional)<input type="datetime-local" value={form.event_date} onChange={e=>patch('event_date',e.target.value)}/></label>
+   {form.kind==='event'&&<div className="span2" style={{display:'grid',gap:9,padding:13,background:'#f5f0fc',border:'1px solid #e5d8f3',borderRadius:10}}>
+    <label className="check"><input type="checkbox" checked={!!form.ticket_booking_enabled} onChange={e=>patch('ticket_booking_enabled',e.target.checked)}/> Enable Book Ticket on customer website</label>
+    {form.ticket_booking_enabled&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:10}}>
+     <label>Ticket price (KES, optional)<input type="number" min="0" step="0.01" value={form.ticket_price_kes} onChange={e=>patch('ticket_price_kes',e.target.value)}/></label>
+     <label>Maximum tickets (optional)<input type="number" min="1" max="100000" step="1" value={form.ticket_capacity} onChange={e=>patch('ticket_capacity',e.target.value)}/></label>
+    </div>}
+    <small>Bookings require Admin review. No automatic payment collection or ticket issuing.</small>
+   </div>}
    <label>Publish from (optional)<input type="datetime-local" value={form.starts_at} onChange={e=>patch('starts_at',e.target.value)}/></label>
    <label>Stop publishing (optional)<input type="datetime-local" value={form.ends_at} onChange={e=>patch('ends_at',e.target.value)}/></label>
    <label>Action button label (optional)<input value={form.action_label} maxLength={40} onChange={e=>patch('action_label',e.target.value)} placeholder="e.g. Contact us"/></label>
@@ -111,6 +122,11 @@ export default function WebsitePromotionsManager({supabase,userId}){
     {item.media_type==='video'?<video src={item.media_url} preload="none" controls playsInline/>:<img src={item.media_url} alt={item.title} loading="lazy" decoding="async"/>}
     <div><strong>{item.title}</strong><p>{item.kind==='event'?'Upcoming Event':'Advertisement'} · {item.is_published?'Published':'Draft'}</p>
     {item.event_date&&<small>Event: {new Date(item.event_date).toLocaleString('en-KE')}</small>}
+    {item.kind==='event'&&<div style={{padding:'10px 0',display:'grid',gap:8}}>
+     <label className="check"><input type="checkbox" checked={!!item.ticket_booking_enabled} disabled={working!==null} onChange={e=>update(item,{ticket_booking_enabled:e.target.checked})}/> Enable Book Ticket</label>
+     <label>Ticket price (KES)<input style={{width:'100%',maxWidth:220}} type="number" min="0" placeholder="Quote at hotel" defaultValue={item.ticket_price_kes??''} onBlur={e=>{const v=e.target.value;const n=v===''?null:Number(v);if(n===null||Number.isFinite(n)&&n>=0)update(item,{ticket_price_kes:n});}}/></label>
+     <label>Ticket capacity<input style={{width:'100%',maxWidth:220}} type="number" min="1" placeholder="No limit" defaultValue={item.ticket_capacity??''} onBlur={e=>{const v=e.target.value;const n=v===''?null:Number(v);if(n===null||Number.isInteger(n)&&n>0)update(item,{ticket_capacity:n});}}/></label>
+    </div>}
     <label className="check"><input type="checkbox" checked={item.popup_enabled} disabled={working!==null} onChange={e=>update(item,{popup_enabled:e.target.checked})}/> Show popup</label>
     {item.popup_enabled&&<label>Popup mode<select disabled={working!==null} value={item.popup_mode} onChange={e=>update(item,{popup_mode:e.target.value})}><option value="five_seconds">15-second countdown</option><option value="manual">No countdown</option></select></label>}
     <div className="mw-promo-actions"><button disabled={working!==null} onClick={()=>update(item,{is_published:!item.is_published})}>{item.is_published?'Unpublish':'Publish'}</button><button disabled={working!==null} onClick={()=>remove(item)} className="danger">Delete</button></div>
