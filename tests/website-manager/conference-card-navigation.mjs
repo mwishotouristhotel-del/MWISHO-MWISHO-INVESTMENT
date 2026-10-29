@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const html=await readFile('hotel/index.html','utf8');
+assert(html.includes('id="mwConferenceServiceCard" role="button" tabindex="0"'));
+assert(html.includes('id="conference-packages" hidden'));
+assert(html.includes('id="conference-quotation" hidden'));
+assert(html.includes('id="mwViewConferencePackages"'));
+assert(html.includes('id="mwOpenConferenceQuote"'));
+assert(html.includes("conferenceCard?.addEventListener('click'"));
+assert(html.includes("conferenceSection.hidden=false"));
+assert(html.includes("quotationSection.hidden=false"));
+assert(html.includes("quoteButton.addEventListener('click',()=>openConferenceQuotation(item.id))"));
+assert(html.includes("form.elements.topic.value='Conference / Event'"));
+assert(html.includes("payload.action='conference_quote_request'"));
+assert(html.includes(' </form></div></div></div></section>'));
+console.log('PASS: Conference card reveals packages, quotation form is hidden until requested, package selection and submission remain connected');
