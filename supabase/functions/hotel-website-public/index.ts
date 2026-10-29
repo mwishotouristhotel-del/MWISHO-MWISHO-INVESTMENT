@@ -35,7 +35,7 @@ Deno.serve(async(req:Request)=>{
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
     db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok','google_maps_url','hotel_latitude','hotel_longitude']),
     db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,thumbnail_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80),
-    db.from('hotel_website_promotions').select('id,kind,title,description,media_type,media_url,action_label,action_url,event_date,popup_enabled,popup_mode,display_order,starts_at,ends_at').eq('is_published',true).order('display_order').limit(40),
+    db.from('hotel_website_promotions').select('id,kind,title,description,media_type,media_url,action_label,action_url,event_date,popup_enabled,popup_mode,display_order,starts_at,ends_at,ticket_booking_enabled,ticket_price_kes,ticket_capacity').eq('is_published',true).order('display_order').limit(40),
     db.from('hotel_website_room_listings').select('id,category,name,description,nightly_rate_kes,package_rates,max_guests,amenities,image_url,room_photos,display_order').eq('is_published',true).order('display_order').limit(100),
     db.from('hotel_website_conference_packages').select('id,name,description,price_kes,price_unit,display_order').eq('is_published',true).order('display_order').limit(50)
    ]);
@@ -45,6 +45,46 @@ Deno.serve(async(req:Request)=>{
    return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='event_ticket_request'){
+   const event_id=String(data.event_id||''),name=String(data.customer_name||'').trim();
+   const phone=String(data.customer_phone||'').trim(),email=String(data.customer_email||'').trim();
+   const quantity=Number(data.quantity),notes=String(data.notes||'').trim();
+   if(!/^[0-9a-f-]{36}$/i.test(event_id)||name.length<2||name.length>120||
+     !/^\+?[0-9 ()-]{9,30}$/.test(phone)||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||
+     !Number.isInteger(quantity)||quantity<1||quantity>20||notes.length>1000)
+     return respond({error:'Check your ticket booking details.'},400);
+   const {data:event,error:evError}=await db.from('hotel_website_promotions')
+    .select('id,kind,title,is_published,event_date,starts_at,ends_at,ticket_booking_enabled,ticket_price_kes,ticket_capacity')
+    .eq('id',event_id).maybeSingle();
+   if(evError||!event||event.kind!=='event'||!event.is_published||!event.ticket_booking_enabled)
+    return respond({error:'Ticket booking is not available for this event.'},409);
+   const now=Date.now();
+   if((event.event_date&&Date.parse(event.event_date)<now)||
+      (event.ends_at&&Date.parse(event.ends_at)<now)||
+      (event.starts_at&&Date.parse(event.starts_at)>now))
+    return respond({error:'Event ticket booking is not currently available.'},409);
+   if(event.ticket_capacity!==null){
+    const {data:confirmed,error:countError}=await db.from('hotel_website_event_ticket_requests')
+      .select('quantity').eq('event_id',event_id).eq('status','confirmed');
+    if(countError)return respond({error:'Capacity is temporarily unavailable.'},503);
+    const allocated=(confirmed||[]).reduce((sum:number,x:any)=>sum+Number(x.quantity),0);
+    if(allocated+quantity>Number(event.ticket_capacity))
+     return respond({error:'Not enough tickets remaining. Please contact the hotel.'},409);
+   }
+   const {count,error:limitError}=await db.from('hotel_website_event_ticket_requests')
+    .select('id',{count:'exact',head:true}).eq('customer_email',email.toLowerCase())
+    .gte('created_at',new Date(now-3600000).toISOString());
+   if(limitError)return respond({error:'Cannot process ticket request.'},503);
+   if((count||0)>=3)return respond({error:'Too many requests. Contact the hotel.'},429);
+   const price=event.ticket_price_kes===null?null:Number(event.ticket_price_kes);
+   const {data:created,error:e}=await db.from('hotel_website_event_ticket_requests').insert({
+     event_id,event_title:event.title,customer_name:name,customer_phone:phone,customer_email:email.toLowerCase(),
+     quantity,unit_price_kes:price,total_kes:price===null?null:price*quantity,notes,status:'pending_review'
+   }).select('id').single();
+   if(e||!created)return respond({error:'Ticket request could not be sent.'},503);
+   return respond({ok:true,request_id:created.id,status:'pending_review',
+     message:'Ticket request sent for hotel review. This is not yet a confirmed or paid ticket.'});
+  }
   if(data?.action==='conference_quote_request'){
    const val=(key:string,max=3000)=>String(data[key]||'').trim().slice(0,max+1);
    const organization_name=val('organization_name',150),organization_kra_pin=val('organization_kra_pin',15).toUpperCase();
