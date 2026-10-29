@@ -70,6 +70,8 @@ jobs:
         run: node tests/website-manager/conference-packages.mjs
       - name: Verify conference quotation request integration
         run: node tests/website-manager/conference-quote-workflow.mjs
+      - name: Verify organized Conference Admin workflow
+        run: node tests/website-manager/conference-admin-route.mjs
       - name: Build complete POS and Admin
         run: npm run build
       - name: Check isolated hotel customer website

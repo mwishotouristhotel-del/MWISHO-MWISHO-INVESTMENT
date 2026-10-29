@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const main=await readFile('src/main.jsx','utf8');
+const screen=await readFile('src/ConferenceAdminWorkspace.jsx','utf8');
+const css=await readFile('src/ConferenceAdminWorkspace.css','utf8');
+assert(main.includes("section==='Conference'&&loginChannel==='admin'"));
+assert(main.includes('<ConferenceAdminWorkspace supabase={supabase}/>'));
+assert(screen.includes('<WebsiteConferenceQuotes supabase={supabase}/>'));
+assert(screen.includes('<WebsiteConferencePackages supabase={supabase}/>'));
+assert(screen.includes('mw-conf-nav-card'));
+assert(css.includes('@media(max-width:680px)'));
+console.log('PASS: Admin Conference is tabbed, responsive, and connected to existing quote and package components');
