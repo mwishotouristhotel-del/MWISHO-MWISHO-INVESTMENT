@@ -11,6 +11,7 @@ import WebsiteEventTickets from './WebsiteEventTickets.jsx';
 import WebsiteContactEnquiries from './WebsiteContactEnquiries.jsx';
 import WebsiteNotifications from './WebsiteNotifications.jsx';
 import WebsiteReviews from './WebsiteReviews.jsx';
+import WebsiteStaffTasks from './WebsiteStaffTasks.jsx';
 const CARD_NAMES=['hero','about-hotel','regular-rooms','vvip-rooms','extended-stay','restaurant','bar','conference','night-club','private-events'];
 const DEFAULT_PLACEMENT={hero:'hero','about-hotel':'hero','regular-rooms':'rooms','vvip-rooms':'rooms','extended-stay':'rooms',restaurant:'dining',bar:'dining',conference:'events','night-club':'events','private-events':'events'};
 const PLACEMENTS=[['rooms','Accommodation'],['dining','Dining & Bars'],['events','Events & Experiences']];
@@ -54,7 +55,7 @@ function hotelDirectionsLink(settings){
  const link=String(settings.google_maps_url||'').trim();
  return validHotelMapUrl(link)?link:'';
 }
-const WEBSITE_TABS=['content','settings','rooms','room_requests','food_payments','conference_packages','conference_quotes','event_tickets','contact_enquiries','reviews','notifications','gallery','promotions','traffic'];
+const WEBSITE_TABS=['staff_tasks','content','settings','rooms','room_requests','food_payments','conference_packages','conference_quotes','event_tickets','contact_enquiries','reviews','notifications','gallery','promotions','traffic'];
 function safelyRead(key,fallback){
  try{const value=JSON.parse(localStorage.getItem(key)||'null');return value??fallback;}catch{return fallback;}
 }
@@ -324,6 +325,9 @@ function WebsiteManager({supabase,userId}){
  return <article className="mw-web-admin">
   <div className="mw-web-head"><div><small>MWISHO TOURIST HOTEL · TASTE OF CLASS</small><h2>Hotel Website Management</h2><p>Customer website content, service photos and traffic — independent of hotel POS.</p></div><a href={SITE} target="_blank" rel="noreferrer">↗ Open Customer Website</a></div>
   <div className="mw-web-tabs">{[['content','🖼️ Service Cards & Images'],['settings','⚙️ Website Settings'],['rooms','🛏️ Rooms & Rates'],['room_requests','📩 Room Availability Requests'],['food_payments','💳 Food Payments'],['conference_packages','🏢 Conference Packages'],['conference_quotes','📄 Conference Quotations'],['event_tickets','🎟️ Event Ticket Bookings'],['contact_enquiries','📨 Customer Enquiries'],['reviews','⭐ Customer Reviews'],['notifications','✉️ SMS & Email'],['gallery','🎞️ Gallery Photos & Videos'],['promotions','📣 Advertisements & Events'],['traffic','📊 Customer Traffic']].map(([key,label])=><button type="button" key={key} onClick={()=>{setTab(key);setMessage('')}} className={tab===key?'on':''}>{label}</button>)}</div>
+  <button type="button" onClick={()=>setTab('staff_tasks')} className="mw-web-save">✅ Staff Tasks & Approval Center</button>
+  <a href="/MWISHO-MWISHO-INVESTMENT/website-tasks/" target="_blank" rel="noopener noreferrer" style={{marginLeft:12}}>Open staff website-task portal</a>
+  {tab==='staff_tasks'&&<WebsiteStaffTasks supabase={supabase} userId={userId} isAdmin/>}
   {saveState&&<p className="mw-web-autosave-status" role="status">{saveState}</p>}
   {error&&<p className="mw-web-error" role="alert">{error}</p>}{message&&<p className="mw-web-ok" role="status">{message}</p>}
   {tab==='rooms'&&<WebsiteRoomsManager supabase={supabase}/>}
