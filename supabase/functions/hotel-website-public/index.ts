@@ -75,7 +75,7 @@ Deno.serve(async(req:Request)=>{
    if((count||0)>=2)return respond({error:'Too many recent reviews. Please try later.'},429);
    const {error:e}=await db.from('hotel_website_reviews').insert({customer_name:name,rating,review_text:review,visit_type:visit,status:'pending'});
    if(e)return respond({error:'Unable to submit review. Please try again.'},503);
-   return respond({ok:true,message:'Thank you! Your review has been sent for hotel approval.'});
+   return respond({ok:true,message:'Thank you for Submitting your review'});
   }
   if(data?.action==='event_ticket_track'){
    const tracking=String(data.tracking_number||'').trim().toUpperCase();

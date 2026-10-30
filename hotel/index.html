@@ -1037,7 +1037,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
   try{
    const data=Object.fromEntries(new FormData(form));const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...data,action:'submit_review'})});
    const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Could not submit review.');
-   form.reset();status.textContent=result.message;
+   form.reset();status.textContent='Thank you for Submitting your review';
   }catch(error){status.textContent=error.message||'Could not submit review. Please try again.';}finally{button.disabled=false;}
  });
  load();
