@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ExcelJS from 'exceljs';
-import {stockSheetRows,stockSheetColumns,stockSheetHeading,downloadHotelStockSheet} from '../../src/stockSheetExports.js';
+import {stockSheetRows,stockSheetColumns,stockSheetHeading,downloadHotelStockSheet,STOCK_SHEET_SIGNATORIES} from '../../src/stockSheetExports.js';
 
 const example={location:'VVIP Kitchen',lines:[
  {name:'Beef',unit:'kg',opening:7,added:3,total:10,system:8,purchase_price:500,selling_price:700,physical:7.5},
@@ -34,5 +34,8 @@ test('Excel export contains a true landscape workbook with dated title and struc
   assert.equal(sheet.getCell('L5').value,'Variance');
   assert.equal(sheet.getCell('L6').value,-.5);
   assert.equal(sheet.pageSetup.orientation,'landscape');
+  for(const label of STOCK_SHEET_SIGNATORIES){
+   assert.ok(sheet.getColumn(1).values.some(value=>typeof value==='string'&&value.startsWith(label.toUpperCase()+':')&&value.includes('SIGNATURE:')));
+  }
  }finally{globalThis.document=oldDocument;URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;}
 });
