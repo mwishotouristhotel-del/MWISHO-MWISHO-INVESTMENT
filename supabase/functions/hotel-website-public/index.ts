@@ -46,20 +46,37 @@ Deno.serve(async(req:Request)=>{
    })),online_orders_enabled:false,payment_verified:false});
   }
   if(req.method==='GET'){
-   const [cards,settings,gallery,promotions,rooms,conferencePackages]=await Promise.all([
+   const [cards,settings,gallery,promotions,rooms,conferencePackages,reviews]=await Promise.all([
     db.from('hotel_website_content').select('slug,title,subtitle,description,image_url,enabled,display_order,placement').eq('enabled',true).order('display_order'),
     db.from('hotel_website_settings').select('key,value').in('key',['tagline','contact_phone','contact_email','whatsapp','facebook','instagram','tiktok','google_maps_url','hotel_latitude','hotel_longitude']),
     db.from('hotel_website_gallery').select('id,title,description,media_type,media_url,thumbnail_url,display_order').eq('is_published',true).order('display_order').order('created_at',{ascending:false}).limit(80),
     db.from('hotel_website_promotions').select('id,kind,title,description,media_type,media_url,action_label,action_url,event_date,popup_enabled,popup_mode,display_order,starts_at,ends_at,ticket_booking_enabled,ticket_price_kes,ticket_capacity').eq('is_published',true).order('display_order').limit(40),
     db.from('hotel_website_room_listings').select('id,category,name,description,nightly_rate_kes,package_rates,max_guests,amenities,image_url,room_photos,display_order').eq('is_published',true).order('display_order').limit(100),
-    db.from('hotel_website_conference_packages').select('id,name,description,price_kes,price_unit,display_order').eq('is_published',true).order('display_order').limit(50)
+    db.from('hotel_website_conference_packages').select('id,name,description,price_kes,price_unit,display_order').eq('is_published',true).order('display_order').limit(50),
+    db.from('hotel_website_reviews').select('id,customer_name,rating,review_text,visit_type,created_at').eq('status','approved').order('created_at',{ascending:false}).limit(30)
    ]);
-   if(cards.error||settings.error||gallery.error||promotions.error||rooms.error)return respond({error:'content unavailable'},503);
+   if(cards.error||settings.error||gallery.error||promotions.error||rooms.error||reviews.error)return respond({error:'content unavailable'},503);
    const now=Date.now();
    const activePromotions=(promotions.data||[]).filter((x:any)=>(!x.starts_at||Date.parse(x.starts_at)<=now)&&(!x.ends_at||Date.parse(x.ends_at)>now));
-   return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
+   return respond({cards:cards.data,rooms:rooms.data||[],conference_packages:conferencePackages.data||[],reviews:reviews.data||[],gallery:gallery.data||[],promotions:activePromotions,settings:Object.fromEntries((settings.data||[]).map((x:any)=>[x.key,x.value]))});
   }
   const data=await req.json().catch(()=>null);
+  if(data?.action==='submit_review'){
+   const name=String(data.customer_name||'').trim();
+   const rating=Number(data.rating),review=String(data.review_text||'').trim();
+   const visit=String(data.visit_type||'');
+   if(name.length<2||name.length>100||!Number.isInteger(rating)||rating<1||rating>5||
+      review.length<10||review.length>1200||!['Accommodation','Restaurant & Bar','Conference & Events','General Experience'].includes(visit)||
+      String(data.website||'').trim())return respond({error:'Check your name, rating and review details.'},400);
+   // Anonymous submissions are intentionally held for moderation. Limit bursts to reduce spam.
+   const {count,error:countError}=await db.from('hotel_website_reviews').select('id',{count:'exact',head:true})
+      .eq('customer_name',name).gte('created_at',new Date(Date.now()-3600000).toISOString());
+   if(countError)return respond({error:'Reviews temporarily unavailable.'},503);
+   if((count||0)>=2)return respond({error:'Too many recent reviews. Please try later.'},429);
+   const {error:e}=await db.from('hotel_website_reviews').insert({customer_name:name,rating,review_text:review,visit_type:visit,status:'pending'});
+   if(e)return respond({error:'Unable to submit review. Please try again.'},503);
+   return respond({ok:true,message:'Thank you! Your review has been sent for hotel approval.'});
+  }
   if(data?.action==='event_ticket_track'){
    const tracking=String(data.tracking_number||'').trim().toUpperCase();
    if(!/^MWT-[A-F0-9]{16}$/.test(tracking))return respond({error:'Enter a valid ticket tracking number.'},400);
