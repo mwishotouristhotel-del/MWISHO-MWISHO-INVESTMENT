@@ -222,6 +222,7 @@ footer .brand-tagline{color:#ffcf4a}
  <a id="hotel-map-directions" class="btn btn-primary" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps">📍 Get Directions on Google Maps ↗</a>
 </div><div class="features"><span><b>✦</b> Room enquiries</span><span><b>✦</b> Group events</span><span><b>✦</b> Dining</span></div></div><form id="contactForm" class="form"><input name="name" aria-label="Your name" placeholder="Your full name" required/><input name="email" aria-label="Email address" type="email" placeholder="Email address" required/><select name="topic" aria-label="Enquiry type"><option>Accommodation enquiry</option><option>Restaurant & Bar</option><option>Conference / Event</option><option>General enquiry</option></select><textarea name="message" aria-label="Your message" placeholder="Tell us how we can help" required></textarea><button class="btn btn-primary" type="submit">Send Enquiry →</button><div class="status" id="contactStatus" role="status"></div></form></div></section>
 </main><footer><div class="wrap"><div class="footgrid"><div><a href="#home" class="brand" aria-label="MWISHO Tourist Hotel home"><img class="official-logo" src="assets/mwisho-logo.svg" alt="MWISHO Tourist Hotel official logo"/><span class="brand-tagline">Taste Of Class</span></a><p>Taste Of Class. Stay in comfort. Dine with joy. Celebrate memorable moments.</p></div><div><h4>Explore</h4><a href="#rooms">Accommodation</a><a href="#dining">Dining & Bars</a><a href="#events">Events & Conferences</a><a href="#gallery">Gallery</a></div><div><h4>Information</h4><a href="#about">About us</a><a href="#contact">Contact us</a><a href="#contact">Room enquiries</a><div id="website-social-links" aria-label="Official social media accounts"></div></div></div><div class="copyright"><span>© <span id="year"></span> MWISHO Tourist Hotel. All rights reserved.</span><span>Customer website preview • Bookings and payments not yet active</span></div></div></footer>
+<section class="section section-white" id="testimonials"><div class="wrap"><div class="section-head"><span class="eyebrow">GUEST EXPERIENCES</span><h2 class="serif">Customer Reviews & Testimonials</h2><p>Read guest experiences or share your own. Reviews appear only after hotel approval.</p></div><div id="mw-reviews-list" class="mw-reviews-list" aria-live="polite"><p>Loading guest reviews…</p></div><div class="mw-review-form-box"><h3 class="serif">Share Your Experience</h3><form id="mwReviewForm" class="form"><div class="mw-review-fields"><label>Full Name *<input name="customer_name" minlength="2" maxlength="100" required autocomplete="name"/></label><label>Visit Type *<select name="visit_type" required><option>Accommodation</option><option>Restaurant & Bar</option><option>Conference & Events</option><option>General Experience</option></select></label></div><label>Rating *<select name="rating" required><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Very Good</option><option value="3">★★★☆☆ — Good</option><option value="2">★★☆☆☆ — Fair</option><option value="1">★☆☆☆☆ — Poor</option></select></label><label>Your Review *<textarea name="review_text" minlength="10" maxlength="1200" required placeholder="Tell other guests about your experience"></textarea></label><div class="mw-review-honeypot" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"/></label></div><button type="submit" class="btn btn-primary">Submit Review for Approval</button><p id="mwReviewStatus" role="status" aria-live="polite"></p></form></div></div></section>
 <dialog class="mw-room-dialog" id="regularRoomCatalogue" aria-labelledby="regularRoomCatalogueTitle">
  <div class="mw-room-dialog-top"><div><span class="eyebrow">MWISHO ACCOMMODATION</span><h2 class="serif" id="regularRoomCatalogueTitle">Explore Regular Rooms</h2><p>Compare room types, indicative nightly rates and amenities. Confirm availability directly with the hotel before travelling.</p></div><button type="button" id="closeRegularRooms" aria-label="Close Regular Rooms">×</button></div>
  <div id="regularRoomList" class="mw-room-list"><p>Loading Regular Rooms…</p></div>
@@ -1007,5 +1008,38 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
   sectionPaths.forEach(([id])=>{const el=document.getElementById(id);if(el)observer.observe(el);});
  }else track('/');
  getPublished();
+})();
+</script><style>
+.mw-reviews-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0 36px}.mw-review-card{border:1px solid #e8dff0;border-radius:13px;padding:22px;background:#fff;box-shadow:0 9px 25px #2a18400d}.mw-review-card .stars{color:#d5a31c;font-size:22px;letter-spacing:2px}.mw-review-card p{line-height:1.7;color:#493e57;white-space:pre-wrap;overflow-wrap:anywhere}.mw-review-card small{color:#695c79}.mw-review-form-box{max-width:760px;padding:24px;border-radius:17px;border:1px solid #e1d4ec;background:#f9f5fd;margin:auto}.mw-review-form-box h3{font-size:27px;color:#442270;margin:0 0 18px}.mw-review-form-box label{display:grid;gap:7px;font-weight:700;font-size:14px;color:#483566}.mw-review-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mw-review-form-box button{justify-self:start}.mw-review-honeypot{position:absolute;left:-9999px;opacity:0;pointer-events:none}@media(max-width:760px){.mw-reviews-list,.mw-review-fields{grid-template-columns:1fr}.mw-review-form-box{padding:16px}}
+</style><script>
+(()=>{
+ const section=document.getElementById('testimonials'),contact=document.getElementById('contact');
+ if(section&&contact)contact.before(section);
+ const endpoint='https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-website-public';
+ const list=document.getElementById('mw-reviews-list'),form=document.getElementById('mwReviewForm'),status=document.getElementById('mwReviewStatus');
+ async function load(){
+  try{
+   const response=await fetch(endpoint,{cache:'no-store'});if(!response.ok)throw Error();
+   const {reviews=[]}=await response.json();list.replaceChildren();
+   if(!reviews.length){const p=document.createElement('p');p.textContent='No published reviews yet. Be the first to share your experience!';list.append(p);return;}
+   for(const review of reviews){
+    const card=document.createElement('article');card.className='mw-review-card';
+    const stars=document.createElement('div');stars.className='stars';stars.setAttribute('aria-label',review.rating+' out of 5 stars');stars.textContent='★'.repeat(review.rating)+'☆'.repeat(5-review.rating);
+    const quote=document.createElement('p');quote.textContent=review.review_text;
+    const name=document.createElement('strong');name.textContent=review.customer_name;
+    const visit=document.createElement('small');visit.textContent=' · '+review.visit_type;
+    card.append(stars,quote,name,visit);list.append(card);
+   }
+  }catch{list.textContent='Guest reviews are temporarily unavailable.';}
+ }
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();const button=form.querySelector('[type="submit"]');button.disabled=true;status.textContent='Submitting your review…';
+  try{
+   const data=Object.fromEntries(new FormData(form));const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...data,action:'submit_review'})});
+   const result=await response.json();if(!response.ok||!result.ok)throw Error(result.error||'Could not submit review.');
+   form.reset();status.textContent=result.message;
+  }catch(error){status.textContent=error.message||'Could not submit review. Please try again.';}finally{button.disabled=false;}
+ });
+ load();
 })();
 </script></body></html>

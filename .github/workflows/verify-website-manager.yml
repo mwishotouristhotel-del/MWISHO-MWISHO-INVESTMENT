@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'src/WebsiteManager.jsx'
+      - 'src/WebsiteReviews.jsx'
+      - 'supabase/migrations/*hotel_customer_reviews.sql'
       - 'src/WebsiteManager.css'
       - 'src/WebsiteGalleryManager.jsx'
       - 'src/WebsiteGalleryManager.css'
@@ -54,6 +56,8 @@ jobs:
         run: node tests/website-manager/fullscreen-photo-viewer.mjs
       - name: Verify accommodation request flow safety
         run: node tests/website-manager/room-requests.mjs
+      - name: Verify customer review approval gate
+        run: node tests/website-manager/customer-reviews.mjs
       - name: Verify food pre-order payment gate
         run: node tests/website-manager/food-preorder-gate.mjs
       - name: Verify manual M-Pesa and food payment approval workflow
