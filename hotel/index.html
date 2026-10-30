@@ -275,6 +275,40 @@ document.addEventListener('click',event=>{
 document.getElementById('year').textContent=new Date().getFullYear();
 toggle.addEventListener('click',()=>{const open=nav.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'×':'☰'});
 nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.textContent='☰'}));
+// Mobile guest shortcuts: keep existing navigation and add direct links to key customer actions.
+const guestShortcutGroups=[
+ ['Rooms & Dining',[
+  ['🛏️ Explore Regular Rooms','regular'],['✨ Explore VVIP Rooms','vvip'],['📅 Check Room Availability','rooms'],['🍽️ View Food Menu & Order','food']]],
+ ['Conferences & Events',[
+  ['🏢 Conference Packages','conference'],['📝 Request a Conference Quotation','quotation'],['🎉 Upcoming Events & Tickets','promotions'],['🎟️ Track My Ticket','ticket-tracking']]],
+ ['Your Experience',[
+  ['🖼️ Photo & Video Gallery','gallery'],['⭐ Customer Reviews','testimonials'],['✍️ Write a Review','write-review'],['📍 Contact & Directions','contact']]]
+];
+const guestShortcuts=document.createElement('div');guestShortcuts.className='mw-guest-shortcuts';
+for(const [heading,links] of guestShortcutGroups){
+ const group=document.createElement('div');group.className='mw-guest-shortcut-group';
+ const title=document.createElement('p');title.className='mw-guest-shortcut-heading';title.textContent=heading;group.append(title);
+ for(const [label,target] of links){const link=document.createElement('a');link.href='#'+(target==='regular'||target==='vvip'?'rooms':target==='food'?'dining':target==='conference'||target==='quotation'?'conference-packages':target==='write-review'?'testimonials':target);link.textContent=label;link.dataset.guestShortcut=target;group.append(link);}
+ guestShortcuts.append(group);
+}
+nav.append(guestShortcuts);
+guestShortcuts.addEventListener('click',event=>{
+ const link=event.target.closest('a[data-guest-shortcut]');if(!link)return;
+ const target=link.dataset.guestShortcut;
+ nav.classList.remove('open');toggle.setAttribute('aria-expanded','false');toggle.textContent='☰';
+ if(['regular','vvip','food','conference','quotation'].includes(target)){
+  event.preventDefault();
+  if(target==='regular')document.getElementById('viewRegularRooms')?.click();
+  if(target==='vvip')document.getElementById('viewVvipRooms')?.click();
+  if(target==='food')document.getElementById('openFoodMenu')?.click();
+  if(target==='conference'||target==='quotation'){
+   document.getElementById('mwViewConferencePackages')?.click();
+   if(target==='quotation')document.getElementById('mwOpenConferenceQuote')?.click();
+  }
+ }else if(target==='write-review'){
+  event.preventDefault();document.getElementById('mwReviewForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+ }
+});
 const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=new Date(),tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
 ['checkin','modalCheckin'].forEach(id=>{document.getElementById(id).min=iso(today);document.getElementById(id).value=iso(today)});
@@ -1010,6 +1044,18 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
  getPublished();
 })();
 </script><style>
+/* Mobile shortcuts for important guest journeys; preserve the existing desktop navigation. */
+.mw-guest-shortcuts{display:none}
+@media(max-width:700px){
+ #navlinks.open{max-height:calc(100dvh - 68px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:35px;gap:0}
+ #navlinks.open>a{display:block;padding:12px 4px;border-bottom:1px solid #eee9f4;font-size:15px}
+ .mw-guest-shortcuts{display:grid;gap:12px;margin-top:15px}
+ .mw-guest-shortcut-group{display:grid;gap:0;padding:7px 0 10px;border-top:2px solid #eee7f5}
+ .mw-guest-shortcut-heading{font-size:11px;text-transform:uppercase;letter-spacing:.11em;color:#6730ab;font-weight:800;margin:10px 4px 7px}
+ .mw-guest-shortcut-group>a{display:block;padding:10px 8px;border-radius:8px;font-size:14px;font-weight:600;color:#263447}
+ .mw-guest-shortcut-group>a:active,.mw-guest-shortcut-group>a:focus-visible{background:#f5eefc;color:#572799}
+ #rooms,#dining,#events,#promotions,#ticket-tracking,#gallery,#testimonials,#contact,#mwReviewForm{scroll-margin-top:85px}
+}
 .mw-reviews-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0 36px}.mw-review-card{border:1px solid #e8dff0;border-radius:13px;padding:22px;background:#fff;box-shadow:0 9px 25px #2a18400d}.mw-review-card .stars{color:#d5a31c;font-size:22px;letter-spacing:2px}.mw-review-card p{line-height:1.7;color:#493e57;white-space:pre-wrap;overflow-wrap:anywhere}.mw-review-card small{color:#695c79}.mw-review-form-box{max-width:760px;padding:24px;border-radius:17px;border:1px solid #e1d4ec;background:#f9f5fd;margin:auto}.mw-review-form-box h3{font-size:27px;color:#442270;margin:0 0 18px}.mw-review-form-box label{display:grid;gap:7px;font-weight:700;font-size:14px;color:#483566}.mw-review-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mw-review-form-box button{justify-self:start}.mw-review-honeypot{position:absolute;left:-9999px;opacity:0;pointer-events:none}@media(max-width:760px){.mw-reviews-list,.mw-review-fields{grid-template-columns:1fr}.mw-review-form-box{padding:16px}}
 </style><script>
 (()=>{
