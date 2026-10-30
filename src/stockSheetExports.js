@@ -1,0 +1,81 @@
+// Hotel stocktaking exports. Snapshots use the existing stocktake detail RPC;
+// no stock balances, variance calculations or approval states are changed here.
+const BASE_COLUMNS=[
+ ['No.','no',7],['Item Name','name',34],['Opening','opening',12],
+ ['Added','added',11],['Total','total',11],['Closing','closing',11],
+ ['Purchase Price/Unit','purchase',19],['Selling Price','selling',14],
+ ['Moved Items','moved',13],['Amount (Sales)','amount',17],
+ ['Physical Count','physical',16]
+];
+export function stockSheetColumns(includeVariance){return includeVariance?[...BASE_COLUMNS,['Variance','variance',14]]:BASE_COLUMNS;}
+function numericOrBlank(v){return v==null||v===''?'':Number(v);}
+function movedQuantity(x){return Math.max(0,Number(x.moved??Math.max(0,Number(x.total??x.system)-Number(x.system)))||0);}
+export function stockSheetRows(detail,includeVariance=false){return (detail.lines||[]).map((x,i)=>{
+ const moved=movedQuantity(x);
+ const physical=includeVariance?numericOrBlank(x.physical):'';
+ return {no:i+1,name:String(x.name||'Unnamed')+(x.unit?' ('+x.unit+')':''),
+  opening:numericOrBlank(x.opening??x.system),added:numericOrBlank(x.added??0),
+  total:numericOrBlank(x.total??x.system),closing:numericOrBlank(x.system),
+  purchase:numericOrBlank(x.purchase_price),selling:numericOrBlank(x.selling_price),
+  moved,amount:x.selling_price==null?'':Number((moved*Number(x.selling_price)).toFixed(2)),
+  physical,variance:physical===''?'':Number((physical-Number(x.system)).toFixed(3))};
+ });}
+export function stockSheetHeading(detail){return String(detail.location||'HOTEL').replace(/\s+/g,' ').trim().toUpperCase()+' STOCK SHEET';}
+export function stockSheetDate(){return new Intl.DateTimeFormat('en-KE',{timeZone:'Africa/Nairobi',day:'2-digit',month:'short',year:'numeric'}).format(new Date());}
+const safeFile=s=>String(s||'HOTEL').replace(/[^a-z0-9_-]+/gi,'-').replace(/^-|-$/g,'').slice(0,70);
+const triggerDownload=(blob,name)=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+
+export async function downloadHotelStockSheet(detail,{format,includeVariance=false}={}){
+ if(!detail||!Array.isArray(detail.lines))throw new Error('Open a stocktake sheet first.');
+ if(includeVariance&&!detail.lines.some(x=>x.physical!=null))throw new Error('Enter physical counts before downloading the variance report.');
+ const columns=stockSheetColumns(includeVariance),rows=stockSheetRows(detail,includeVariance);
+ const title=stockSheetHeading(detail),date=stockSheetDate(),stage=includeVariance?'PHYSICAL COUNT & VARIANCE REPORT':'BLANK PHYSICAL STOCKTAKE';
+ const filename=safeFile(title)+'-'+(includeVariance?'VARIANCES':'PHYSICAL-COUNT')+'-'+new Date().toISOString().slice(0,10);
+ if(format==='excel'){
+  const {default:ExcelJS}=await import('exceljs');
+  const book=new ExcelJS.Workbook();book.creator='MWISHO Tourist Hotel';book.created=new Date();
+  const sheet=book.addWorksheet('Stock Sheet',{pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.25,right:.25,top:.45,bottom:.45,header:.2,footer:.2}}});
+  sheet.columns=columns.map(([header,key,width])=>({header,key,width}));
+  const last=columns.length;
+  sheet.spliceRows(1,1);
+  sheet.insertRow(1,[title]);sheet.mergeCells(1,1,1,last);
+  sheet.insertRow(2,['DATE GENERATED: '+date]);sheet.mergeCells(2,1,2,last);
+  sheet.insertRow(3,[stage]);sheet.mergeCells(3,1,3,last);
+  sheet.insertRow(4,[]);
+  sheet.insertRow(5,columns.map(c=>c[0]));
+  sheet.getRow(1).font={name:'Calibri',size:16,bold:true,color:{argb:'FFFFFFFF'}};
+  sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF55308F'}};
+  sheet.getRow(1).height=30;sheet.getRow(2).height=22;sheet.getRow(3).height=22;
+  sheet.getRow(2).font={size:11,bold:true,color:{argb:'FF3A2863'}};
+  sheet.getRow(3).font={size:10,bold:true,color:{argb:'FF66518D'}};
+  const header=sheet.getRow(5);header.height=30;header.font={bold:true,color:{argb:'FFFFFFFF'}};
+  header.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6942A4'}};
+  header.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+  for(const row of rows){const r=sheet.addRow(columns.map(c=>row[c[1]]));r.height=24;
+   r.eachCell({includeEmpty:true},cell=>{cell.border={top:{style:'thin',color:{argb:'FFB5ADC5'}},left:{style:'thin',color:{argb:'FFB5ADC5'}},bottom:{style:'thin',color:{argb:'FFB5ADC5'}},right:{style:'thin',color:{argb:'FFB5ADC5'}}};cell.alignment={vertical:'middle',wrapText:true};});
+   if(r.number%2===0)r.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F2FB'}};
+   for(const key of ['purchase','selling','amount']){const cell=r.getCell(columns.findIndex(c=>c[1]===key)+1);cell.numFmt='#,##0.00';}
+   if(includeVariance){const cell=r.getCell(last);cell.numFmt='#,##0.###';if(typeof row.variance==='number'&&row.variance!==0)cell.font={bold:true,color:{argb:row.variance<0?'FFAC2424':'FF17754A'}};}
+  }
+  sheet.views=[{state:'frozen',ySplit:5}];sheet.pageSetup.printTitlesRow='1:5';
+  sheet.headerFooter.oddFooter='MWISHO TOURIST HOTEL  |  &P of &N';
+  const data=await book.xlsx.writeBuffer();triggerDownload(new Blob([data],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),filename+'.xlsx');
+  return;
+ }
+ if(format==='pdf'){
+  const [{jsPDF},{default:autoTable}]=await Promise.all([import('jspdf'),import('jspdf-autotable')]);
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const pageWidth=doc.internal.pageSize.getWidth();
+  const drawTitle=()=>{doc.setFillColor(84,45,145);doc.rect(0,0,pageWidth,31,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text(title,pageWidth/2,12,{align:'center'});doc.setFontSize(9);doc.text('DATE GENERATED: '+date+'    |    '+stage,pageWidth/2,21,{align:'center'});doc.setTextColor(36,38,45);};
+  drawTitle();
+  autoTable(doc,{startY:36,margin:{top:36,left:7,right:7,bottom:15},
+   head:[columns.map(c=>c[0])],body:rows.map(row=>columns.map(c=>row[c[1]]===''?'':String(row[c[1]]))),
+   theme:'grid',styles:{font:'helvetica',fontSize:7,cellPadding:2,overflow:'linebreak',valign:'middle',lineColor:[175,168,189],lineWidth:.15},
+   headStyles:{fillColor:[105,66,164],textColor:255,fontStyle:'bold'},
+   columnStyles:{1:{cellWidth:44}},
+   didDrawPage:()=>{if(doc.internal.getNumberOfPages()>1)drawTitle();doc.setFontSize(8);doc.text('MWISHO TOURIST HOTEL  |  Page '+doc.internal.getNumberOfPages(),pageWidth-8,202,{align:'right'});}
+  });
+  doc.save(filename+'.pdf');return;
+ }
+ throw new Error('Choose PDF or Excel.');
+}

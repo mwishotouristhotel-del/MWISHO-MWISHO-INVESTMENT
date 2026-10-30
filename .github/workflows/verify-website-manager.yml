@@ -60,6 +60,8 @@ jobs:
         run: node tests/website-manager/customer-reviews.mjs
       - name: Verify guest mobile navigation shortcuts
         run: node tests/website-manager/guest-mobile-shortcuts.mjs
+      - name: Verify landscape hotel stock sheet Excel and variance exports
+        run: node --test tests/website-manager/hotel-stock-sheet-exports.mjs
       - name: Verify food pre-order payment gate
         run: node tests/website-manager/food-preorder-gate.mjs
       - name: Verify manual M-Pesa and food payment approval workflow
