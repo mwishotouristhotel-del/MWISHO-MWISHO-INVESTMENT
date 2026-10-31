@@ -22,5 +22,9 @@ test('registration form and organization invoice are downloadable PDFs',()=>{
  assert.match(documents,/Receptionist Signature/);
  assert.match(documents,/ACCOMMODATION INVOICE/);
  assert.match(view,/Download Guest Registration PDF/);
- assert.match(view,/Download Blank Form/);
+ assert.match(view,/Download Numbered Forms \(PDF\)/);
+ assert.match(documents,/mwisho-logo\.svg\?raw/);
+ assert.match(documents,/SERIAL_BATCH_LIMIT=31/);
+ assert.match(documents,/validateRegistrationBatch\(count,startNumber\)/);
+ assert.match(documents,/doc\.addPage\(\)/);
 });
