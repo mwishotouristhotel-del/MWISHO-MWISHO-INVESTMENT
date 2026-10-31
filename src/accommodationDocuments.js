@@ -55,8 +55,10 @@ const drawGuestRegistration=(doc,{guest={},roomNumber='',paymentMethod='',refere
  field(doc,'',null,15,158);
  field(doc,'Room Accessibility Request:',guest.accessibility_request,15,168);
  field(doc,'',null,15,175);
- field(doc,'CHECK-OUT DATE:',guest.expected_check_out_date,15,185,104);
- field(doc,'No. of Nights:',guest.nights,125,185,70);
+ const packageLabel={bed_only:'Bed Only',bed_breakfast:'Bed & Breakfast',half_board:'Half Board',full_board:'Full Board'}[guest.package_key]||guest.package_key;
+ field(doc,'BOOKED PACKAGE:',packageLabel,15,182);
+ field(doc,'CHECK-OUT DATE:',guest.expected_check_out_date,15,190,104);
+ field(doc,'No. of Nights:',guest.nights,125,190,70);
  doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text('MODE OF PAYMENT',15,195);
  const methods=[['M-Pesa','mpesa','Ref No'],['Cash','cash','Receipt No'],['Credit Card / PDQ','card','Ref No'],['Invoice','invoice','Invoice No'],['Complimentary','complimentary','Approved By']];
  methods.forEach(([name,key,refLabel],i)=>{
