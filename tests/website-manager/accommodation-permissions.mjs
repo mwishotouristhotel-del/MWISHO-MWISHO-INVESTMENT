@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const sql=readFileSync(new URL('../../supabase/migrations/20261030210000_hotel_accommodation_reception.sql',import.meta.url),'utf8');
+const packagesSql=readFileSync(new URL('../../supabase/migrations/20261031193000_accommodation_room_packages.sql',import.meta.url),'utf8');
 const ui=readFileSync(new URL('../../src/AccommodationWorkspace.jsx',import.meta.url),'utf8');
 
 test('guest identity records are restricted to reception, not public or housekeeping',()=>{
@@ -16,7 +17,11 @@ test('payments and checkout use server-authorized atomic operations',()=>{
  assert.match(sql,/create or replace function public\.hotel_accommodation_record_payment/s);
  assert.match(sql,/v_paid\+p_amount>v_stay\.total_kes/);
  assert.match(sql,/hotel_accommodation_guard_housekeeping/);
- assert.match(ui,/rpc\('hotel_accommodation_checkin'/);
+ assert.match(ui,/rpc\('hotel_accommodation_checkin_package'/);
+ assert.match(packagesSql,/hotel_accommodation_can_reception\(\)/);
+ assert.match(packagesSql,/v_listing\.category<>v_room\.category/);
+ assert.match(packagesSql,/p_guests>v_listing\.max_guests/);
+ assert.match(packagesSql,/p_initial_payment>v_total/);
  assert.match(ui,/rpc\('hotel_accommodation_record_payment'/);
  assert.match(ui,/rpc\('hotel_accommodation_checkout'/);
 });

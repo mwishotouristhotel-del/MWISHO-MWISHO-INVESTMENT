@@ -9,3 +9,10 @@ export function accommodationTotals(checkIn,checkOut,rate,payments=[]){
  const paid=Math.round(payments.reduce((sum,p)=>sum+Number(p.amount_kes||0),0)*100)/100;
  return {nights,total,paid,balance:Math.max(0,Math.round((total-paid)*100)/100)};
 }
+export function roomPackageNightlyRate(listing,key,guests){
+ const rate=listing?.package_rates?.[key],count=Number(guests);
+ if(!rate||!Number.isInteger(count)||count<1||count>Number(listing.max_guests))return null;
+ const base=Number(rate.base_rate_kes),extra=Number(rate.extra_guest_kes);
+ if(!Number.isFinite(base)||!Number.isFinite(extra)||base<0||extra<0)return null;
+ return Math.round((base+(count-1)*extra)*100)/100;
+}
