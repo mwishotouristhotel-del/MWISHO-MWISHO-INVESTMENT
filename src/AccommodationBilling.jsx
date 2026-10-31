@@ -4,10 +4,11 @@ import {accommodationTotals} from './accommodationMath.js';
 
 const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 
-export default function AccommodationBilling({supabase,stays,payments,rooms,canAdmin,refresh}){
+export default function AccommodationBilling({supabase,stays,payments,rooms,refresh}){
  const [invoices,setInvoices]=useState([]),[invoiceItems,setInvoiceItems]=useState([]),[requests,setRequests]=useState([]);
  const [org,setOrg]=useState({organization_name:'',organization_address:'',kra_pin:'',payment_terms:'Due on receipt'});
  const [chosen,setChosen]=useState([]),[requestsDraft,setRequestsDraft]=useState({}),[busy,setBusy]=useState(false);
+ const [canApprove,setCanApprove]=useState(false);
  const [message,setMessage]=useState('');
  const load=async()=>{
   const results=await Promise.all([
@@ -20,6 +21,7 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,canA
   setInvoices(results[0].data||[]);setInvoiceItems(results[1].data||[]);setRequests(results[2].data||[]);
  };
  useEffect(()=>{load()},[stays,payments]);
+ useEffect(()=>{supabase.rpc('hotel_accommodation_can_manage_all').then(({data,error})=>setCanApprove(!error&&data===true))},[supabase]);
  const options=useMemo(()=>stays.filter(s=>{
   const due=accommodationTotals(s.check_in_date,s.expected_check_out_date,s.nightly_rate_kes,payments.filter(p=>p.stay_id===s.id)).balance;
   return s.status==='checked_out'&&due>0&&!invoiceItems.some(i=>i.stay_id===s.id);
@@ -66,7 +68,7 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,canA
      <div className="mw-accommodation-actions"><input aria-label={`Complimentary amount for ${stay.guest_name}`} type="number" min="0.01" step="0.01" max={balance} placeholder="Amount KSh" value={d.amount||''} onChange={e=>setRequestsDraft(v=>({...v,[stay.id]:{...d,amount:e.target.value}}))}/><input aria-label="Complimentary reason" placeholder="Reason for complimentary" value={d.reason||''} onChange={e=>setRequestsDraft(v=>({...v,[stay.id]:{...d,reason:e.target.value}}))}/><button disabled={busy||!d.amount||!d.reason} onClick={()=>complimentary(stay)}>Request Approval</button></div>
     </div>;
    })}</details>
-  {canAdmin&&<details><summary>Approve / reject complimentary requests ({requests.filter(r=>r.status==='pending').length} pending)</summary>
+  {canApprove&&<details><summary>Approve / reject complimentary requests ({requests.filter(r=>r.status==='pending').length} pending)</summary>
    {requests.filter(r=>r.status==='pending').map(r=><div key={r.id} className="mw-accommodation-stay"><strong>{stays.find(s=>s.id===r.stay_id)?.guest_name||'Guest'} — {money(r.amount_kes)}</strong><span>{r.reason}</span><div className="mw-accommodation-actions"><button disabled={busy} onClick={()=>review(r.id,true)}>Approve</button><button disabled={busy} onClick={()=>review(r.id,false)}>Reject</button></div></div>)}
   </details>}
   <details><summary>Generate organization invoice (multiple rooms)</summary>
