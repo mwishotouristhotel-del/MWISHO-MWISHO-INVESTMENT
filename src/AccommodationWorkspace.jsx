@@ -38,19 +38,20 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   if(!roomOptions.some(r=>r.id===guest.room_id))throw Error('Choose an available, cleaned room.');
   const initial=Number(guest.initial_payment||0);
   if(initial<0||initial>totals.total)throw Error('Initial payment must be between zero and the total charge.');
-  const {initial_payment,payment_method,payment_reference,...fields}=guest;
-  const {data,error:e}=await supabase.from('hotel_accommodation_stays').insert({...fields,nightly_rate_kes:room.nightly_rate_kes,email:fields.email||null,vehicle_registration:fields.vehicle_registration||null}).select('id').single();
+  const {initial_payment,payment_method,payment_reference,room_id,check_in_date,expected_check_out_date,...fields}=guest;
+  const {error:e}=await supabase.rpc('hotel_accommodation_checkin',{
+   p_room:room_id,p_guest:fields,p_check_in:check_in_date,p_check_out:expected_check_out_date,
+   p_initial_payment:initial,p_method:payment_method,p_reference:payment_reference||null
+  });
   if(e)throw e;
   setGuest(initialGuest());
-  if(initial>0){const {error:p}=await supabase.from('hotel_accommodation_payments').insert({stay_id:data.id,amount_kes:initial,method:payment_method,reference:payment_reference||null});
-   if(p)throw Error('Guest was checked in, but initial payment was not saved: '+p.message+'. Record the payment from the guest list.');}
  },'Guest checked in. Any unpaid amount remains on the account.')};
  const addPayment=stay=>act(async()=>{
   const draft=paymentDraft[stay.id]||{};const amount=Number(draft.amount||0);
   const existing=payments.filter(p=>p.stay_id===stay.id);
   const balance=accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,existing).balance;
   if(!(amount>0)||amount>balance)throw Error('Enter a payment greater than zero and no more than the outstanding balance.');
-  const {error:e}=await supabase.from('hotel_accommodation_payments').insert({stay_id:stay.id,amount_kes:amount,method:draft.method||'cash',reference:draft.reference||null});
+  const {error:e}=await supabase.rpc('hotel_accommodation_record_payment',{p_stay:stay.id,p_amount:amount,p_method:draft.method||'cash',p_reference:draft.reference||null});
   if(e)throw e;setPaymentDraft(x=>({...x,[stay.id]:{method:'cash',amount:'',reference:''}}));
  },'Accommodation payment recorded.');
  const checkOut=stay=>{
