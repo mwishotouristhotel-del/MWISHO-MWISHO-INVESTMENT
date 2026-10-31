@@ -65,8 +65,8 @@ returns public.hotel_accommodation_stays language plpgsql stable security define
 declare v_stay public.hotel_accommodation_stays;v_category text;
 begin
  if auth.uid() is null or not public.hotel_accommodation_can_reception() then raise exception 'Reception access required'; end if;
- select s,r.category into v_stay,v_category from public.hotel_accommodation_stays s
- join public.hotel_accommodation_rooms r on r.id=s.room_id where s.id=p_stay;
+ select s into v_stay from public.hotel_accommodation_stays s where s.id=p_stay;
+ select r.category into v_category from public.hotel_accommodation_rooms r where r.id=v_stay.room_id;
  if v_stay.id is null or (not public.hotel_accommodation_can_manage_all()
   and v_category is distinct from public.hotel_accommodation_reception_section()) then
   raise exception 'Stay is not accessible to this reception';
