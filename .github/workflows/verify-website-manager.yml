@@ -67,6 +67,8 @@ jobs:
         run: node --test tests/website-manager/hotel-stock-sheet-exports.mjs
       - name: Verify accommodation nightly rates and partial payment math
         run: node --test tests/website-manager/accommodation-math.mjs
+      - name: Verify accommodation permissions and database-backed payment operations
+        run: node --test tests/website-manager/accommodation-permissions.mjs
       - name: Verify food pre-order payment gate
         run: node tests/website-manager/food-preorder-gate.mjs
       - name: Verify manual M-Pesa and food payment approval workflow
