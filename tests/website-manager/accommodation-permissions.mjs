@@ -23,5 +23,6 @@ test('payments and checkout use server-authorized atomic operations',()=>{
  assert.match(packagesSql,/p_guests>v_listing\.max_guests/);
  assert.match(packagesSql,/p_initial_payment>v_total/);
  assert.match(ui,/rpc\('hotel_accommodation_record_payment'/);
- assert.match(ui,/rpc\('hotel_accommodation_checkout'/);
+ assert.match(ui,/'hotel_accommodation_checkout'/);
+ assert.match(ui,/supabase\.rpc\(rpc,params\)/);
 });
