@@ -1,10 +1,24 @@
 import {jsPDF} from 'jspdf';
+import websiteLogoSvg from '../hotel/assets/mwisho-logo.svg?raw';
+
+// Use the same embedded PNG as the customer website's logo SVG (no redraw).
+const websiteLogoPng=websiteLogoSvg.match(/href="(data:image\/png;base64,[^"]+)"/)?.[1];
+export const SERIAL_BATCH_LIMIT=31;
+export const registrationSerial=(number)=>String(number).padStart(5,'0');
+export function validateRegistrationBatch(count,startNumber){
+ const total=Number(count),first=Number(startNumber);
+ if(!Number.isInteger(total)||total<1||total>SERIAL_BATCH_LIMIT)throw Error('Choose between 1 and 31 forms.');
+ if(!Number.isSafeInteger(first)||first<1||first+total-1>999999)throw Error('Enter a starting serial between 1 and 999999.');
+ return {total,first};
+}
 
 const page=(doc,title,subtitle)=>{
  doc.setDrawColor(86,41,122);doc.setLineWidth(1);doc.rect(10,10,190,277);
- doc.setFillColor(86,41,122);doc.rect(11,11,188,22,'F');
- doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('MWISHO TOURIST HOTEL',17,20);
+ doc.setFillColor(250,247,252);doc.rect(11,11,188,22,'F');
+ doc.setFillColor(86,41,122);doc.rect(11,32,188,1.2,'F');
+ doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('MWISHO TOURIST HOTEL',17,20);
  doc.setFont('helvetica','italic');doc.setFontSize(9);doc.text('Taste of Class',17,26);
+ if(websiteLogoPng)doc.addImage(websiteLogoPng,'PNG',155,12,38,17.23);
  doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(title,15,43);
  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(subtitle,15,49);
 };
@@ -18,9 +32,12 @@ const field=(doc,label,value,x,y,width=178)=>{
 };
 const text=(value)=>String(value??'').trim();
 
-export function downloadGuestRegistration({guest={},roomNumber='',paymentMethod='',reference='',receptionist=''}={}){
- const doc=new jsPDF({unit:'mm',format:'a4'});
+const drawGuestRegistration=(doc,{guest={},roomNumber='',paymentMethod='',reference='',receptionist='',serialNumber=null}={})=>{
  page(doc,'GUEST REGISTRATION FORM','Guest details and accommodation particulars');
+ if(serialNumber!==null){
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);
+  doc.text('FORM NO. '+registrationSerial(serialNumber),194,48,{align:'right'});
+ }
  field(doc,'DATE:',guest.check_in_date||'',15,61,57);
  field(doc,'ARRIVAL TIME:',guest.arrival_time||'',77,61,58);
  field(doc,'ROOM NO:',roomNumber,140,61,55);
@@ -54,7 +71,23 @@ export function downloadGuestRegistration({guest={},roomNumber='',paymentMethod=
  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('Guest Signature',15,276);doc.text('Receptionist Signature',127,276);
  if(receptionist)doc.text(text(receptionist),127,281);
  doc.setTextColor(86,41,122);doc.setFontSize(7);doc.text('mwishotouristhotel@gmail.com',105,284,{align:'center'});
- doc.save(`Mwisho-Guest-Registration-${text(roomNumber||'blank').replace(/[^a-z0-9-]/gi,'-')}.pdf`);
+};
+
+export function downloadGuestRegistration(options={}){
+ const doc=new jsPDF({unit:'mm',format:'a4'});
+ drawGuestRegistration(doc,options);
+ doc.save(`Mwisho-Guest-Registration-${text(options.roomNumber||'blank').replace(/[^a-z0-9-]/gi,'-')}.pdf`);
+}
+
+export function downloadBlankRegistrationBatch({count=1,startNumber=1}={}){
+ const {total,first}=validateRegistrationBatch(count,startNumber);
+ const doc=new jsPDF({unit:'mm',format:'a4'});
+ for(let index=0;index<total;index++){
+  if(index)doc.addPage();
+  drawGuestRegistration(doc,{serialNumber:first+index});
+ }
+ const last=first+total-1;
+ doc.save(`Mwisho-Guest-Registration-Forms-${registrationSerial(first)}-${registrationSerial(last)}.pdf`);
 }
 
 export function downloadAccommodationInvoice({invoice,items}){
