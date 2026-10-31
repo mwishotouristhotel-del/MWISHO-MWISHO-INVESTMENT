@@ -56,11 +56,12 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,refr
   });
   downloadAccommodationInvoice({invoice,items});
  };
- return <section className="mw-accommodation-panel">
-  <h3>Accommodation Bill Clearance & Invoicing</h3>
+ return <section id="accommodation-billing" className="mw-accommodation-panel mw-accommodation-billing">
+  <h3>🧾 Accommodation Bill Clearance & Invoicing</h3>
   <p className="muted">Cash, M-Pesa and card/PDQ payments are recorded against each guest. Complimentary clearance requires separate management approval. An invoice records an outstanding organizational receivable, not money received.</p>
+  <div className="mw-accommodation-billing-stats"><div><span>⏳</span><strong>{requests.filter(r=>r.status==='pending').length}</strong><small>Complimentary approvals pending</small></div><div><span>🏢</span><strong>{options.filter(s=>s.invoice_organization_name).length}</strong><small>Rooms pending invoice</small></div><div><span>📄</span><strong>{invoices.length}</strong><small>Issued invoices</small></div></div>
   {message&&<p role="status">{message}</p>}
-  <details><summary>Request complimentary clearance</summary>
+  <details className="mw-billing-action-card"><summary><span>🎁</span> Request complimentary clearance</summary>
    {stays.filter(s=>s.status==='checked_in').map(stay=>{
     const d=requestsDraft[stay.id]||{};
     const balance=accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,payments.filter(p=>p.stay_id===stay.id)).balance;
@@ -68,14 +69,14 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,refr
      <div className="mw-accommodation-actions"><input aria-label={`Complimentary amount for ${stay.guest_name}`} type="number" min="0.01" step="0.01" max={balance} placeholder="Amount KSh" value={d.amount||''} onChange={e=>setRequestsDraft(v=>({...v,[stay.id]:{...d,amount:e.target.value}}))}/><input aria-label="Complimentary reason" placeholder="Reason for complimentary" value={d.reason||''} onChange={e=>setRequestsDraft(v=>({...v,[stay.id]:{...d,reason:e.target.value}}))}/><button disabled={busy||!d.amount||!d.reason} onClick={()=>complimentary(stay)}>Request Approval</button></div>
     </div>;
    })}</details>
-  {canApprove&&<details><summary>Approve / reject complimentary requests ({requests.filter(r=>r.status==='pending').length} pending)</summary>
-   {requests.filter(r=>r.status==='pending').map(r=><div key={r.id} className="mw-accommodation-stay"><strong>{stays.find(s=>s.id===r.stay_id)?.guest_name||'Guest'} — {money(r.amount_kes)}</strong><span>{r.reason}</span><div className="mw-accommodation-actions"><button disabled={busy} onClick={()=>review(r.id,true)}>Approve</button><button disabled={busy} onClick={()=>review(r.id,false)}>Reject</button></div></div>)}
+  {canApprove&&<details className="mw-billing-action-card"><summary><span>✅</span> Approve / reject complimentary requests ({requests.filter(r=>r.status==='pending').length} pending)</summary>
+   {requests.filter(r=>r.status==='pending').map(r=><div key={r.id} className="mw-accommodation-stay"><strong>{stays.find(s=>s.id===r.stay_id)?.guest_name||'Guest'} — {money(r.amount_kes)}</strong><span>{r.reason}</span>{r.stated_approver_name&&<span>Stated approver: {r.stated_approver_name} · {r.stated_approver_designation} (unverified until approved here)</span>}<div className="mw-accommodation-actions"><button disabled={busy} onClick={()=>review(r.id,true)}>Approve</button><button disabled={busy} onClick={()=>review(r.id,false)}>Reject</button></div></div>)}
   </details>}
-  <details><summary>Generate organization invoice (multiple rooms)</summary>
+  <details className="mw-billing-action-card"><summary><span>🏢</span> Generate organization invoice (multiple rooms)</summary>
    <div className="mw-accommodation-grid">{[['organization_name','Organization / Bill To'],['organization_address','Postal / Physical Address'],['kra_pin','Organization KRA PIN'],['payment_terms','Payment Terms']].map(([key,label])=><label key={key}>{label}<input value={org[key]} onChange={e=>setOrg(v=>({...v,[key]:e.target.value}))}/></label>)}</div>
    <p className="muted">Select checked-out rooms with unpaid balances. Each room appears only once on an issued invoice.</p>
-   {options.map(stay=><label key={stay.id} className="mw-accommodation-invoice-choice"><input type="checkbox" checked={chosen.includes(stay.id)} onChange={e=>setChosen(v=>e.target.checked?[...v,stay.id]:v.filter(id=>id!==stay.id))}/>
-    Room {rooms.find(r=>r.id===stay.room_id)?.room_number} — {stay.guest_name} — {money(accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,payments.filter(p=>p.stay_id===stay.id)).balance)}
+   {options.map(stay=><label key={stay.id} className="mw-accommodation-invoice-choice"><input type="checkbox" checked={chosen.includes(stay.id)} onChange={e=>{if(e.target.checked){if(stay.invoice_organization_name&&org.organization_name.trim()&&stay.invoice_organization_name.trim().toLowerCase()!==org.organization_name.trim().toLowerCase()){setMessage('This room was reserved for a different organization. Create its invoice separately.');return;}if(stay.invoice_organization_name&&!org.organization_name.trim())setOrg(v=>({...v,organization_name:stay.invoice_organization_name}));setChosen(v=>[...v,stay.id])}else setChosen(v=>v.filter(id=>id!==stay.id))}}/>
+    Room {rooms.find(r=>r.id===stay.room_id)?.room_number} — {stay.guest_name} — {money(accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,payments.filter(p=>p.stay_id===stay.id)).balance)} {stay.invoice_organization_name&&<strong> · {stay.invoice_organization_name}</strong>}
    </label>)}
    {!options.length&&<p>No eligible checked-out rooms with uninvoiced balances.</p>}
    <button className="primary" disabled={busy||!chosen.length||!org.organization_name.trim()} onClick={createInvoice}>Create Invoice for {chosen.length} Room(s)</button>

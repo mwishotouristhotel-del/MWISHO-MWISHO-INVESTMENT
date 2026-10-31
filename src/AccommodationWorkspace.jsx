@@ -2,6 +2,8 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {accommodationTotals,roomPackageNightlyRate} from './accommodationMath.js';
 import {downloadGuestRegistration,downloadBlankRegistrationBatch} from './accommodationDocuments.js';
 import AccommodationBilling from './AccommodationBilling.jsx';
+import AccommodationStayCard from './AccommodationStayCard.jsx';
+import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
 import './AccommodationWorkspace.css';
 
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Nairobi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -16,6 +18,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  const [reportFrom,setReportFrom]=useState(()=>today().slice(0,7)+'-01'),[reportTo,setReportTo]=useState(today);
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
+ const [checkoutDraft,setCheckoutDraft]=useState({}),[clockNow,setClockNow]=useState(()=>new Date());
  const [blankCopies,setBlankCopies]=useState(1),[blankStart,setBlankStart]=useState(1);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const room=rooms.find(r=>r.id===guest.room_id);
@@ -24,6 +27,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  const nightlyRate=selectedListing?roomPackageNightlyRate(selectedListing,guest.package_key,guest.guest_count):room?.nightly_rate_kes;
  const totals=accommodationTotals(guest.check_in_date,guest.expected_check_out_date,nightlyRate);
  const activeRoomIds=new Set(stays.filter(s=>s.status==='checked_in').map(s=>s.room_id));
+ const checkoutDueCount=stays.filter(s=>['due','overdue'].includes(accommodationCheckoutStatus(s,clockNow))).length;
  const roomOptions=rooms.filter(r=>r.active&&r.housekeeping_status==='ready'&&!activeRoomIds.has(r.id));
  const roomName=id=>rooms.find(r=>r.id===id)?.room_number||'Unknown';
  const refresh=async()=>{
@@ -45,6 +49,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   }
  };
  useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo]);
+ useEffect(()=>{const timer=setInterval(()=>setClockNow(new Date()),60000);return ()=>clearInterval(timer)},[]);
  const act=async(fn,success)=>{setBusy(true);setError('');setNotice('');try{await fn();setNotice(success);await refresh()}catch(e){setError(e.message||'Action failed')}finally{setBusy(false)}};
  const createRoom=e=>{e.preventDefault();act(async()=>{
   const {error:e}=await supabase.from('hotel_accommodation_rooms').insert({...roomForm,listing_id:roomForm.listing_id||null,nightly_rate_kes:Number(roomForm.nightly_rate_kes)});
@@ -76,11 +81,21 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  },'Accommodation payment recorded.');
  const checkOut=stay=>{
   const due=accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,payments.filter(p=>p.stay_id===stay.id)).balance;
-  if(!window.confirm('Check out '+stay.guest_name+' from room '+roomName(stay.room_id)+'? '+(due?'Outstanding balance: '+money(due)+'. ':'')+'Room will require cleaning.'))return;
+  const draft=checkoutDraft[stay.id]||{},mode=draft.mode||'standard';
+  if(mode==='complimentary'){
+   if(due<=0){setError('This bill has no outstanding complimentary amount.');return;}
+   if(!draft.approverName?.trim()||!draft.designation?.trim()||!draft.reason?.trim()){setError('Enter the stated approver name, designation, and complimentary reason.');return;}
+  }
+  if(mode==='invoice'&&(due<=0||!draft.organization?.trim())){setError('Enter an organization name for a bill with an outstanding balance.');return;}
+  const explanation=mode==='complimentary'?'A complimentary approval request will remain pending after the guest leaves. No complimentary payment will be posted until management approves.':mode==='invoice'?'The unpaid balance will remain under the named organization until an invoice is issued.':'Room will require cleaning.';
+  if(!window.confirm('Check out '+stay.guest_name+' from room '+roomName(stay.room_id)+'? '+(due?'Outstanding balance: '+money(due)+'. ':'')+explanation))return;
   act(async()=>{
-   const {error:e}=await supabase.rpc('hotel_accommodation_checkout',{p_stay:stay.id});
+   const rpc=mode==='complimentary'?'hotel_accommodation_checkout_complimentary':mode==='invoice'?'hotel_accommodation_checkout_invoice':'hotel_accommodation_checkout';
+   const params=mode==='complimentary'?{p_stay:stay.id,p_amount:due,p_reason:draft.reason,p_approver_name:draft.approverName,p_approver_designation:draft.designation}:mode==='invoice'?{p_stay:stay.id,p_organization:draft.organization}:{p_stay:stay.id};
+   const {error:e}=await supabase.rpc(rpc,params);
    if(e)throw e;
-  },'Guest checked out. Room is awaiting cleaning.');
+   setCheckoutDraft(v=>{const next={...v};delete next[stay.id];return next});
+  },mode==='complimentary'?'Guest checked out; complimentary request awaits independent management approval.':mode==='invoice'?'Guest checked out; organization invoice awaits issuance.':'Guest checked out. Room is awaiting cleaning.');
  };
  const updateHousekeeping=(room,status)=>act(async()=>{
   if(activeRoomIds.has(room.id))throw Error('An occupied room cannot be marked ready.');
@@ -90,11 +105,22 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  return <article className="mw-accommodation">
   <div className="mw-accommodation-head"><div><h2>Accommodation Management</h2><p>{receptionSection==='vvip'?'VVIP Reception':receptionSection==='regular'?'Regular Reception':'VVIP and Regular / Standard'} • Reception • Housekeeping</p></div><button type="button" disabled={busy} onClick={refresh}>Refresh</button></div>
   {error&&<p role="alert" className="error">{error}</p>}{notice&&<p role="status" className="success">{notice}</p>}
+  <nav aria-label="Accommodation functions" className="mw-accommodation-function-grid">
+   {[
+    ['guest-checkin','🛎️','Guest Check-In','Register arrivals and print guest forms','purple'],
+    ['guest-register','🧳','Guest Register & Checkout','Check due departures and clear bills','pink'],
+    ['accommodation-billing','🧾','Billing & Approvals','Complimentary requests and group invoices','gold'],
+    ['accommodation-housekeeping','🧹','Housekeeping','Rooms awaiting cleaning or inspection','sky'],
+    ['accommodation-reports','📊','Reception Sales','Your section’s sales and balances','purple']
+   ].map(([target,icon,title,description,tone])=><button key={target} type="button" className={`mw-accommodation-function-card tone-${tone}`} onClick={()=>document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'})}><span className="mw-function-icon" aria-hidden="true">{icon}</span><strong>{title}</strong><span>{description}</span><span className="mw-function-open">Open function →</span></button>)}
+  </nav>
   <div className="mw-accommodation-stats"><div><strong>{rooms.length}</strong><span>Total rooms</span></div><div><strong>{activeRoomIds.size}</strong><span>Occupied</span></div><div><strong>{roomOptions.length}</strong><span>Ready & available</span></div><div><strong>{rooms.filter(r=>r.housekeeping_status!=='ready').length}</strong><span>Housekeeping / Maintenance</span></div></div>
+  {checkoutDueCount>0&&<div className="mw-checkout-alert" role="status"><strong>⏰ {checkoutDueCount} room{checkoutDueCount===1?'':'s'} due for checkout</strong><span>Default checkout time is 10:00 a.m. East Africa Time. Review the departure cards below.</span><button type="button" onClick={()=>document.getElementById('guest-register')?.scrollIntoView({behavior:'smooth'})}>View departures</button></div>}
   {canReception&&<>
+   <span id="accommodation-reports" className="mw-accommodation-anchor"/>
    <section className="mw-accommodation-panel"><h3>Accommodation Sales by Reception</h3><p className="muted">Based on guest check-in dates. Payments and balances include subsequent payments against those stays.</p><div className="mw-accommodation-grid"><label>From<input type="date" value={reportFrom} max={reportTo} onChange={e=>setReportFrom(e.target.value)}/></label><label>To<input type="date" value={reportTo} min={reportFrom} onChange={e=>setReportTo(e.target.value)}/></label></div><div className="mw-accommodation-stats">{salesRows.map(row=><div key={row.section}><strong>{row.section==='vvip'?'VVIP Reception':'Regular Reception'}</strong><span>{row.stay_count} check-ins</span><span>Billed: {money(row.charged_kes)}</span><span>Received: {money(row.paid_kes)}</span><span>Outstanding: {money(row.balance_kes)}</span></div>)}{!salesRows.length&&<p>No accommodation stays for the selected period.</p>}</div></section>
    {canAdmin&&<details className="mw-accommodation-panel"><summary>Add a numbered room</summary><form onSubmit={createRoom} className="mw-accommodation-grid"><label>Room number<input required maxLength={30} value={roomForm.room_number} onChange={e=>setRoomForm(v=>({...v,room_number:e.target.value}))}/></label><label>Category<select value={roomForm.category} onChange={e=>setRoomForm(v=>({...v,category:e.target.value}))}><option value="vvip">VVIP</option><option value="regular">Regular / Standard</option></select></label><label>Link to existing website room listing (optional)<select value={roomForm.listing_id} onChange={e=>{const listing=roomRates.find(x=>x.id===e.target.value);setRoomForm(v=>({...v,listing_id:e.target.value,category:listing?.category==='vvip'?'vvip':v.category,nightly_rate_kes:listing?String(listing.nightly_rate_kes):v.nightly_rate_kes}))}}><option value="">No website listing linked</option>{roomRates.filter(x=>['vvip','regular'].includes(x.category)).map(x=><option key={x.id} value={x.id}>{x.name} — {money(x.nightly_rate_kes)}/night</option>)}</select></label><label>Rate per night (KSh)<input required type="number" min="0" step="0.01" value={roomForm.nightly_rate_kes} onChange={e=>setRoomForm(v=>({...v,nightly_rate_kes:e.target.value}))}/></label><button className="primary" disabled={busy}>Add room</button></form><p className="muted">Use the same rates as the existing website room listings where applicable.</p>{roomRates.length>0&&<small>Website rates: {roomRates.map(x=>x.name+' — '+money(x.nightly_rate_kes)).join(' | ')}</small>}</details>}
-   <section className="mw-accommodation-panel"><h3>Guest Check-In</h3>
+   <section id="guest-checkin" className="mw-accommodation-panel"><h3>🛎️ Guest Check-In</h3>
     <details className="mw-accommodation-print-batch"><summary>Download blank, serial-numbered guest registration forms</summary><div className="mw-accommodation-grid">
      <label>Number of copies (1-31)<input type="number" min="1" max="31" step="1" value={blankCopies} onChange={e=>setBlankCopies(e.target.value)}/></label>
      <label>Starting form serial number<input type="number" min="1" max="999999" step="1" value={blankStart} onChange={e=>setBlankStart(e.target.value)}/></label>
@@ -110,9 +136,9 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
     <label>Amount paid now (KSh; partial allowed)<input type="number" min="0" max={totals.total} step="0.01" value={guest.initial_payment} onChange={e=>setGuest(v=>({...v,initial_payment:e.target.value}))}/></label><label>Payment method<select value={guest.payment_method} onChange={e=>setGuest(v=>({...v,payment_method:e.target.value}))}><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="card">Credit Card / PDQ</option></select></label><label>Payment reference<input value={guest.payment_reference} required={Number(guest.initial_payment)>0&&['mpesa','card'].includes(guest.payment_method)} onChange={e=>setGuest(v=>({...v,payment_reference:e.target.value}))}/></label>
     <div className="mw-accommodation-calculation"><span>Paid now: {money(guest.initial_payment)}</span><strong>Balance: {money(Math.max(0,totals.total-Number(guest.initial_payment||0)))}</strong></div><button type="button" onClick={()=>downloadGuestRegistration({guest:{...guest,nights:totals.nights},roomNumber:room?.room_number||'',paymentMethod:guest.payment_method,reference:guest.payment_reference})}>Download Guest Registration PDF</button><button className="primary" disabled={busy||!guest.room_id||totals.nights<1||(availableListings.length>0&&!selectedListing)||nightlyRate===null}>Check In Guest</button>
    </form></section>
-   <section className="mw-accommodation-panel"><h3>Guest Register & Checkout</h3>{stays.map(stay=>{const paid=payments.filter(p=>p.stay_id===stay.id),t=accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,paid),draft=paymentDraft[stay.id]||{};return <div className="mw-accommodation-stay" key={stay.id}><div><strong>{stay.guest_name}</strong><span>{stay.status==='checked_in'?'In house':'Checked out'} • Room {roomName(stay.room_id)} • {stay.check_in_date} → {stay.expected_check_out_date} • {t.nights} nights</span><span>{roomRates.find(x=>x.id===stay.listing_id)?.name||'Standard room rate'} • {PACKAGES.find(([key])=>key===stay.package_key)?.[1]||'Bed Only'} • {stay.guest_count||1} guest(s)</span><span>Total {money(t.total)} · Paid {money(t.paid)} · <b>Balance {money(t.balance)}</b></span><button type="button" onClick={()=>downloadGuestRegistration({guest:{...stay,nights:t.nights},roomNumber:roomName(stay.room_id),paymentMethod:paid.at(-1)?.method||'',reference:paid.at(-1)?.reference||''})}>Download Registration Form</button></div>{stay.status==='checked_in'&&<div className="mw-accommodation-actions"><input aria-label="Payment amount" type="number" min="0.01" max={t.balance} step="0.01" placeholder="Payment KSh" value={draft.amount||''} onChange={e=>setPaymentDraft(v=>({...v,[stay.id]:{...draft,amount:e.target.value}}))}/><select aria-label="Payment method" value={draft.method||'cash'} onChange={e=>setPaymentDraft(v=>({...v,[stay.id]:{...draft,method:e.target.value}}))}><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="card">Credit Card / PDQ</option></select><input aria-label="Payment reference" placeholder="Reference" required={['mpesa','card'].includes(draft.method)} value={draft.reference||''} onChange={e=>setPaymentDraft(v=>({...v,[stay.id]:{...draft,reference:e.target.value}}))}/><button disabled={busy||t.balance<=0} onClick={()=>addPayment(stay)}>Record Payment</button><button className="primary" disabled={busy} onClick={()=>checkOut(stay)}>Check Out</button></div>}</div>})}{!stays.length&&<p>No guest stays recorded yet.</p>}</section>
+   <section id="guest-register" className="mw-accommodation-panel"><h3>🧳 Guest Register & Checkout</h3><p className="muted">Default checkout: 10:00 a.m. East Africa Time. Invoice and complimentary departures remain accountable until processed.</p><div className="mw-accommodation-guest-grid">{stays.map(stay=>{const paid=payments.filter(p=>p.stay_id===stay.id),t=accommodationTotals(stay.check_in_date,stay.expected_check_out_date,stay.nightly_rate_kes,paid);return <AccommodationStayCard key={stay.id} stay={stay} roomNumber={roomName(stay.room_id)} listingName={roomRates.find(x=>x.id===stay.listing_id)?.name||'Standard room rate'} packageLabel={PACKAGES.find(([key])=>key===stay.package_key)?.[1]||'Bed Only'} totals={t} paymentDraft={paymentDraft[stay.id]||{}} checkoutDraft={checkoutDraft[stay.id]||{}} clockNow={clockNow} busy={busy} onPaymentChange={next=>setPaymentDraft(v=>({...v,[stay.id]:next}))} onCheckoutChange={next=>setCheckoutDraft(v=>({...v,[stay.id]:next}))} onRecordPayment={()=>addPayment(stay)} onCheckout={()=>checkOut(stay)} onDownload={()=>downloadGuestRegistration({guest:{...stay,nights:t.nights},roomNumber:roomName(stay.room_id),paymentMethod:paid.at(-1)?.method||'',reference:paid.at(-1)?.reference||''})}/>})}{!stays.length&&<p>No guest stays recorded yet.</p>}</div></section>
    <AccommodationBilling supabase={supabase} stays={stays} payments={payments} rooms={rooms} canAdmin={canAdmin} refresh={refresh}/>
   </>}
-  <section className="mw-accommodation-panel"><h3>Room Attendants / Housekeeping</h3><div className="mw-accommodation-rooms">{rooms.map(r=><div key={r.id} className="mw-accommodation-room"><strong>{r.room_number} • {r.category==='vvip'?'VVIP':'Regular / Standard'}</strong><span>{activeRoomIds.has(r.id)?'Occupied':r.housekeeping_status}</span><label>Room condition<select disabled={busy||activeRoomIds.has(r.id)} value={r.housekeeping_status} onChange={e=>updateHousekeeping(r,e.target.value)}><option value="dirty">Awaiting cleaning</option><option value="cleaning">Cleaning in progress</option><option value="inspection">Ready for inspection</option><option value="ready">Clean / Ready</option><option value="maintenance">Maintenance</option></select></label></div>)}</div>{!rooms.length&&<p>Admin must add numbered rooms before reception can check in guests.</p>}</section>
+  <section id="accommodation-housekeeping" className="mw-accommodation-panel"><h3>🧹 Room Attendants / Housekeeping</h3><div className="mw-accommodation-rooms">{rooms.map(r=><div key={r.id} className="mw-accommodation-room"><strong>{r.room_number} • {r.category==='vvip'?'VVIP':'Regular / Standard'}</strong><span>{(()=>{const stay=stays.find(s=>s.room_id===r.id&&s.status==='checked_in');const status=stay?accommodationCheckoutStatus(stay,clockNow):null;return status==='due'?'Due for checkout':status==='overdue'?'Overdue for checkout':stay?'Occupied':r.housekeeping_status})()}</span><label>Room condition<select disabled={busy||activeRoomIds.has(r.id)} value={r.housekeeping_status} onChange={e=>updateHousekeeping(r,e.target.value)}><option value="dirty">Awaiting cleaning</option><option value="cleaning">Cleaning in progress</option><option value="inspection">Ready for inspection</option><option value="ready">Clean / Ready</option><option value="maintenance">Maintenance</option></select></label></div>)}</div>{!rooms.length&&<p>Admin must add numbered rooms before reception can check in guests.</p>}</section>
  </article>;
 }
