@@ -10,6 +10,8 @@ const initialGuest=()=>({guest_name:'',guest_id_number:'',guest_phone:'',nationa
 
 export default function AccommodationWorkspace({supabase,canReception=true,canAdmin=false}){
  const [rooms,setRooms]=useState([]),[stays,setStays]=useState([]),[payments,setPayments]=useState([]);
+ const [receptionSection,setReceptionSection]=useState(null),[salesRows,setSalesRows]=useState([]);
+ const [reportFrom,setReportFrom]=useState(()=>today().slice(0,7)+'-01'),[reportTo,setReportTo]=useState(today);
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -30,8 +32,16 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   setRooms(results[0].data||[]);
   if(canReception){setStays(results[1].data||[]);setPayments(results[2].data||[]);}
   if(canReception)setRoomRates(results.at(-1).data||[]);
+  if(canReception){
+   const [sectionResult,salesResult]=await Promise.all([
+    supabase.rpc('hotel_accommodation_reception_section'),
+    supabase.rpc('hotel_accommodation_section_sales',{p_start:reportFrom,p_end:reportTo})
+   ]);
+   if(sectionResult.error||salesResult.error){setError((sectionResult.error||salesResult.error).message);return;}
+   setReceptionSection(sectionResult.data);setSalesRows(salesResult.data||[]);
+  }
  };
- useEffect(()=>{refresh()},[canReception,canAdmin]);
+ useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo]);
  const act=async(fn,success)=>{setBusy(true);setError('');setNotice('');try{await fn();setNotice(success);await refresh()}catch(e){setError(e.message||'Action failed')}finally{setBusy(false)}};
  const createRoom=e=>{e.preventDefault();act(async()=>{
   const {error:e}=await supabase.from('hotel_accommodation_rooms').insert({...roomForm,listing_id:roomForm.listing_id||null,nightly_rate_kes:Number(roomForm.nightly_rate_kes)});
@@ -75,10 +85,11 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   if(e)throw e;
  },'Room status updated.');
  return <article className="mw-accommodation">
-  <div className="mw-accommodation-head"><div><h2>Accommodation Management</h2><p>VVIP and Regular / Standard • Reception • Housekeeping</p></div><button type="button" disabled={busy} onClick={refresh}>Refresh</button></div>
+  <div className="mw-accommodation-head"><div><h2>Accommodation Management</h2><p>{receptionSection==='vvip'?'VVIP Reception':receptionSection==='regular'?'Regular Reception':'VVIP and Regular / Standard'} • Reception • Housekeeping</p></div><button type="button" disabled={busy} onClick={refresh}>Refresh</button></div>
   {error&&<p role="alert" className="error">{error}</p>}{notice&&<p role="status" className="success">{notice}</p>}
   <div className="mw-accommodation-stats"><div><strong>{rooms.length}</strong><span>Total rooms</span></div><div><strong>{activeRoomIds.size}</strong><span>Occupied</span></div><div><strong>{roomOptions.length}</strong><span>Ready & available</span></div><div><strong>{rooms.filter(r=>r.housekeeping_status!=='ready').length}</strong><span>Housekeeping / Maintenance</span></div></div>
   {canReception&&<>
+   <section className="mw-accommodation-panel"><h3>Accommodation Sales by Reception</h3><p className="muted">Based on guest check-in dates. Payments and balances include subsequent payments against those stays.</p><div className="mw-accommodation-grid"><label>From<input type="date" value={reportFrom} max={reportTo} onChange={e=>setReportFrom(e.target.value)}/></label><label>To<input type="date" value={reportTo} min={reportFrom} onChange={e=>setReportTo(e.target.value)}/></label></div><div className="mw-accommodation-stats">{salesRows.map(row=><div key={row.section}><strong>{row.section==='vvip'?'VVIP Reception':'Regular Reception'}</strong><span>{row.stay_count} check-ins</span><span>Billed: {money(row.charged_kes)}</span><span>Received: {money(row.paid_kes)}</span><span>Outstanding: {money(row.balance_kes)}</span></div>)}{!salesRows.length&&<p>No accommodation stays for the selected period.</p>}</div></section>
    {canAdmin&&<details className="mw-accommodation-panel"><summary>Add a numbered room</summary><form onSubmit={createRoom} className="mw-accommodation-grid"><label>Room number<input required maxLength={30} value={roomForm.room_number} onChange={e=>setRoomForm(v=>({...v,room_number:e.target.value}))}/></label><label>Category<select value={roomForm.category} onChange={e=>setRoomForm(v=>({...v,category:e.target.value}))}><option value="vvip">VVIP</option><option value="regular">Regular / Standard</option></select></label><label>Link to existing website room listing (optional)<select value={roomForm.listing_id} onChange={e=>{const listing=roomRates.find(x=>x.id===e.target.value);setRoomForm(v=>({...v,listing_id:e.target.value,category:listing?.category==='vvip'?'vvip':v.category,nightly_rate_kes:listing?String(listing.nightly_rate_kes):v.nightly_rate_kes}))}}><option value="">No website listing linked</option>{roomRates.filter(x=>['vvip','regular'].includes(x.category)).map(x=><option key={x.id} value={x.id}>{x.name} — {money(x.nightly_rate_kes)}/night</option>)}</select></label><label>Rate per night (KSh)<input required type="number" min="0" step="0.01" value={roomForm.nightly_rate_kes} onChange={e=>setRoomForm(v=>({...v,nightly_rate_kes:e.target.value}))}/></label><button className="primary" disabled={busy}>Add room</button></form><p className="muted">Use the same rates as the existing website room listings where applicable.</p>{roomRates.length>0&&<small>Website rates: {roomRates.map(x=>x.name+' — '+money(x.nightly_rate_kes)).join(' | ')}</small>}</details>}
    <section className="mw-accommodation-panel"><h3>Guest Check-In</h3><form onSubmit={checkIn} className="mw-accommodation-grid">
     {[['guest_name','Guest Name'],['guest_id_number','Guest ID Number'],['guest_phone','Guest Phone Number'],['nationality','Nationality'],['country_of_residence','Country of Residence'],['county_of_residence','County of Residence'],['email','Email'],['vehicle_registration','Vehicle Registration (optional)']].map(([key,label])=><label key={key}>{label}<input required={!['email','vehicle_registration'].includes(key)} type={key==='email'?'email':'text'} value={guest[key]} onChange={e=>setGuest(v=>({...v,[key]:e.target.value}))}/></label>)}
