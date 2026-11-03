@@ -24,6 +24,12 @@ test('public receipt download is token-gated, time-limited and revocable',()=>{
  assert.match(source,/hotel_accommodation_can_reception/);
 });
 
+test('browser CORS preflight allows Supabase client headers before receipt POST',()=>{
+ assert.match(source,/access-control-allow-headers[^\n]*x-client-info/);
+ assert.match(source,/access-control-allow-headers[^\n]*x-supabase-api-version/);
+ assert.match(source,/if\(req\.method==='OPTIONS'\)/);
+});
+
 test('receipt uses the supplied eTIMS URL as a QR, never treats unpaid invoices as paid',()=>{
  assert.match(source,/QRCode\.toDataURL\(row\.etims_url/);
  assert.match(source,/stay\.invoice_organization_name\?'INVOICE PENDING'/);
