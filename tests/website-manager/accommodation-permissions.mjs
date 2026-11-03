@@ -17,7 +17,7 @@ test('payments and checkout use server-authorized atomic operations',()=>{
  assert.match(sql,/create or replace function public\.hotel_accommodation_record_payment/s);
  assert.match(sql,/v_paid\+p_amount>v_stay\.total_kes/);
  assert.match(sql,/hotel_accommodation_guard_housekeeping/);
- assert.match(ui,/rpc\('hotel_accommodation_checkin_package'/);
+ assert.match(ui,/rpc\('hotel_accommodation_checkin_grouped'/);
  assert.match(packagesSql,/hotel_accommodation_can_reception\(\)/);
  assert.match(packagesSql,/v_listing\.category<>v_room\.category/);
  assert.match(packagesSql,/p_guests>v_listing\.max_guests/);
