@@ -1,6 +1,7 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.57.4';
 import {PDFDocument,StandardFonts,rgb} from 'npm:pdf-lib@1.17.1';
 import QRCode from 'npm:qrcode@1.5.4';
+import {LOGO_PNG_BASE64} from './logo.ts';
 
 const originAllowed=new Set(['https://mwishotouristhotel-del.github.io','http://localhost:5173','http://127.0.0.1:5173']);
 // supabase-js includes x-client-info on browser calls. Missing it from the
@@ -11,6 +12,7 @@ const tidy=(v:unknown)=>String(v??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,
 const amount=(v:unknown)=>Number(v||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const hex=(data:ArrayBuffer)=>Array.from(new Uint8Array(data)).map(n=>n.toString(16).padStart(2,'0')).join('');
 const digest=async(token:string)=>hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)));
+const logoBytes=Uint8Array.from(atob(LOGO_PNG_BASE64),c=>c.charCodeAt(0));
 // Keep the bearer token recoverable by authorized reception staff without
 // exposing it in the Data API. A separate, random IV is used per receipt.
 const tokenKey=async(secret:string)=>crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mwisho-receipt-token-v1:'+secret)),{name:'AES-GCM'},false,['encrypt','decrypt']);
@@ -32,12 +34,14 @@ const validEtims=(raw:unknown)=>{
 };
 const asThermalPdf=async(row:any)=>{
  const data=row.snapshot, count=Math.min(data.payments.length,30);
- const height=Math.max(440,345+count*18+(row.etims_url?120:0));
+ const height=Math.max(510,425+count*18+(row.etims_url?120:0));
  const pdf=await PDFDocument.create(),page=pdf.addPage([226.77,height]);
  const font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
  let y=height-24;
  const center=(s:string,size=9,strong=false)=>{const f=strong?bold:font;page.drawText(tidy(s).slice(0,45),{x:(226.77-f.widthOfTextAtSize(tidy(s).slice(0,45),size))/2,y,font:f,size});y-=size+7};
  const item=(label:string,value:unknown)=>{const a=tidy(label+': '+String(value??''));for(let i=0;i<a.length;i+=36){page.drawText(a.slice(i,i+36),{x:12,y,font,size:9});y-=14}};
+ const logo=await pdf.embedPng(logoBytes);
+ page.drawImage(logo,{x:38,y:y-68,width:150,height:68});y-=78;
  center('MWISHO TOURIST HOTEL',12,true);center('Taste of Class',9);center('ACCOMMODATION RECEIPT',10,true);
  item('Receipt',data.receipt_number);item('Issued',new Date(row.created_at).toLocaleString('en-KE',{timeZone:'Africa/Nairobi'}));
  item('Guest',data.guest_name);item('Room',data.room_number);item('Package',data.package);
@@ -60,6 +64,7 @@ const asPdf=async(row:any)=>{
  const data=row.snapshot;
  const pdf=await PDFDocument.create();const page=pdf.addPage([595,842]);
  const font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+ const logo=await pdf.embedPng(logoBytes);
  const purple=rgb(.34,.16,.51),grey=rgb(.34,.33,.39);
  const line=(label:string,value:unknown,y:number)=>{
   page.drawText(tidy(label),{x:46,y,font:bold,size:10,color:purple});
@@ -67,6 +72,7 @@ const asPdf=async(row:any)=>{
  };
  page.drawRectangle({x:30,y:30,width:535,height:782,borderColor:purple,borderWidth:1});
  page.drawRectangle({x:31,y:753,width:533,height:58,color:rgb(.97,.94,.99)});
+ page.drawImage(logo,{x:450,y:761,width:100,height:45.33});
  page.drawText('MWISHO TOURIST HOTEL',{x:45,y:785,font:bold,size:18,color:purple});
  page.drawText('Taste of Class  |  ACCOMMODATION RECEIPT',{x:46,y:766,font,size:10,color:purple});
  page.drawText(tidy(data.status),{x:45,y:722,font:bold,size:13,color:data.balance>0?rgb(.65,.31,.03):rgb(.1,.45,.2)});
