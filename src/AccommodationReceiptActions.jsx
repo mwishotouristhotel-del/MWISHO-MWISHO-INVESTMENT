@@ -31,9 +31,8 @@ export default function AccommodationReceiptActions({supabase,stay}){
   setReceipt(data);await loadSaved();setFeedback('Receipt saved. The secure sharing link is valid for 30 days.');
  });
  const openSaved=entry=>run('open',async()=>{
-  if(!window.confirm('Open this saved receipt? A new 30-day link will replace its previous sharing link. The receipt itself and its number remain unchanged.'))return;
-  const data=await request({action:'renew',receipt_id:entry.receipt_id});
-  setReceipt(data);await loadSaved();setFeedback('Saved receipt reopened. Previous sharing links are no longer valid.');
+  const data=await request({action:'open',receipt_id:entry.receipt_id});
+  setReceipt(data);setFeedback('Saved receipt reopened with its original sharing link.');
  });
  const send=channel=>run(channel,async()=>{
   const data=await request({action:'send',channel,token:tokenFromUrl(receipt.url)});
@@ -69,7 +68,7 @@ export default function AccommodationReceiptActions({supabase,stay}){
     <button type="button" disabled={!!working||!receipt.guest_email} onClick={()=>send('email')}>Resend Email</button>
     <button type="button" disabled={!!working} onClick={revoke}>Revoke link</button>
    </div>
-   <small>Print the 80 mm PDF using the XP-80C printer driver at actual size. Secure links are valid for 30 days unless replaced or revoked.</small>
+   <small>Print the 80 mm PDF using the XP-80C printer driver at actual size. The original secure link remains valid for 30 days from creation unless revoked.</small>
   </>}
   {feedback&&<p role="status" className="mw-receipt-feedback">{feedback}</p>}
  </section>;
