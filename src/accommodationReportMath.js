@@ -7,6 +7,14 @@ const dayNumber=date=>Date.parse(String(date).slice(0,10)+'T00:00:00Z')/DAY;
 const fromDay=number=>new Date(number*DAY).toISOString().slice(0,10);
 export const nairobiDate=timestamp=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Nairobi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(timestamp));
 export const bookedNights=stay=>Math.max(1,dayNumber(stay.expected_check_out_date)-dayNumber(stay.check_in_date));
+// Filter both ledger events and stays to the same reception before computing totals.
+// The server RPC already restricts receptionists to their assigned section.
+export function scopeAccommodationReport(data,section){
+ if(!['regular','vvip'].includes(section))throw Error('Choose a valid reception section.');
+ const stays=(data?.stays||[]).filter(stay=>stay.section===section);
+ const ids=new Set(stays.map(stay=>stay.id));
+ return {stays,payments:(data?.payments||[]).filter(payment=>ids.has(payment.stay_id)),invoices:(data?.invoices||[]).filter(invoice=>ids.has(invoice.stay_id))};
+}
 export const nightSales=(stay,date)=>{
  const index=dayNumber(date)-dayNumber(stay.check_in_date),nights=bookedNights(stay);
  if(index<0||index>=nights)return 0;
