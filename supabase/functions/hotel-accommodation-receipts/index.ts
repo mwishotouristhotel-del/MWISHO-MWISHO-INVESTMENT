@@ -3,7 +3,9 @@ import {PDFDocument,StandardFonts,rgb} from 'npm:pdf-lib@1.17.1';
 import QRCode from 'npm:qrcode@1.5.4';
 
 const originAllowed=new Set(['https://mwishotouristhotel-del.github.io','http://localhost:5173','http://127.0.0.1:5173']);
-const cors=(origin:string|null)=>({'access-control-allow-origin':originAllowed.has(origin||'')?origin!:'https://mwishotouristhotel-del.github.io','access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'GET,POST,OPTIONS','vary':'Origin'});
+// supabase-js includes x-client-info on browser calls. Missing it from the
+// preflight response blocks POST entirely despite a successful OPTIONS 204.
+const cors=(origin:string|null)=>({'access-control-allow-origin':originAllowed.has(origin||'')?origin!:'https://mwishotouristhotel-del.github.io','access-control-allow-headers':'authorization,apikey,content-type,x-client-info,x-supabase-api-version','access-control-allow-methods':'GET,POST,OPTIONS','vary':'Origin'});
 const json=(data:unknown,status=200,origin:string|null=null)=>new Response(JSON.stringify(data),{status,headers:{...cors(origin),'content-type':'application/json','cache-control':'no-store'}});
 const tidy=(v:unknown)=>String(v??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,' ').trim();
 const amount=(v:unknown)=>Number(v||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
