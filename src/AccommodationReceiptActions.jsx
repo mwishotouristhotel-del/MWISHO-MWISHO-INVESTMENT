@@ -12,14 +12,26 @@ const printUrl=(url,format)=>url+(url.includes('?')?'&':'?')+'format='+format;
 
 export default function AccommodationReceiptActions({supabase,stay}){
  const [etims,setEtims]=useState(''),[receipt,setReceipt]=useState(null),[saved,setSaved]=useState([]),[working,setWorking]=useState(''),[feedback,setFeedback]=useState('');
+ const signInMessage='Your session has expired. Please sign in again to access saved receipts.';
+ const ensureSession=async()=>{
+  const {data:{session},error:sessionError}=await supabase.auth.getSession();
+  if(sessionError||!session)throw Error(signInMessage);
+  const {error:identityError}=await supabase.auth.getUser();
+  if(!identityError)return;
+  const {data:renewed,error:renewError}=await supabase.auth.refreshSession();
+  if(renewError||!renewed?.session)throw Error(signInMessage);
+  const {error:verifiedError}=await supabase.auth.getUser();
+  if(verifiedError)throw Error(signInMessage);
+ };
  const request=async(body)=>{
+  await ensureSession();
   const {data,error}=await supabase.functions.invoke('hotel-accommodation-receipts',{body:{stay_id:stay.id,...body}});
   if(error){
    let detail=data?.error;
    if(!detail&&error.context?.json){try{detail=(await error.context.json())?.error}catch{/* Retain the original error. */}}
-   throw Error(detail||error.message||'Receipt request failed');
+   throw Error(detail==='Sign in required'?signInMessage:detail||error.message||'Receipt request failed');
   }
-  if(data?.error)throw Error(data.error);
+  if(data?.error)throw Error(data.error==='Sign in required'?signInMessage:data.error);
   return data;
  };
  const loadSaved=async()=>{
@@ -89,5 +101,6 @@ export default function AccommodationReceiptActions({supabase,stay}){
    <small>{receipt.legacy?'This older receipt can be downloaded and printed without generating a replacement receipt or link. To share, attach its PDF manually.':'Print the 80 mm PDF using the XP-80C printer driver at actual size. The original secure link remains valid for 30 days from creation unless revoked.'}</small>
   </>}
   {feedback&&<p role="status" className="mw-receipt-feedback">{feedback}</p>}
+  {feedback===signInMessage&&<button type="button" onClick={async()=>{await supabase.auth.signOut({scope:'local'});window.location.reload()}}>Sign in again</button>}
  </section>;
 }
