@@ -193,8 +193,8 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
      <div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Date</th><th>Room nights</th><th>Room sales</th><th>Cash</th><th>M-Pesa</th><th>PDQ</th><th>Other</th><th>Invoice</th><th>Complimentary</th><th>Advance remaining</th></tr></thead><tbody>
       {dailyReport.daily.map(row=><tr key={row.date}><td>{row.date}{row.is_future?' (scheduled)':''}</td><td>{row.occupied_room_nights}</td><td>{money(row.room_sales_kes)}</td><td>{money(row.cash_kes)}</td><td>{money(row.mpesa_kes)}</td><td>{money(row.pdq_kes)}</td><td>{money(row.other_kes)}</td><td>{money(row.invoices_issued_kes)}</td><td>{money(row.complimentary_kes)}</td><td>{money(row.advance_remaining_kes)}</td></tr>)}
      </tbody></table></div>
-     <details><summary>Guest & room occupancy ({dailyReport.guests.length})</summary><div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Guest</th><th>Room</th><th>Reception</th><th>Check-in</th><th>Booked checkout</th><th>Days booked</th><th>Booked total</th><th>Received</th><th>Outstanding</th></tr></thead><tbody>
-      {dailyReport.guests.map(stay=><tr key={stay.id}><td>{stay.guest_name}</td><td>{stay.room_number}</td><td>{stay.section}</td><td>{stay.check_in_date}</td><td>{stay.expected_check_out_date}</td><td>{stay.nights}</td><td>{money(stay.total_kes)}</td><td>{money(stay.received_kes)}</td><td>{money(stay.outstanding_kes)}</td></tr>)}
+     <details open><summary>Rooms Occupied ({dailyReport.guests.length})</summary><div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Room No.</th><th>Guest Name</th><th>Booked Package</th><th>No. of Guests</th><th>No. of Days Booked</th><th>Amount Paid</th></tr></thead><tbody>
+      {dailyReport.guests.map(stay=><tr key={stay.id}><td>{stay.room_number}</td><td>{stay.guest_name}</td><td>{stay.package_label}</td><td>{stay.guest_count}</td><td>{stay.nights}</td><td>{money(stay.received_kes)}</td></tr>)}
      </tbody></table></div></details>
     </>}
    </section>
