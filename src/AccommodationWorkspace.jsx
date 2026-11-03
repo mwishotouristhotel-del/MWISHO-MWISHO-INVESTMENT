@@ -4,6 +4,7 @@ import {downloadGuestRegistration,downloadBlankRegistrationBatch} from './accomm
 import AccommodationBilling from './AccommodationBilling.jsx';
 import AccommodationStayCard from './AccommodationStayCard.jsx';
 import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
+import {prefillReturningGuest} from './accommodationGuestPrefill.js';
 import './AccommodationWorkspace.css';
 
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Nairobi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -19,6 +20,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
  const [organizations,setOrganizations]=useState([]),[organizationSearch,setOrganizationSearch]=useState(''),[newOrganizationName,setNewOrganizationName]=useState('');
+ const [returningSearch,setReturningSearch]=useState(''),[returningMatches,setReturningMatches]=useState([]),[returningBusy,setReturningBusy]=useState(false),[returningError,setReturningError]=useState('');
  const [checkoutDraft,setCheckoutDraft]=useState({}),[clockNow,setClockNow]=useState(()=>new Date());
  const [blankCopies,setBlankCopies]=useState(1),[blankStart,setBlankStart]=useState(1);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -53,6 +55,18 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   }
  };
  useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo]);
+ useEffect(()=>{
+  const query=returningSearch.trim();
+  if(!canReception||query.length<3){setReturningMatches([]);setReturningBusy(false);setReturningError('');return;}
+  let cancelled=false;
+  setReturningBusy(true);setReturningError('');
+  const timer=setTimeout(async()=>{
+   const {data,error:e}=await supabase.rpc('hotel_accommodation_find_returning_guests',{p_query:query});
+   if(cancelled)return;
+   setReturningMatches(e?[]:data||[]);setReturningError(e?e.message:'');setReturningBusy(false);
+  },350);
+  return()=>{cancelled=true;clearTimeout(timer)};
+ },[returningSearch,canReception,supabase]);
  useEffect(()=>{
   const search=organizationSearch.trim();if(!canReception||search.length<2)return;
   let cancelled=false;
@@ -96,6 +110,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   if(e)throw e;
   // Keep the group and stay dates selected for the next guest in the same party.
   setGuest(current=>current.guest_type==='organization'?{...initialGuest(),guest_type:'organization',organization_id:current.organization_id,check_in_date:current.check_in_date,expected_check_out_date:current.expected_check_out_date}:initialGuest());
+  setReturningSearch('');setReturningMatches([]);
  },'Guest checked in. Any unpaid amount remains on the account.')};
  const addPayment=stay=>act(async()=>{
   const draft=paymentDraft[stay.id]||{};const amount=Number(draft.amount||0);
@@ -165,6 +180,14 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
       <div className="mw-organization-create"><label>Add new organization<input value={newOrganizationName} maxLength={180} placeholder="Official organization / group name" onChange={e=>setNewOrganizationName(e.target.value)}/></label><button type="button" disabled={busy||newOrganizationName.trim().length<2} onClick={registerOrganization}>Save & Select</button></div>
       {selectedOrganization&&<p className="mw-organization-selected">✓ Selected: <strong>{selectedOrganization.name}</strong>. After checking in this guest, the organization stays selected for the next guest in the group.</p>}
      </div>}
+    </div>
+    <div className="mw-returning-guest-card">
+     <div className="mw-organization-checkin-heading"><span aria-hidden="true">🔎</span><div><strong>Returning Guest • Saved Details</strong><small>Search by ID number, phone number or name. Select the correct guest to prefill editable fields.</small></div></div>
+     <label>Find previous guest<input type="search" autoComplete="off" value={returningSearch} placeholder="ID, phone or name (3+ characters)" onChange={e=>setReturningSearch(e.target.value)}/></label>
+     {returningBusy&&<p role="status" className="muted">Searching guest records…</p>}
+     {returningError&&<p role="alert" className="error">Guest lookup unavailable: {returningError}</p>}
+     {!returningBusy&&!returningError&&returningSearch.trim().length>=3&&!returningMatches.length&&<p className="muted">No previous guest found. Continue with new guest details below.</p>}
+     {!!returningMatches.length&&<div className="mw-returning-results" aria-label="Returning guest matches">{returningMatches.map((match,index)=><div className="mw-returning-result" key={`${match.guest_id_number}-${match.guest_phone}-${index}`}><div><strong>{match.guest_name}</strong><small>ID ending {String(match.guest_id_number||'').slice(-4)||'—'} • Phone ending {String(match.guest_phone||'').slice(-4)||'—'} • Last visit {match.last_visit||'—'}</small></div><button type="button" onClick={()=>{setGuest(current=>prefillReturningGuest(current,match));setReturningSearch('');setReturningMatches([]);setNotice('Saved details loaded. Review and edit before check-in.')}}>Use details</button></div>)}</div>}
     </div>
     {[['guest_name','Guest Name'],['guest_id_number','Guest ID Number'],['guest_phone','Guest Phone Number'],['address','Guest Address'],['arrival_time','Arrival Time'],['nationality','Nationality'],['country_of_residence','Country of Residence'],['county_of_residence','County of Residence'],['email','Email (optional)'],['vehicle_registration','Vehicle Registration (optional)'],['reason_for_visit','Reason for Visit'],['accessibility_request','Accessibility Request'],['remarks','Guest Remarks']].map(([key,label])=><label key={key}>{label}<input required={['guest_name','guest_id_number','guest_phone','nationality','country_of_residence','county_of_residence'].includes(key)} type={key==='email'?'email':key==='arrival_time'?'time':'text'} value={guest[key]} onChange={e=>setGuest(v=>({...v,[key]:e.target.value}))}/></label>)}
     <label>Assigned Room<select required value={guest.room_id} onChange={e=>{const chosen=rooms.find(r=>r.id===e.target.value);const listing=roomRates.find(r=>r.id===chosen?.listing_id);setGuest(v=>({...v,room_id:e.target.value,listing_id:listing?.id||'',package_key:listing?.package_rates?.bed_only?'bed_only':PACKAGES.find(([k])=>listing?.package_rates?.[k])?.[0]||'bed_only',guest_count:1}))}}><option value="">Choose available room</option>{roomOptions.map(r=><option key={r.id} value={r.id}>{r.room_number} — {r.category==='vvip'?'VVIP':'Regular / Standard'}</option>)}</select></label>
