@@ -1,0 +1,82 @@
+const sections=[
+ ['Daily Room Sales',[
+  ['Date','date'],['Room nights','occupied_room_nights'],['Room sales (KSh)','room_sales_kes'],
+  ['Cash received','cash_kes'],['M-Pesa','mpesa_kes'],['PDQ / Card','pdq_kes'],['Bank / Other','other_kes'],
+  ['Total received','receipts_kes'],['Invoiced','invoices_issued_kes'],['Complimentary','complimentary_kes'],
+  ['Unearned advance (end of day)','advance_remaining_kes']],report=>report.daily],
+ ['Guest & Room Register',[
+  ['Guest','guest_name'],['Room','room_number'],['Reception','section'],['Check-in','check_in_date'],
+  ['Booked checkout','expected_check_out_date'],['Days booked','nights'],['Days in period','days_in_period'],
+  ['Booked total','total_kes'],['Received','received_kes'],['Invoiced','invoiced_kes'],
+  ['Complimentary','complimentary_kes'],['Outstanding','outstanding_kes']],report=>report.guests],
+ ['Payment Transactions',[
+  ['Date','date'],['Guest','guest_name'],['Room','room_number'],['Reception','section'],
+  ['Payment method','method'],['Reference','reference'],['Amount (KSh)','amount_kes']],report=>report.paymentRows],
+ ['Invoices Issued',[
+  ['Invoice date','invoice_date'],['Invoice','invoice_number'],['Guest','guest_name'],
+  ['Room','room_number'],['Reception','section'],['Amount (KSh)','amount_kes']],report=>report.invoiceRows]
+];
+const money=n=>Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const download=(blob,name)=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)};
+const notes='Room sales are earned per booked night. Payments are recorded on receipt date. Unearned advance is prepaid cash for future nights. Cash received excludes float and cash expenses; it is not an audited drawer balance. Invoice and complimentary entries are not cash.';
+const name=report=>'Mwisho-Accommodation-Reception-'+report.from+'-to-'+report.to;
+export async function downloadAccommodationReport(report,format){
+ if(!report?.daily?.length)throw Error('Load a report before exporting.');
+ if(format==='excel'){
+  const {default:ExcelJS}=await import('exceljs');
+  const workbook=new ExcelJS.Workbook();workbook.creator='MWISHO Tourist Hotel';workbook.created=new Date();
+  const summary=workbook.addWorksheet('Summary');
+  summary.columns=[{width:38},{width:21}];
+  summary.mergeCells('A1:B1');summary.getCell('A1').value='MWISHO TOURIST HOTEL — ACCOMMODATION RECEPTION REPORT';
+  summary.getCell('A1').font={size:15,bold:true,color:{argb:'FFFFFFFF'}};summary.getCell('A1').fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF55308F'}};summary.getRow(1).height=32;
+  summary.addRow(['Reporting period',report.from+' to '+report.to]);
+  const labels=[['Room sales earned','room_sales_kes'],['Occupied room nights','occupied_room_nights'],
+   ['Cash received','cash_kes'],['M-Pesa received','mpesa_kes'],['PDQ/Card received','pdq_kes'],
+   ['Bank/Other received','other_kes'],['Total money received','receipts_kes'],
+   ['Invoices issued (non-cash)','invoices_issued_kes'],['Complimentary cleared (non-cash)','complimentary_kes'],
+   ['Advance for future nights at period end','advance_remaining_kes']];
+  labels.forEach(([label,key])=>{const row=summary.addRow([label,report.totals[key]||0]);row.getCell(2).numFmt=key==='occupied_room_nights'?'0':'#,##0.00';});
+  summary.addRow([]);summary.addRow(['ACCOUNTING NOTE']);summary.addRow([notes]);
+  summary.mergeCells('A15:B15');summary.getCell('A15').alignment={wrapText:true};summary.getRow(15).height=65;
+  for(const [title,columns,rows] of sections){
+   const sheet=workbook.addWorksheet(title.slice(0,31),{pageSetup:{paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}});
+   sheet.columns=columns.map(([header,key])=>({header,key,width:Math.max(15,Math.min(34,header.length+7))}));
+   const header=sheet.getRow(1);header.height=32;header.font={bold:true,color:{argb:'FFFFFFFF'}};
+   header.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6542A4'}};
+   header.alignment={vertical:'middle',wrapText:true};
+   for(const row of rows(report)){const line=sheet.addRow(columns.map(([,key])=>row[key]??''));line.height=22;
+    if(line.number%2===0)line.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF6F2FB'}};
+    columns.forEach(([,key],index)=>{if(/_kes$|^total_kes$|^amount_kes$/.test(key))line.getCell(index+1).numFmt='#,##0.00';});
+   }
+   sheet.views=[{state:'frozen',ySplit:1}];sheet.autoFilter={from:{row:1,column:1},to:{row:Math.max(2,sheet.rowCount),column:columns.length}};
+   sheet.headerFooter.oddFooter='MWISHO TOURIST HOTEL | &P of &N';
+  }
+  const bytes=await workbook.xlsx.writeBuffer();
+  download(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),name(report)+'.xlsx');return;
+ }
+ if(format==='pdf'){
+  const [{jsPDF},{default:autoTable}]=await Promise.all([import('jspdf'),import('jspdf-autotable')]);
+  const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
+  const width=pdf.internal.pageSize.getWidth();
+  const header=()=>{pdf.setFillColor(85,48,143);pdf.rect(0,0,width,25,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.setTextColor(255);pdf.text('MWISHO TOURIST HOTEL',10,11);pdf.setFontSize(9);pdf.text('Accommodation Reception Report | '+report.from+' to '+report.to,10,18);pdf.setTextColor(40);};
+  header();
+  autoTable(pdf,{startY:32,margin:{top:30,bottom:12},head:[['Measure','KSh / Count']],body:[
+   ['Room sales earned',money(report.totals.room_sales_kes)],['Occupied room nights',report.totals.occupied_room_nights],
+   ['Cash received',money(report.totals.cash_kes)],['M-Pesa',money(report.totals.mpesa_kes)],
+   ['PDQ / Card',money(report.totals.pdq_kes)],['Bank / Other',money(report.totals.other_kes)],
+   ['Total money received',money(report.totals.receipts_kes)],['Invoices issued (non-cash)',money(report.totals.invoices_issued_kes)],
+   ['Complimentary (non-cash)',money(report.totals.complimentary_kes)],['Unearned advance at period end',money(report.totals.advance_remaining_kes)]
+  ],theme:'grid',styles:{fontSize:9},headStyles:{fillColor:[100,65,164]}});
+  pdf.setFontSize(8);pdf.text(pdf.splitTextToSize(notes,width-20),10,(pdf.lastAutoTable?.finalY||100)+8);
+  for(const [title,columns,rows] of sections){
+   pdf.addPage();header();pdf.setFont('helvetica','bold');pdf.setFontSize(11);pdf.text(title,10,32);
+   autoTable(pdf,{startY:36,margin:{top:34,left:7,right:7,bottom:14},head:[columns.map(x=>x[0])],
+    body:rows(report).map(row=>columns.map(([,key])=>typeof row[key]==='number'?money(row[key]):String(row[key]??''))),
+    theme:'grid',styles:{fontSize:7,cellPadding:2,overflow:'linebreak'},headStyles:{fillColor:[100,65,164]},
+    didDrawPage:()=>{if(pdf.internal.getCurrentPageInfo().pageNumber>1)header();}
+   });
+  }
+  pdf.save(name(report)+'.pdf');return;
+ }
+ throw Error('Choose PDF or Excel.');
+}
