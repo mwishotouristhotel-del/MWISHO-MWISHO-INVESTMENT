@@ -4,11 +4,9 @@ const sections=[
   ['Cash received','cash_kes'],['M-Pesa','mpesa_kes'],['PDQ / Card','pdq_kes'],['Bank / Other','other_kes'],
   ['Total received','receipts_kes'],['Invoiced','invoices_issued_kes'],['Complimentary','complimentary_kes'],
   ['Unearned advance (end of day)','advance_remaining_kes']],report=>report.daily],
- ['Guest & Room Register',[
-  ['Guest','guest_name'],['Room','room_number'],['Reception','section'],['Check-in','check_in_date'],
-  ['Booked checkout','expected_check_out_date'],['Days booked','nights'],['Days in period','days_in_period'],
-  ['Booked total','total_kes'],['Received','received_kes'],['Invoiced','invoiced_kes'],
-  ['Complimentary','complimentary_kes'],['Outstanding','outstanding_kes']],report=>report.guests],
+ ['Rooms Occupied',[
+  ['Room No.','room_number'],['Guest Name','guest_name'],['Booked Package','package_label'],
+  ['No. of Guests','guest_count'],['No. of Days Booked','nights'],['Amount Paid (KSh)','received_kes']],report=>report.guests],
  ['Payment Transactions',[
   ['Date','date'],['Guest','guest_name'],['Room','room_number'],['Reception','section'],
   ['Payment method','method'],['Reference','reference'],['Amount (KSh)','amount_kes']],report=>report.paymentRows],
