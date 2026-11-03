@@ -5,7 +5,7 @@ import AccommodationBilling from './AccommodationBilling.jsx';
 import AccommodationStayCard from './AccommodationStayCard.jsx';
 import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
 import {prefillReturningGuest} from './accommodationGuestPrefill.js';
-import {buildAccommodationReport} from './accommodationReportMath.js';
+import {buildAccommodationReport,scopeAccommodationReport} from './accommodationReportMath.js';
 import {downloadAccommodationReport} from './accommodationReportExports.js';
 import './AccommodationWorkspace.css';
 
@@ -20,6 +20,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  const [receptionSection,setReceptionSection]=useState(null),[salesRows,setSalesRows]=useState([]);
  const [dailyReport,setDailyReport]=useState(null),[reportError,setReportError]=useState(''),[reportExporting,setReportExporting]=useState('');
  const [reportFrom,setReportFrom]=useState(()=>today().slice(0,7)+'-01'),[reportTo,setReportTo]=useState(today);
+ const [reportSection,setReportSection]=useState('regular'),[receptionistOnDuty,setReceptionistOnDuty]=useState('');
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
  const [organizations,setOrganizations]=useState([]),[organizationSearch,setOrganizationSearch]=useState(''),[newOrganizationName,setNewOrganizationName]=useState('');
@@ -57,14 +58,27 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
    if(sectionResult.error||salesResult.error){setError((sectionResult.error||salesResult.error).message);return;}
    setReceptionSection(sectionResult.data);setSalesRows(salesResult.data||[]);
    if(dailyResult.error){setDailyReport(null);setReportError(dailyResult.error.message)}
-   else{try{setDailyReport(buildAccommodationReport(dailyResult.data,{from:reportFrom,to:reportTo}));setReportError('')}
+   else{try{const scope=canAdmin?reportSection:sectionResult.data;setDailyReport({...buildAccommodationReport(scopeAccommodationReport(dailyResult.data,scope),{from:reportFrom,to:reportTo}),section:scope});setReportError('')}
     catch(e){setDailyReport(null);setReportError(e.message)}}
   }
  };
- useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo]);
+ useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo,reportSection]);
+ useEffect(()=>{if(canAdmin||!canReception)return;let cancelled=false;
+  supabase.rpc('my_pos_access').then(({data,error})=>{if(!cancelled&&!error&&data?.active&&data?.name)setReceptionistOnDuty(previous=>previous||data.name)});
+  return()=>{cancelled=true};
+ },[canAdmin,canReception,supabase]);
  const exportReport=async format=>{
   setReportExporting(format);setReportError('');
-  try{await downloadAccommodationReport(dailyReport,format)}catch(e){setReportError(e.message||'Could not export the report')}
+  try{
+   if(!receptionistOnDuty.trim())throw Error('Enter the receptionist on duty before downloading the report.');
+   const {data:userResult,error:userError}=await supabase.auth.getUser();
+   if(userError||!userResult?.user)throw Error('Your sign-in session has expired. Please sign in again.');
+   const {data:profile,error:profileError}=await supabase.rpc('my_pos_access');
+   if(profileError)throw Error('Cannot verify the report creator. Please try again.');
+   const generatedBy=profile?.active&&profile?.name;
+   if(!generatedBy)throw Error('Cannot identify the report creator.');
+   await downloadAccommodationReport({...dailyReport,receptionist_on_duty:receptionistOnDuty.trim(),generated_by:generatedBy,generated_at:new Date().toISOString()},format);
+  }catch(e){setReportError(e.message||'Could not export the report')}
   finally{setReportExporting('')}
  };
  useEffect(()=>{
@@ -175,6 +189,11 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
    <section className="mw-accommodation-panel" aria-label="Daily room sales and reception reports">
     <h3>📊 Daily Room Sales & Reception Cashflow</h3>
     <p className="muted">Each booked night is recognised on its own day. A guest paying three nights upfront creates one day's room sale today and an advance for the remaining nights; that advance reduces as nights pass. Payment methods are recorded on the actual payment date.</p>
+   <div className="mw-accommodation-grid">
+    <label>Reception report<select value={canAdmin?reportSection:receptionSection||''} disabled={!canAdmin} onChange={e=>setReportSection(e.target.value)}>{!canAdmin&&<option value="">Assigned reception only</option>}<option value="regular">Regular Reception</option><option value="vvip">VVIP Reception</option></select></label>
+    <label>Receptionist on duty (name for this report)<input value={receptionistOnDuty} maxLength={150} placeholder="Enter actual receptionist on duty" onChange={e=>setReceptionistOnDuty(e.target.value)}/></label>
+   </div>
+   <p className="muted">For a date range covering different duty shifts, generate each day's report separately and enter that day's receptionist. The report creator and generation timestamp are recorded automatically.</p>
     <div className="mw-accommodation-actions">
      <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('pdf')}>{reportExporting==='pdf'?'Preparing PDF…':'⬇ Download PDF Report'}</button>
      <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('excel')}>{reportExporting==='excel'?'Preparing Excel…':'⬇ Download Excel Report'}</button>
