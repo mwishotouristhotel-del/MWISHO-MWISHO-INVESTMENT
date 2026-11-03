@@ -3,6 +3,7 @@ import {accommodationTotals,roomPackageNightlyRate} from './accommodationMath.js
 import {downloadGuestRegistration,downloadBlankRegistrationBatch} from './accommodationDocuments.js';
 import AccommodationBilling from './AccommodationBilling.jsx';
 import AccommodationStayCard from './AccommodationStayCard.jsx';
+import AccommodationHousekeepingChecklist from './AccommodationHousekeepingChecklist.jsx';
 import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
 import {prefillReturningGuest} from './accommodationGuestPrefill.js';
 import {buildAccommodationReport,scopeAccommodationReport} from './accommodationReportMath.js';
@@ -255,5 +256,6 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
    <AccommodationBilling supabase={supabase} stays={stays} payments={payments} rooms={rooms} organizations={organizations} canAdmin={canAdmin} refresh={refresh}/>
   </>}
   <section id="accommodation-housekeeping" className="mw-accommodation-panel"><h3>🧹 Room Attendants / Housekeeping</h3><div className="mw-accommodation-rooms">{rooms.map(r=><div key={r.id} className="mw-accommodation-room"><strong>{r.room_number} • {r.category==='vvip'?'VVIP':'Regular / Standard'}</strong><span>{(()=>{const stay=stays.find(s=>s.room_id===r.id&&s.status==='checked_in');const status=stay?accommodationCheckoutStatus(stay,clockNow):null;return status==='due'?'Due for checkout':status==='overdue'?'Overdue for checkout':stay?'Occupied':r.housekeeping_status})()}</span><label>Room condition<select disabled={busy||activeRoomIds.has(r.id)} value={r.housekeeping_status} onChange={e=>updateHousekeeping(r,e.target.value)}><option value="dirty">Awaiting cleaning</option><option value="cleaning">Cleaning in progress</option><option value="inspection">Ready for inspection</option><option value="ready">Clean / Ready</option><option value="maintenance">Maintenance</option></select></label></div>)}</div>{!rooms.length&&<p>Admin must add numbered rooms before reception can check in guests.</p>}</section>
+  <AccommodationHousekeepingChecklist supabase={supabase} rooms={rooms} canAdmin={canAdmin}/>
  </article>;
 }

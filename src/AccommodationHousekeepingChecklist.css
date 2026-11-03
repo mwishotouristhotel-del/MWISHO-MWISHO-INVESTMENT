@@ -1,0 +1,20 @@
+.mw-housekeeping-checklists{margin-top:18px;border-top:1px solid #e7e1f0;padding-top:18px}
+.mw-housekeeping-checklists h3{margin:0 0 7px;color:#42206b}
+.mw-housekeeping-admin,.mw-housekeeping-inspect-room{border:1px solid #e2dcec;background:#fff;border-radius:12px;padding:13px;margin:12px 0}
+.mw-housekeeping-admin summary,.mw-housekeeping-inspect-room summary{cursor:pointer;font-weight:700;color:#38204e}
+.mw-housekeeping-admin ul{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px}
+.mw-housekeeping-admin li{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #f1edf4;padding:6px 0}
+.mw-housekeeping-add{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.mw-housekeeping-add input{flex:1;min-width:190px}
+.mw-housekeeping-room-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:12px}
+.mw-housekeeping-inspect-room{margin:0;align-self:start}
+.mw-housekeeping-inspect-room summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.mw-housekeeping-inspect-room summary span{font-weight:500;font-size:12px;color:#6b5878}
+.mw-housekeeping-progress{color:#6542a4;font-size:12px;font-weight:700}
+.mw-housekeeping-history{font-size:12px;margin:8px 0}.mw-housekeeping-history summary{font-weight:600;color:#63448b}.mw-housekeeping-history ul{padding-left:20px}
+.mw-housekeeping-check-grid{display:grid;gap:8px;margin:10px 0}
+.mw-housekeeping-check-grid label{display:grid;grid-template-columns:minmax(0,1fr) minmax(124px,auto);align-items:center;gap:8px;font-size:13px}
+.mw-housekeeping-check-grid select{width:100%;padding:7px;border:1px solid #dcd3e7;border-radius:8px;background:#faf8fc}
+.mw-housekeeping-notes{display:grid;gap:5px;margin-bottom:12px;font-size:13px}
+.mw-housekeeping-notes textarea,.mw-housekeeping-add input{padding:9px;border:1px solid #dcd3e7;border-radius:8px}
+@media(max-width:480px){.mw-housekeeping-check-grid label{grid-template-columns:minmax(0,1fr)}.mw-housekeeping-inspect-room summary{display:block}.mw-housekeeping-inspect-room summary span{display:block;margin-top:3px}}
