@@ -1,10 +1,11 @@
 import React from 'react';
 import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
+import AccommodationReceiptActions from './AccommodationReceiptActions.jsx';
 
 const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 
 export default function AccommodationStayCard({
- stay,roomNumber,listingName,organizationName='',packageLabel,totals,paymentDraft={},checkoutDraft={},
+ stay,supabase,roomNumber,listingName,organizationName='',packageLabel,totals,paymentDraft={},checkoutDraft={},
  clockNow,busy,onPaymentChange,onCheckoutChange,onRecordPayment,onCheckout,onDownload
 }){
  const status=accommodationCheckoutStatus(stay,clockNow);
@@ -32,6 +33,7 @@ export default function AccommodationStayCard({
   {stay.invoice_organization_name&&<div className="mw-guest-finance-notice">🧾 Invoice pending for <strong>{stay.invoice_organization_name}</strong></div>}
   <div className="mw-guest-footer">
    <button type="button" onClick={onDownload}>Download Registration PDF</button>
+   {!active&&<AccommodationReceiptActions supabase={supabase} stay={stay}/>}
    {active&&<div className="mw-guest-payment-panel">
     <h4>💳 Record a payment</h4>
     <div className="mw-accommodation-actions">
