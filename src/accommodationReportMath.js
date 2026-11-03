@@ -1,6 +1,7 @@
 // Revenue is allocated to booked nights, while receipts remain on the day paid.
 // Invoice and complimentary clearances are never treated as cash received.
 const DAY=86400000;
+const PACKAGE_LABELS={bed_only:'Bed Only',bed_breakfast:'Bed & Breakfast',half_board:'Half Board',full_board:'Full Board'};
 const cents=value=>Math.round((Number(value)||0)*100);
 const dayNumber=date=>Date.parse(String(date).slice(0,10)+'T00:00:00Z')/DAY;
 const fromDay=number=>new Date(number*DAY).toISOString().slice(0,10);
@@ -27,7 +28,7 @@ export function buildAccommodationReport(data,{from,to,today=nairobiDate(new Dat
  for(const i of invoices){if(!invoicesByStay.has(i.stay_id))invoicesByStay.set(i.stay_id,[]);invoicesByStay.get(i.stay_id).push(i);}
  const guests=stays.filter(s=>s.check_in_date<=to&&s.expected_check_out_date>from).map(s=>{
   const paid=paymentsByStay.get(s.id)||[],billed=invoicesByStay.get(s.id)||[];
-  return {...s,nights:bookedNights(s),days_in_period:Math.max(0,Math.min(dayNumber(s.expected_check_out_date),dayNumber(to)+1)-Math.max(dayNumber(s.check_in_date),dayNumber(from))),
+  return {...s,package_label:PACKAGE_LABELS[s.package_key]||s.package_key||'Bed Only',guest_count:Number(s.guest_count)||1,nights:bookedNights(s),days_in_period:Math.max(0,Math.min(dayNumber(s.expected_check_out_date),dayNumber(to)+1)-Math.max(dayNumber(s.check_in_date),dayNumber(from))),
    received_kes:sum(paid.filter(p=>p.method!=='complimentary'),p=>Number(p.amount_kes)),complimentary_kes:sum(paid.filter(p=>p.method==='complimentary'),p=>Number(p.amount_kes)),
    invoiced_kes:sum(billed,i=>Number(i.amount_kes)),outstanding_kes:Math.max(0,total(Number(s.total_kes)-sum(paid,p=>Number(p.amount_kes))))};
  });
