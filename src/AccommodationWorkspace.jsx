@@ -5,6 +5,8 @@ import AccommodationBilling from './AccommodationBilling.jsx';
 import AccommodationStayCard from './AccommodationStayCard.jsx';
 import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
 import {prefillReturningGuest} from './accommodationGuestPrefill.js';
+import {buildAccommodationReport} from './accommodationReportMath.js';
+import {downloadAccommodationReport} from './accommodationReportExports.js';
 import './AccommodationWorkspace.css';
 
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Nairobi',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -16,6 +18,7 @@ const initialGuest=()=>({guest_type:'walk_in',organization_id:'',guest_name:'',g
 export default function AccommodationWorkspace({supabase,canReception=true,canAdmin=false}){
  const [rooms,setRooms]=useState([]),[stays,setStays]=useState([]),[payments,setPayments]=useState([]);
  const [receptionSection,setReceptionSection]=useState(null),[salesRows,setSalesRows]=useState([]);
+ const [dailyReport,setDailyReport]=useState(null),[reportError,setReportError]=useState(''),[reportExporting,setReportExporting]=useState('');
  const [reportFrom,setReportFrom]=useState(()=>today().slice(0,7)+'-01'),[reportTo,setReportTo]=useState(today);
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
@@ -46,15 +49,24 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   if(canReception){setStays(results[1].data||[]);setPayments(results[2].data||[]);}
   if(canReception){setRoomRates(results[3].data||[]);setOrganizations(results[4].data||[]);}
   if(canReception){
-   const [sectionResult,salesResult]=await Promise.all([
+   const [sectionResult,salesResult,dailyResult]=await Promise.all([
     supabase.rpc('hotel_accommodation_reception_section'),
-    supabase.rpc('hotel_accommodation_section_sales',{p_start:reportFrom,p_end:reportTo})
+    supabase.rpc('hotel_accommodation_section_sales',{p_start:reportFrom,p_end:reportTo}),
+    supabase.rpc('hotel_accommodation_daily_reception_report',{p_start:reportFrom,p_end:reportTo})
    ]);
    if(sectionResult.error||salesResult.error){setError((sectionResult.error||salesResult.error).message);return;}
    setReceptionSection(sectionResult.data);setSalesRows(salesResult.data||[]);
+   if(dailyResult.error){setDailyReport(null);setReportError(dailyResult.error.message)}
+   else{try{setDailyReport(buildAccommodationReport(dailyResult.data,{from:reportFrom,to:reportTo}));setReportError('')}
+    catch(e){setDailyReport(null);setReportError(e.message)}}
   }
  };
  useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo]);
+ const exportReport=async format=>{
+  setReportExporting(format);setReportError('');
+  try{await downloadAccommodationReport(dailyReport,format)}catch(e){setReportError(e.message||'Could not export the report')}
+  finally{setReportExporting('')}
+ };
  useEffect(()=>{
   const query=returningSearch.trim();
   if(!canReception||query.length<3){setReturningMatches([]);setReturningBusy(false);setReturningError('');return;}
@@ -160,6 +172,32 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   {canReception&&<>
    <span id="accommodation-reports" className="mw-accommodation-anchor"/>
    <section className="mw-accommodation-panel"><h3>Accommodation Sales by Reception</h3><p className="muted">Based on guest check-in dates. Payments and balances include subsequent payments against those stays.</p><div className="mw-accommodation-grid"><label>From<input type="date" value={reportFrom} max={reportTo} onChange={e=>setReportFrom(e.target.value)}/></label><label>To<input type="date" value={reportTo} min={reportFrom} onChange={e=>setReportTo(e.target.value)}/></label></div><div className="mw-accommodation-stats">{salesRows.map(row=><div key={row.section}><strong>{row.section==='vvip'?'VVIP Reception':'Regular Reception'}</strong><span>{row.stay_count} check-ins</span><span>Billed: {money(row.charged_kes)}</span><span>Received: {money(row.paid_kes)}</span><span>Outstanding: {money(row.balance_kes)}</span></div>)}{!salesRows.length&&<p>No accommodation stays for the selected period.</p>}</div></section>
+   <section className="mw-accommodation-panel" aria-label="Daily room sales and reception reports">
+    <h3>📊 Daily Room Sales & Reception Cashflow</h3>
+    <p className="muted">Each booked night is recognised on its own day. A guest paying three nights upfront creates one day's room sale today and an advance for the remaining nights; that advance reduces as nights pass. Payment methods are recorded on the actual payment date.</p>
+    <div className="mw-accommodation-actions">
+     <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('pdf')}>{reportExporting==='pdf'?'Preparing PDF…':'⬇ Download PDF Report'}</button>
+     <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('excel')}>{reportExporting==='excel'?'Preparing Excel…':'⬇ Download Excel Report'}</button>
+    </div>
+    {reportError&&<p role="alert" className="error">{reportError}</p>}
+    {dailyReport&&<>
+     <div className="mw-accommodation-stats">
+      <div><strong>{money(dailyReport.totals.room_sales_kes)}</strong><span>Earned room sales</span></div>
+      <div><strong>{money(dailyReport.totals.receipts_kes)}</strong><span>Payments received</span></div>
+      <div><strong>{money(dailyReport.totals.cash_kes)}</strong><span>Cash received</span></div>
+      <div><strong>{money(dailyReport.totals.advance_remaining_kes)}</strong><span>Advance for future nights</span></div>
+      <div><strong>{money(dailyReport.totals.invoices_issued_kes)}</strong><span>Invoices issued</span></div>
+      <div><strong>{money(dailyReport.totals.complimentary_kes)}</strong><span>Complimentary clearance</span></div>
+     </div>
+     <p className="muted">Cash at hand here means cash received from accommodation before float, expenses, withdrawals or transfers. It is not a reconciled physical cash drawer balance. Invoices and complimentary clearances are non-cash.</p>
+     <div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Date</th><th>Room nights</th><th>Room sales</th><th>Cash</th><th>M-Pesa</th><th>PDQ</th><th>Other</th><th>Invoice</th><th>Complimentary</th><th>Advance remaining</th></tr></thead><tbody>
+      {dailyReport.daily.map(row=><tr key={row.date}><td>{row.date}{row.is_future?' (scheduled)':''}</td><td>{row.occupied_room_nights}</td><td>{money(row.room_sales_kes)}</td><td>{money(row.cash_kes)}</td><td>{money(row.mpesa_kes)}</td><td>{money(row.pdq_kes)}</td><td>{money(row.other_kes)}</td><td>{money(row.invoices_issued_kes)}</td><td>{money(row.complimentary_kes)}</td><td>{money(row.advance_remaining_kes)}</td></tr>)}
+     </tbody></table></div>
+     <details><summary>Guest & room occupancy ({dailyReport.guests.length})</summary><div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Guest</th><th>Room</th><th>Reception</th><th>Check-in</th><th>Booked checkout</th><th>Days booked</th><th>Booked total</th><th>Received</th><th>Outstanding</th></tr></thead><tbody>
+      {dailyReport.guests.map(stay=><tr key={stay.id}><td>{stay.guest_name}</td><td>{stay.room_number}</td><td>{stay.section}</td><td>{stay.check_in_date}</td><td>{stay.expected_check_out_date}</td><td>{stay.nights}</td><td>{money(stay.total_kes)}</td><td>{money(stay.received_kes)}</td><td>{money(stay.outstanding_kes)}</td></tr>)}
+     </tbody></table></div></details>
+    </>}
+   </section>
    {canAdmin&&<details className="mw-accommodation-panel"><summary>Add a numbered room</summary><form onSubmit={createRoom} className="mw-accommodation-grid"><label>Room number<input required maxLength={30} value={roomForm.room_number} onChange={e=>setRoomForm(v=>({...v,room_number:e.target.value}))}/></label><label>Category<select value={roomForm.category} onChange={e=>setRoomForm(v=>({...v,category:e.target.value}))}><option value="vvip">VVIP</option><option value="regular">Regular / Standard</option></select></label><label>Link to existing website room listing (optional)<select value={roomForm.listing_id} onChange={e=>{const listing=roomRates.find(x=>x.id===e.target.value);setRoomForm(v=>({...v,listing_id:e.target.value,category:listing?.category==='vvip'?'vvip':v.category,nightly_rate_kes:listing?String(listing.nightly_rate_kes):v.nightly_rate_kes}))}}><option value="">No website listing linked</option>{roomRates.filter(x=>['vvip','regular'].includes(x.category)).map(x=><option key={x.id} value={x.id}>{x.name} — {money(x.nightly_rate_kes)}/night</option>)}</select></label><label>Rate per night (KSh)<input required type="number" min="0" step="0.01" value={roomForm.nightly_rate_kes} onChange={e=>setRoomForm(v=>({...v,nightly_rate_kes:e.target.value}))}/></label><button className="primary" disabled={busy}>Add room</button></form><p className="muted">Use the same rates as the existing website room listings where applicable.</p>{roomRates.length>0&&<small>Website rates: {roomRates.map(x=>x.name+' — '+money(x.nightly_rate_kes)).join(' | ')}</small>}</details>}
    <section id="guest-checkin" className="mw-accommodation-panel"><h3>🛎️ Guest Check-In</h3>
     <details className="mw-accommodation-print-batch"><summary>Download blank, serial-numbered guest registration forms</summary><div className="mw-accommodation-grid">
