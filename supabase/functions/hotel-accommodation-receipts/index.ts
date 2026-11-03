@@ -11,6 +11,18 @@ const tidy=(v:unknown)=>String(v??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,
 const amount=(v:unknown)=>Number(v||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const hex=(data:ArrayBuffer)=>Array.from(new Uint8Array(data)).map(n=>n.toString(16).padStart(2,'0')).join('');
 const digest=async(token:string)=>hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)));
+// Keep the bearer token recoverable by authorized reception staff without
+// exposing it in the Data API. A separate, random IV is used per receipt.
+const tokenKey=async(secret:string)=>crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mwisho-receipt-token-v1:'+secret)),{name:'AES-GCM'},false,['encrypt','decrypt']);
+const sealToken=async(token:string,secret:string)=>{
+ const iv=crypto.getRandomValues(new Uint8Array(12));
+ const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await tokenKey(secret),new TextEncoder().encode(token)));
+ return btoa(String.fromCharCode(...iv,...encrypted));
+};
+const openToken=async(cipher:string,secret:string)=>{
+ const bytes=Uint8Array.from(atob(cipher),c=>c.charCodeAt(0));
+ return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes.slice(0,12)},await tokenKey(secret),bytes.slice(12)));
+};
 const validEtims=(raw:unknown)=>{
  const input=String(raw||'').trim();if(!input)return null;
  if(input.length>2048)throw Error('eTIMS link is too long');
@@ -125,15 +137,16 @@ Deno.serve(async(req:Request)=>{
    if(listError)return json({error:'Could not list saved receipts'},503,origin);
    return json({receipts:(rows||[]).map((r:any)=>({receipt_id:r.id,created_at:r.created_at,expires_at:r.expires_at,revoked:!!r.revoked_at,receipt_number:r.snapshot?.receipt_number,status:r.snapshot?.status,has_etims:!!r.etims_url,guest_phone:stay.guest_phone||'',guest_email:stay.email||''}))},200,origin);
   }
-  if(body.action==='renew'){
+  if(body.action==='open'){
    const receiptId=String(body.receipt_id||'');
-   const {data:old}=await db.from('hotel_accommodation_receipts').select('id,revoked_at,snapshot').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
+   const {data:old}=await db.from('hotel_accommodation_receipts').select('id,revoked_at,expires_at,snapshot,token_cipher').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
    if(!old)return json({error:'Saved receipt not found'},404,origin);
    if(old.revoked_at)return json({error:'Revoked receipt cannot be shared again'},409,origin);
-   const token=hex(crypto.getRandomValues(new Uint8Array(32)).buffer),expiry=new Date(Date.now()+30*86400000);
-   const {error:renewError}=await db.from('hotel_accommodation_receipts').update({token_hash:await digest(token),expires_at:expiry.toISOString(),link_refreshed_at:new Date().toISOString()}).eq('id',receiptId).eq('stay_id',stayId).is('revoked_at',null);
-   if(renewError)return json({error:'Could not refresh receipt link'},503,origin);
-   return json({receipt_id:receiptId,url:`${endpoint}?token=${token}`,expires_at:expiry.toISOString(),status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
+   if(new Date(old.expires_at).getTime()<=Date.now())return json({error:'The original 30-day sharing link has expired. A new receipt has not been created.'},410,origin);
+   if(!old.token_cipher)return json({error:'This older receipt was created before secure link recovery was available. Its original link cannot be retrieved.'},409,origin);
+   let token:string;
+   try{token=await openToken(old.token_cipher,serviceKey)}catch{return json({error:'Could not retrieve the original secure receipt link'},503,origin)}
+   return json({receipt_id:receiptId,url:`${endpoint}?token=${token}`,expires_at:old.expires_at,status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
   }
   if(body.action==='create'){
    let etims:null|string;
@@ -149,7 +162,7 @@ Deno.serve(async(req:Request)=>{
     check_in_date:stay.check_in_date,check_out_date:stay.actual_check_out_date||stay.expected_check_out_date,
     total,paid,balance,organization:stay.invoice_organization_name||'',status:balance>0?(stay.invoice_organization_name?'INVOICE PENDING':'PAYMENT / APPROVAL PENDING'):'PAID',
     payments:(payments||[]).map((p:any)=>({date:String(p.received_at).slice(0,10),method:p.method,reference:p.reference,amount:p.amount_kes}))};
-   const {data:receipt,error:insertError}=await db.from('hotel_accommodation_receipts').insert({id:receiptId,stay_id:stayId,token_hash:await digest(token),snapshot,etims_url:etims,expires_at:expiry.toISOString(),created_by:user.id}).select('id,created_at').single();
+   const {data:receipt,error:insertError}=await db.from('hotel_accommodation_receipts').insert({id:receiptId,stay_id:stayId,token_hash:await digest(token),token_cipher:await sealToken(token,serviceKey),snapshot,etims_url:etims,expires_at:expiry.toISOString(),created_by:user.id}).select('id,created_at').single();
    if(insertError)return json({error:'Could not create receipt'},503,origin);
    return json({receipt_id:receipt.id,url:`${endpoint}?token=${token}`,expires_at:expiry.toISOString(),status:snapshot.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
   }
