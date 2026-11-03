@@ -31,6 +31,7 @@ const sum=(rows,fn)=>total(rows.reduce((n,row)=>n+fn(row),0));
 export function buildAccommodationReport(data,{from,to,today=nairobiDate(new Date())}){
  if(!from||!to||to<from||dayNumber(to)-dayNumber(from)>366)throw Error('Choose a valid report period of at most 367 days.');
  const stays=data?.stays||[],payments=data?.payments||[],invoices=data?.invoices||[];
+ const staffNames=rows=>[...new Set(rows.map(s=>String(s.checkin_staff_name||'').trim()).filter(Boolean))].sort().join(', ')||'No check-ins';
  const paymentsByStay=new Map(),invoicesByStay=new Map();
  for(const p of payments){if(!paymentsByStay.has(p.stay_id))paymentsByStay.set(p.stay_id,[]);paymentsByStay.get(p.stay_id).push({...p,day:nairobiDate(p.received_at)});}
  for(const i of invoices){if(!invoicesByStay.has(i.stay_id))invoicesByStay.set(i.stay_id,[]);invoicesByStay.get(i.stay_id).push(i);}
@@ -51,7 +52,8 @@ export function buildAccommodationReport(data,{from,to,today=nairobiDate(new Dat
    return Math.max(0,total(paid-earnedThrough(s,date)));
   });
   const cash=amountFor('cash'),mpesa=amountFor('mpesa'),pdq=amountFor('card'),bank=amountFor('bank')+amountFor('other');
-  daily.push({date,section:'All permitted receptions',room_sales_kes:roomSales,occupied_room_nights:occupiedNights,
+  const relevantStays=stays.filter(s=>nightSales(s,date)>0||s.check_in_date===date||byDate.some(p=>p.stay_id===s.id));
+  daily.push({date,section:'All permitted receptions',receptionist_on_duty:staffNames(relevantStays),room_sales_kes:roomSales,occupied_room_nights:occupiedNights,
    cash_kes:cash,mpesa_kes:mpesa,pdq_kes:pdq,other_kes:bank,
    receipts_kes:total(cash+mpesa+pdq+bank),complimentary_kes:amountFor('complimentary'),
    invoices_issued_kes:sum(invoices.filter(i=>i.invoice_date===date),i=>Number(i.amount_kes)),
@@ -68,5 +70,5 @@ export function buildAccommodationReport(data,{from,to,today=nairobiDate(new Dat
  });
  const totals=Object.fromEntries(['room_sales_kes','occupied_room_nights','cash_kes','mpesa_kes','pdq_kes','other_kes','receipts_kes','complimentary_kes','invoices_issued_kes'].map(key=>[key,sum(daily,row=>row[key])]));
  totals.advance_remaining_kes=daily.at(-1)?.advance_remaining_kes||0;
- return {from,to,daily,guests,paymentRows,invoiceRows,totals};
+ return {from,to,daily,guests,paymentRows,invoiceRows,totals,receptionist_on_duty:staffNames(stays)};
 }

@@ -49,3 +49,16 @@ test('reception reports isolate room sales, payments, invoices and guests',()=>{
  assert.equal(vvip.totals.cash_kes,3000);assert.equal(vvip.totals.mpesa_kes,0);
  assert.equal(vvip.totals.invoices_issued_kes,200);
 });
+test('receptionist on duty is automatically attributed to recorded check-in accounts',()=>{
+ const data={stays:[
+  {...stay,checkin_staff_name:'Admin'},
+  {...stay,id:'b',checkin_staff_name:'Jane Receptionist'},
+  {...stay,id:'c',section:'regular',checkin_staff_name:'Regular Receptionist'}
+ ],payments:[],invoices:[]};
+ const scoped=scopeAccommodationReport(data,'vvip');
+ const report=buildAccommodationReport(scoped,{from:'2026-11-03',to:'2026-11-04'});
+ assert.equal(report.receptionist_on_duty,'Admin, Jane Receptionist');
+ assert.deepEqual(report.daily.map(x=>x.receptionist_on_duty),['Admin, Jane Receptionist','Admin, Jane Receptionist']);
+ assert.equal(report.guests[0].checkin_staff_name,'Admin');
+ assert.ok(!report.receptionist_on_duty.includes('Regular Receptionist'));
+});

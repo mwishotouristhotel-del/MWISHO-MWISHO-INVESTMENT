@@ -20,7 +20,7 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
  const [receptionSection,setReceptionSection]=useState(null),[salesRows,setSalesRows]=useState([]);
  const [dailyReport,setDailyReport]=useState(null),[reportError,setReportError]=useState(''),[reportExporting,setReportExporting]=useState('');
  const [reportFrom,setReportFrom]=useState(()=>today().slice(0,7)+'-01'),[reportTo,setReportTo]=useState(today);
- const [reportSection,setReportSection]=useState('regular'),[receptionistOnDuty,setReceptionistOnDuty]=useState('');
+ const [reportSection,setReportSection]=useState('regular');
  const [roomForm,setRoomForm]=useState({room_number:'',category:'regular',nightly_rate_kes:'',listing_id:''});
  const [guest,setGuest]=useState(initialGuest),[paymentDraft,setPaymentDraft]=useState({}),[roomRates,setRoomRates]=useState([]);
  const [organizations,setOrganizations]=useState([]),[organizationSearch,setOrganizationSearch]=useState(''),[newOrganizationName,setNewOrganizationName]=useState('');
@@ -63,21 +63,16 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
   }
  };
  useEffect(()=>{refresh()},[canReception,canAdmin,reportFrom,reportTo,reportSection]);
- useEffect(()=>{if(canAdmin||!canReception)return;let cancelled=false;
-  supabase.rpc('my_pos_access').then(({data,error})=>{if(!cancelled&&!error&&data?.active&&data?.name)setReceptionistOnDuty(previous=>previous||data.name)});
-  return()=>{cancelled=true};
- },[canAdmin,canReception,supabase]);
  const exportReport=async format=>{
   setReportExporting(format);setReportError('');
   try{
-   if(!receptionistOnDuty.trim())throw Error('Enter the receptionist on duty before downloading the report.');
    const {data:userResult,error:userError}=await supabase.auth.getUser();
    if(userError||!userResult?.user)throw Error('Your sign-in session has expired. Please sign in again.');
    const {data:profile,error:profileError}=await supabase.rpc('my_pos_access');
    if(profileError)throw Error('Cannot verify the report creator. Please try again.');
    const generatedBy=profile?.active&&profile?.name;
    if(!generatedBy)throw Error('Cannot identify the report creator.');
-   await downloadAccommodationReport({...dailyReport,receptionist_on_duty:receptionistOnDuty.trim(),generated_by:generatedBy,generated_at:new Date().toISOString()},format);
+   await downloadAccommodationReport({...dailyReport,generated_by:generatedBy,generated_at:new Date().toISOString()},format);
   }catch(e){setReportError(e.message||'Could not export the report')}
   finally{setReportExporting('')}
  };
@@ -191,9 +186,9 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
     <p className="muted">Each booked night is recognised on its own day. A guest paying three nights upfront creates one day's room sale today and an advance for the remaining nights; that advance reduces as nights pass. Payment methods are recorded on the actual payment date.</p>
    <div className="mw-accommodation-grid">
     <label>Reception report<select value={canAdmin?reportSection:receptionSection||''} disabled={!canAdmin} onChange={e=>setReportSection(e.target.value)}>{!canAdmin&&<option value="">Assigned reception only</option>}<option value="regular">Regular Reception</option><option value="vvip">VVIP Reception</option></select></label>
-    <label>Receptionist on duty (name for this report)<input value={receptionistOnDuty} maxLength={150} placeholder="Enter actual receptionist on duty" onChange={e=>setReceptionistOnDuty(e.target.value)}/></label>
+    <div><strong>Receptionist on duty (from check-in records)</strong><p>{dailyReport?.receptionist_on_duty||'—'}</p></div>
    </div>
-   <p className="muted">For a date range covering different duty shifts, generate each day's report separately and enter that day's receptionist. The report creator and generation timestamp are recorded automatically.</p>
+   <p className="muted">Names are taken automatically from the accounts that checked in the guests. If more than one staff member checked guests in, all names are shown; the daily report lists the names for each day. Reports are generated and dated under the signed-in account.</p>
     <div className="mw-accommodation-actions">
      <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('pdf')}>{reportExporting==='pdf'?'Preparing PDF…':'⬇ Download PDF Report'}</button>
      <button type="button" disabled={!dailyReport||!!reportExporting} onClick={()=>exportReport('excel')}>{reportExporting==='excel'?'Preparing Excel…':'⬇ Download Excel Report'}</button>
@@ -209,8 +204,8 @@ export default function AccommodationWorkspace({supabase,canReception=true,canAd
       <div><strong>{money(dailyReport.totals.complimentary_kes)}</strong><span>Complimentary clearance</span></div>
      </div>
      <p className="muted">Cash at hand here means cash received from accommodation before float, expenses, withdrawals or transfers. It is not a reconciled physical cash drawer balance. Invoices and complimentary clearances are non-cash.</p>
-     <div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Date</th><th>Room nights</th><th>Room sales</th><th>Cash</th><th>M-Pesa</th><th>PDQ</th><th>Other</th><th>Invoice</th><th>Complimentary</th><th>Advance remaining</th></tr></thead><tbody>
-      {dailyReport.daily.map(row=><tr key={row.date}><td>{row.date}{row.is_future?' (scheduled)':''}</td><td>{row.occupied_room_nights}</td><td>{money(row.room_sales_kes)}</td><td>{money(row.cash_kes)}</td><td>{money(row.mpesa_kes)}</td><td>{money(row.pdq_kes)}</td><td>{money(row.other_kes)}</td><td>{money(row.invoices_issued_kes)}</td><td>{money(row.complimentary_kes)}</td><td>{money(row.advance_remaining_kes)}</td></tr>)}
+     <div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Date</th><th>Receptionist (check-in staff)</th><th>Room nights</th><th>Room sales</th><th>Cash</th><th>M-Pesa</th><th>PDQ</th><th>Other</th><th>Invoice</th><th>Complimentary</th><th>Advance remaining</th></tr></thead><tbody>
+      {dailyReport.daily.map(row=><tr key={row.date}><td>{row.date}{row.is_future?' (scheduled)':''}</td><td>{row.receptionist_on_duty}</td><td>{row.occupied_room_nights}</td><td>{money(row.room_sales_kes)}</td><td>{money(row.cash_kes)}</td><td>{money(row.mpesa_kes)}</td><td>{money(row.pdq_kes)}</td><td>{money(row.other_kes)}</td><td>{money(row.invoices_issued_kes)}</td><td>{money(row.complimentary_kes)}</td><td>{money(row.advance_remaining_kes)}</td></tr>)}
      </tbody></table></div>
      <details open><summary>Rooms Occupied ({dailyReport.guests.length})</summary><div className="mw-report-table-wrap"><table className="mw-report-table"><thead><tr><th>Room No.</th><th>Guest Name</th><th>Booked Package</th><th>No. of Guests</th><th>No. of Days Booked</th><th>Amount Paid</th></tr></thead><tbody>
       {dailyReport.guests.map(stay=><tr key={stay.id}><td>{stay.room_number}</td><td>{stay.guest_name}</td><td>{stay.package_label}</td><td>{stay.guest_count}</td><td>{stay.nights}</td><td>{money(stay.received_kes)}</td></tr>)}
