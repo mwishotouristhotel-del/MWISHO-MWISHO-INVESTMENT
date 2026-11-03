@@ -26,3 +26,11 @@ test('nightly cents reconcile exactly with total booking',()=>{
  const booking={...stay,total_kes:100.01};
  assert.equal(Number(['2026-11-03','2026-11-04','2026-11-05'].reduce((sum,date)=>sum+nightSales(booking,date),0).toFixed(2)),100.01);
 });
+test('rooms occupied includes saved package, guest count, nights and actual paid amount',()=>{
+ const report=buildAccommodationReport({stays:[{...stay,package_key:'bed_breakfast',guest_count:2}],payments:[
+  {stay_id:'a',method:'mpesa',amount_kes:1200,received_at:'2026-11-03T08:00:00Z'},
+  {stay_id:'a',method:'complimentary',amount_kes:500,received_at:'2026-11-03T08:00:00Z'}],invoices:[]},{from:'2026-11-03',to:'2026-11-05'});
+ const [guest]=report.guests;
+ assert.equal(guest.room_number,'V1');assert.equal(guest.package_label,'Bed & Breakfast');
+ assert.equal(guest.guest_count,2);assert.equal(guest.nights,3);assert.equal(guest.received_kes,1200);
+});
