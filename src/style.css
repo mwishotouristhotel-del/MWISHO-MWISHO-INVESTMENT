@@ -51,6 +51,8 @@ body{background:radial-gradient(circle at 85% 5%,#fff0f8 0,transparent 33%),#f5f
 .layout article h2{color:#4e2787}
 .dashboard-card{background:linear-gradient(155deg,#fff,#f5faff);border:1px solid #e9e6f7;border-left:0;border-top:4px solid #38bdf8;box-shadow:0 5px 18px #4627730e;transition:transform .15s}
 .dashboard-card:hover{transform:translateY(-3px)}
+.accommodation-dashboard-link{width:100%;font:inherit;text-align:left;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.accommodation-dashboard-link:focus-visible{outline:3px solid #6d28d9;outline-offset:3px}
 .dashboard-card:nth-child(4n+2){border-left:0;border-top-color:#ec4899}
 .dashboard-card:nth-child(4n+3){border-left:0;border-top-color:#8b5cf6}
 .dashboard-card:nth-child(4n){border-left:0;border-top-color:#facc15}
