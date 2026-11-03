@@ -33,7 +33,8 @@ begin
   'stays',coalesce((select jsonb_agg(jsonb_build_object(
    'id',s.id,'guest_name',s.guest_name,'room_number',s.room_number,'section',s.section,
    'check_in_date',s.check_in_date,'expected_check_out_date',s.expected_check_out_date,
-   'actual_check_out_date',s.actual_check_out_date,'status',s.status,\n   'package_key',s.package_key,'guest_count',s.guest_count,
+   'actual_check_out_date',s.actual_check_out_date,'status',s.status,
+   'package_key',s.package_key,'guest_count',s.guest_count,
    'total_kes',s.total_kes,'nightly_rate_kes',s.nightly_rate_kes,
    'invoice_organization_name',s.invoice_organization_name
   ) order by s.check_in_date,s.room_number) from scoped s),'[]'::jsonb),
