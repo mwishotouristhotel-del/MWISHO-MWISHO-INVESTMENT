@@ -142,11 +142,19 @@ Deno.serve(async(req:Request)=>{
    const {data:old}=await db.from('hotel_accommodation_receipts').select('id,revoked_at,expires_at,snapshot,token_cipher').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
    if(!old)return json({error:'Saved receipt not found'},404,origin);
    if(old.revoked_at)return json({error:'Revoked receipt cannot be shared again'},409,origin);
-   if(new Date(old.expires_at).getTime()<=Date.now())return json({error:'The original 30-day sharing link has expired. A new receipt has not been created.'},410,origin);
-   if(!old.token_cipher)return json({error:'This older receipt was created before secure link recovery was available. Its original link cannot be retrieved.'},409,origin);
+   if(!old.token_cipher||new Date(old.expires_at).getTime()<=Date.now())return json({receipt_id:receiptId,legacy:true,expires_at:old.expires_at,status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
    let token:string;
    try{token=await openToken(old.token_cipher,serviceKey)}catch{return json({error:'Could not retrieve the original secure receipt link'},503,origin)}
    return json({receipt_id:receiptId,url:`${endpoint}?token=${token}`,expires_at:old.expires_at,status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
+  }
+  if(body.action==='pdf'){
+   const receiptId=String(body.receipt_id||''),format=String(body.format||'a4');
+   if(!['a4','thermal'].includes(format))return json({error:'Unsupported print format'},400,origin);
+   const {data:saved}=await db.from('hotel_accommodation_receipts').select('*').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
+   if(!saved)return json({error:'Saved receipt not found'},404,origin);
+   const bytes=format==='thermal'?await asThermalPdf(saved):await asPdf(saved);
+   let encoded='';for(let i=0;i<bytes.length;i+=8192)encoded+=String.fromCharCode(...bytes.slice(i,i+8192));
+   return json({pdf_base64:btoa(encoded),receipt_number:saved.snapshot?.receipt_number},200,origin);
   }
   if(body.action==='create'){
    let etims:null|string;
