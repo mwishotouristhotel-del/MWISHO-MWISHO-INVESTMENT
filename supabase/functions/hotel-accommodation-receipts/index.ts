@@ -18,6 +18,32 @@ const validEtims=(raw:unknown)=>{
  if(u.protocol!=='https:'||u.username||u.password||!u.hostname.includes('.'))throw Error('Enter a valid HTTPS eTIMS verification link');
  return u.href;
 };
+const asThermalPdf=async(row:any)=>{
+ const data=row.snapshot, count=Math.min(data.payments.length,30);
+ const height=Math.max(440,345+count*18+(row.etims_url?120:0));
+ const pdf=await PDFDocument.create(),page=pdf.addPage([226.77,height]);
+ const font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+ let y=height-24;
+ const center=(s:string,size=9,strong=false)=>{const f=strong?bold:font;page.drawText(tidy(s).slice(0,45),{x:(226.77-f.widthOfTextAtSize(tidy(s).slice(0,45),size))/2,y,font:f,size});y-=size+7};
+ const item=(label:string,value:unknown)=>{const a=tidy(label+': '+String(value??''));for(let i=0;i<a.length;i+=36){page.drawText(a.slice(i,i+36),{x:12,y,font,size:9});y-=14}};
+ center('MWISHO TOURIST HOTEL',12,true);center('Taste of Class',9);center('ACCOMMODATION RECEIPT',10,true);
+ item('Receipt',data.receipt_number);item('Issued',new Date(row.created_at).toLocaleString('en-KE',{timeZone:'Africa/Nairobi'}));
+ item('Guest',data.guest_name);item('Room',data.room_number);item('Package',data.package);
+ item('Check in',data.check_in_date);item('Check out',data.check_out_date);
+ item('Bill KSh',amount(data.total));item('Paid KSh',amount(data.paid));item('Balance KSh',amount(data.balance));
+ item('Status',data.status);if(data.organization)item('Organization',data.organization);
+ center('PAYMENT RECORD',9,true);
+ for(const p of data.payments.slice(0,30)){item(p.method.toUpperCase()+' '+p.date,'KSh '+amount(p.amount));}
+ if(data.payments.length>30)item('Additional payments',data.payments.length-30);
+ if(row.etims_url){
+  y-=8;const png=await QRCode.toDataURL(row.etims_url,{errorCorrectionLevel:'M',margin:1,width:250});
+  const image=await pdf.embedPng(Uint8Array.from(atob(png.split(',')[1]),c=>c.charCodeAt(0)));
+  page.drawImage(image,{x:73,y:y-93,width:80,height:80});y-=110;
+  center('Scan To Open Etims/Etr Receipt',8,true);
+ }
+ center('Thank you for staying with us',8);
+ return await pdf.save();
+};
 const asPdf=async(row:any)=>{
  const data=row.snapshot;
  const pdf=await PDFDocument.create();const page=pdf.addPage([595,842]);
@@ -55,8 +81,7 @@ const asPdf=async(row:any)=>{
   const imageData=await QRCode.toDataURL(row.etims_url,{errorCorrectionLevel:'M',margin:2,width:220});
   const image=await pdf.embedPng(Uint8Array.from(atob(imageData.split(',')[1]),c=>c.charCodeAt(0)));
   page.drawImage(image,{x:435,y:70,width:110,height:110});
-  page.drawText('Scan to open eTIMS link',{x:412,y:58,font,size:8,color:purple});
-  page.drawText(`eTIMS: ${tidy(row.etims_url).slice(0,70)}`,{x:45,y:191,font,size:8,color:purple});
+  page.drawText('Scan To Open Etims/Etr Receipt',{x:404,y:58,font,size:8,color:purple});
  }
  page.drawText('This receipt records payments actually received. An invoice or pending approval is not a payment.',{x:45,y:45,font,size:8,color:grey});
  return await pdf.save();
@@ -74,7 +99,9 @@ Deno.serve(async(req:Request)=>{
    if(!/^[0-9a-f]{64}$/.test(token))return json({error:'Invalid or expired receipt link'},404,origin);
    const {data:receipt}=await db.from('hotel_accommodation_receipts').select('*').eq('token_hash',await digest(token)).is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle();
    if(!receipt)return json({error:'Invalid, revoked or expired receipt link'},404,origin);
-   const pdf=await asPdf(receipt);
+   const format=u.searchParams.get('format');
+   if(format&&format!=='a4'&&format!=='thermal')return json({error:'Unsupported print format'},400,origin);
+   const pdf=format==='thermal'?await asThermalPdf(receipt):await asPdf(receipt);
    return new Response(new Uint8Array(pdf),{headers:{...cors(origin),'content-type':'application/pdf','content-disposition':`attachment; filename="Mwisho-Receipt-${receipt.id.slice(0,8)}.pdf"`,'cache-control':'private, no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff'}});
   }
   if(req.method!=='POST')return json({error:'Method not supported'},405,origin);
@@ -91,6 +118,23 @@ Deno.serve(async(req:Request)=>{
   if(stayError||!stay)return json({error:'Stay inaccessible'},403,origin);
   if(stay.status!=='checked_out')return json({error:'Complete checkout before creating or sending a receipt'},409,origin);
   const endpoint=`${url}/functions/v1/hotel-accommodation-receipts`;
+  if(body.action==='list'){
+   const {data:rows,error:listError}=await userDb.from('hotel_accommodation_receipts')
+    .select('id,created_at,expires_at,revoked_at,snapshot,etims_url')
+    .eq('stay_id',stayId).order('created_at',{ascending:false}).limit(50);
+   if(listError)return json({error:'Could not list saved receipts'},503,origin);
+   return json({receipts:(rows||[]).map((r:any)=>({receipt_id:r.id,created_at:r.created_at,expires_at:r.expires_at,revoked:!!r.revoked_at,receipt_number:r.snapshot?.receipt_number,status:r.snapshot?.status,has_etims:!!r.etims_url,guest_phone:stay.guest_phone||'',guest_email:stay.email||''}))},200,origin);
+  }
+  if(body.action==='renew'){
+   const receiptId=String(body.receipt_id||'');
+   const {data:old}=await userDb.from('hotel_accommodation_receipts').select('id,revoked_at,snapshot').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
+   if(!old)return json({error:'Saved receipt not found'},404,origin);
+   if(old.revoked_at)return json({error:'Revoked receipt cannot be shared again'},409,origin);
+   const token=hex(crypto.getRandomValues(new Uint8Array(32)).buffer),expiry=new Date(Date.now()+30*86400000);
+   const {error:renewError}=await db.from('hotel_accommodation_receipts').update({token_hash:await digest(token),expires_at:expiry.toISOString()}).eq('id',receiptId).eq('stay_id',stayId).is('revoked_at',null);
+   if(renewError)return json({error:'Could not refresh receipt link'},503,origin);
+   return json({receipt_id:receiptId,url:`${endpoint}?token=${token}`,expires_at:expiry.toISOString(),status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
+  }
   if(body.action==='create'){
    let etims:null|string;
    try{etims=validEtims(body.etims_url)}catch(e){return json({error:String(e instanceof Error?e.message:e)},400,origin)}
