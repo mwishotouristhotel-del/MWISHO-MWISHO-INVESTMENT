@@ -45,7 +45,8 @@ const asPdf=async(row:any)=>{
  let y=421;
  for(const p of data.payments.slice(0,10)){
   page.drawText(tidy(`${p.date}  ${p.method.toUpperCase()}  ${p.reference||'No reference'}`).slice(0,67),{x:45,y,font,size:9,color:grey});
-  page.drawText(`KSh ${amount(p.amount)}`,{x:550,y,font,size:9,color:grey});y-=18;
+  const paidText=`KSh ${amount(p.amount)}`;
+  page.drawText(paidText,{x:545-font.widthOfTextAtSize(paidText,9),y,font,size:9,color:grey});y-=18;
  }
  if(data.payments.length>10)page.drawText(`${data.payments.length-10} additional payments are included in the total.`,{x:45,y:y-4,font,size:9,color:grey});
  if(row.etims_url){
