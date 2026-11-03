@@ -14,7 +14,11 @@ export default function AccommodationReceiptActions({supabase,stay}){
  const [etims,setEtims]=useState(''),[receipt,setReceipt]=useState(null),[saved,setSaved]=useState([]),[working,setWorking]=useState(''),[feedback,setFeedback]=useState('');
  const request=async(body)=>{
   const {data,error}=await supabase.functions.invoke('hotel-accommodation-receipts',{body:{stay_id:stay.id,...body}});
-  if(error)throw Error(data?.error||error.message||'Receipt request failed');
+  if(error){
+   let detail=data?.error;
+   if(!detail&&error.context?.json){try{detail=(await error.context.json())?.error}catch{/* Retain the original error. */}}
+   throw Error(detail||error.message||'Receipt request failed');
+  }
   if(data?.error)throw Error(data.error);
   return data;
  };
@@ -32,7 +36,16 @@ export default function AccommodationReceiptActions({supabase,stay}){
  });
  const openSaved=entry=>run('open',async()=>{
   const data=await request({action:'open',receipt_id:entry.receipt_id});
-  setReceipt(data);setFeedback('Saved receipt reopened with its original sharing link.');
+  setReceipt(data);setFeedback(data.legacy?'Older saved receipt opened for printing. Its original sharing link was not stored recoverably.':'Saved receipt reopened with its original sharing link.');
+ });
+ const downloadSaved=format=>run('pdf-'+format,async()=>{
+  const data=await request({action:'pdf',receipt_id:receipt.receipt_id,format});
+  const binary=atob(data.pdf_base64),bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+  const anchor=document.createElement('a');anchor.href=url;anchor.download=`Mwisho-Receipt-${data.receipt_number||receipt.receipt_id}-${format}.pdf`;
+  document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  setFeedback('Saved receipt PDF downloaded.');
  });
  const send=channel=>run(channel,async()=>{
   const data=await request({action:'send',channel,token:tokenFromUrl(receipt.url)});
@@ -58,17 +71,22 @@ export default function AccommodationReceiptActions({supabase,stay}){
   <small>When supplied, the link is encoded in the receipt QR. The printed link text is omitted.</small>
   <button type="button" disabled={!!working} onClick={create}>{working==='create'?'Creating receipt…':'Create & save new receipt'}</button>
   {receipt&&<>
-   <p className="mw-receipt-expiry">✓ Receipt ready · {receipt.status} · Link expires {new Date(receipt.expires_at).toLocaleDateString('en-KE')}</p>
+   <p className="mw-receipt-expiry">✓ Receipt ready · {receipt.status} · {receipt.legacy?'Original sharing link unavailable':'Link expires '+new Date(receipt.expires_at).toLocaleDateString('en-KE')}</p>
    <div className="mw-receipt-buttons">
-    <a href={printUrl(receipt.url,'a4')} target="_blank" rel="noreferrer">⬇ Download A4 PDF</a>
-    <a href={printUrl(receipt.url,'thermal')} target="_blank" rel="noreferrer">⬇ Download XP-80 (80 mm) PDF</a>
+    {receipt.legacy?<>
+     <button type="button" disabled={!!working} onClick={()=>downloadSaved('a4')}>⬇ Download A4 PDF</button>
+     <button type="button" disabled={!!working} onClick={()=>downloadSaved('thermal')}>⬇ Download XP-80 (80 mm) PDF</button>
+    </>:<>
+     <a href={printUrl(receipt.url,'a4')} target="_blank" rel="noreferrer">⬇ Download A4 PDF</a>
+     <a href={printUrl(receipt.url,'thermal')} target="_blank" rel="noreferrer">⬇ Download XP-80 (80 mm) PDF</a>
     <button type="button" onClick={()=>{navigator.clipboard?.writeText(receipt.url).then(()=>setFeedback('Secure link copied.')).catch(()=>setFeedback('Could not copy link.'))}}>Copy receipt link</button>
     <button type="button" disabled={!whatsapp} onClick={()=>window.open('https://wa.me/'+whatsapp+'?text='+encodeURIComponent(shareText),'_blank','noopener,noreferrer')}>Share via WhatsApp</button>
     <button type="button" disabled={!!working||!receipt.guest_phone} onClick={()=>send('sms')}>Resend SMS link</button>
     <button type="button" disabled={!!working||!receipt.guest_email} onClick={()=>send('email')}>Resend Email</button>
+    </>}
     <button type="button" disabled={!!working} onClick={revoke}>Revoke link</button>
    </div>
-   <small>Print the 80 mm PDF using the XP-80C printer driver at actual size. The original secure link remains valid for 30 days from creation unless revoked.</small>
+   <small>{receipt.legacy?'This older receipt can be downloaded and printed without generating a replacement receipt or link. To share, attach its PDF manually.':'Print the 80 mm PDF using the XP-80C printer driver at actual size. The original secure link remains valid for 30 days from creation unless revoked.'}</small>
   </>}
   {feedback&&<p role="status" className="mw-receipt-feedback">{feedback}</p>}
  </section>;
