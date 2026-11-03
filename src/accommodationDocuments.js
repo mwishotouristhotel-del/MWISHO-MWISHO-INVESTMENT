@@ -66,6 +66,7 @@ const drawGuestRegistration=(doc,{guest={},roomNumber='',paymentMethod='',refere
   doc.text(name,15,y);doc.rect(63,y-3,4,4);if(paymentMethod===key)doc.text('X',64,y);
   field(doc,refLabel+':',paymentMethod===key?reference:'',78,y,117);
  });
+ field(doc,'Organization:',guest.organization_name||'',15,242);
  field(doc,'GUEST REMARKS:',guest.remarks,15,250);
  doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(80,80,80);
  doc.text('Guest information is handled confidentially for hotel operations, safety and applicable legal requirements.',15,259);

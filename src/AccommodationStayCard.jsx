@@ -4,7 +4,7 @@ import {accommodationCheckoutStatus} from './accommodationCheckoutStatus.js';
 const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 
 export default function AccommodationStayCard({
- stay,roomNumber,listingName,packageLabel,totals,paymentDraft={},checkoutDraft={},
+ stay,roomNumber,listingName,organizationName='',packageLabel,totals,paymentDraft={},checkoutDraft={},
  clockNow,busy,onPaymentChange,onCheckoutChange,onRecordPayment,onCheckout,onDownload
 }){
  const status=accommodationCheckoutStatus(stay,clockNow);
@@ -18,6 +18,7 @@ export default function AccommodationStayCard({
    <div className="mw-guest-identity">
     <strong>{stay.guest_name}</strong>
     <span>Room {roomNumber} · {listingName} · {packageLabel} · {stay.guest_count||1} guest(s)</span>
+    {organizationName&&<span className="mw-guest-org-label">🏢 {organizationName}</span>}
    </div>
    <span className={'mw-guest-status status-'+status}>{status==='overdue'?'Overdue for checkout':status==='due'?'Due for checkout · 10 AM':status==='checked_out'?'Checked out':'In house'}</span>
   </div>
