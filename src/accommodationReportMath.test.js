@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildAccommodationReport,nightSales} from './accommodationReportMath.js';
+import {buildAccommodationReport,nightSales,scopeAccommodationReport} from './accommodationReportMath.js';
 
 const stay={id:'a',guest_name:'Guest',room_number:'V1',section:'vvip',check_in_date:'2026-11-03',expected_check_out_date:'2026-11-06',total_kes:3000};
 test('three paid nights earn one night at a time and unwind the advance',()=>{
@@ -33,4 +33,19 @@ test('rooms occupied includes saved package, guest count, nights and actual paid
  const [guest]=report.guests;
  assert.equal(guest.room_number,'V1');assert.equal(guest.package_label,'Bed & Breakfast');
  assert.equal(guest.guest_count,2);assert.equal(guest.nights,3);assert.equal(guest.received_kes,1200);
+});
+test('reception reports isolate room sales, payments, invoices and guests',()=>{
+ const data={stays:[stay,{...stay,id:'b',section:'regular',room_number:'R1',total_kes:1000}],payments:[
+  {stay_id:'a',method:'cash',amount_kes:3000,received_at:'2026-11-03T08:00:00Z'},
+  {stay_id:'b',method:'mpesa',amount_kes:1000,received_at:'2026-11-03T08:00:00Z'}],invoices:[
+  {stay_id:'a',invoice_date:'2026-11-03',amount_kes:200,invoice_number:'V1'},
+  {stay_id:'b',invoice_date:'2026-11-03',amount_kes:300,invoice_number:'R1'}]};
+ const regular=buildAccommodationReport(scopeAccommodationReport(data,'regular'),{from:'2026-11-03',to:'2026-11-03'});
+ const vvip=buildAccommodationReport(scopeAccommodationReport(data,'vvip'),{from:'2026-11-03',to:'2026-11-03'});
+ assert.deepEqual(regular.guests.map(x=>x.room_number),['R1']);
+ assert.equal(regular.totals.mpesa_kes,1000);assert.equal(regular.totals.cash_kes,0);
+ assert.equal(regular.totals.invoices_issued_kes,300);
+ assert.deepEqual(vvip.guests.map(x=>x.room_number),['V1']);
+ assert.equal(vvip.totals.cash_kes,3000);assert.equal(vvip.totals.mpesa_kes,0);
+ assert.equal(vvip.totals.invoices_issued_kes,200);
 });
