@@ -119,7 +119,7 @@ Deno.serve(async(req:Request)=>{
   if(stay.status!=='checked_out')return json({error:'Complete checkout before creating or sending a receipt'},409,origin);
   const endpoint=`${url}/functions/v1/hotel-accommodation-receipts`;
   if(body.action==='list'){
-   const {data:rows,error:listError}=await userDb.from('hotel_accommodation_receipts')
+   const {data:rows,error:listError}=await db.from('hotel_accommodation_receipts')
     .select('id,created_at,expires_at,revoked_at,snapshot,etims_url')
     .eq('stay_id',stayId).order('created_at',{ascending:false}).limit(50);
    if(listError)return json({error:'Could not list saved receipts'},503,origin);
@@ -127,11 +127,11 @@ Deno.serve(async(req:Request)=>{
   }
   if(body.action==='renew'){
    const receiptId=String(body.receipt_id||'');
-   const {data:old}=await userDb.from('hotel_accommodation_receipts').select('id,revoked_at,snapshot').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
+   const {data:old}=await db.from('hotel_accommodation_receipts').select('id,revoked_at,snapshot').eq('id',receiptId).eq('stay_id',stayId).maybeSingle();
    if(!old)return json({error:'Saved receipt not found'},404,origin);
    if(old.revoked_at)return json({error:'Revoked receipt cannot be shared again'},409,origin);
    const token=hex(crypto.getRandomValues(new Uint8Array(32)).buffer),expiry=new Date(Date.now()+30*86400000);
-   const {error:renewError}=await db.from('hotel_accommodation_receipts').update({token_hash:await digest(token),expires_at:expiry.toISOString()}).eq('id',receiptId).eq('stay_id',stayId).is('revoked_at',null);
+   const {error:renewError}=await db.from('hotel_accommodation_receipts').update({token_hash:await digest(token),expires_at:expiry.toISOString(),link_refreshed_at:new Date().toISOString()}).eq('id',receiptId).eq('stay_id',stayId).is('revoked_at',null);
    if(renewError)return json({error:'Could not refresh receipt link'},503,origin);
    return json({receipt_id:receiptId,url:`${endpoint}?token=${token}`,expires_at:expiry.toISOString(),status:old.snapshot?.status,guest_phone:stay.guest_phone||'',guest_email:stay.email||''},200,origin);
   }
