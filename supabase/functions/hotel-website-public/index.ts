@@ -155,7 +155,9 @@ Deno.serve(async(req:Request)=>{
   if(data?.action==='conference_quote_request'){
    const val=(key:string,max=3000)=>String(data[key]||'').trim().slice(0,max+1);
    const organization_name=val('organization_name',150),organization_kra_pin=val('organization_kra_pin',15).toUpperCase();
-   const event_date=val('event_date',10),number_of_pax=Number(data.number_of_pax),number_of_days=Number(data.number_of_days);
+   const event_date=val('event_date',10),event_start_time=val('event_start_time',5);
+   const event_end_date=val('event_end_date',10),event_end_time=val('event_end_time',5);
+   const number_of_pax=Number(data.number_of_pax),number_of_days=Number(data.number_of_days);
    const organization_email=val('organization_email',254),organization_phone=val('organization_phone',30);
    const contact_person=val('contact_person',120),contact_phone=val('contact_phone',30);
    const requirements=val('requirements',3000),package_id=val('package_id',36);
@@ -167,6 +169,10 @@ Deno.serve(async(req:Request)=>{
       !Number.isInteger(number_of_days)||number_of_days<1||number_of_days>365||
       !/^\d{4}-\d{2}-\d{2}$/.test(event_date)||!Number.isFinite(Date.parse(event_date))||
       event_date<new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(event_start_time)||
+      !/^\d{4}-\d{2}-\d{2}$/.test(event_end_date)||!Number.isFinite(Date.parse(event_end_date))||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(event_end_time)||
+      event_end_date+'T'+event_end_time<=event_date+'T'+event_start_time||
       !emailValid(organization_email)||!phoneValid(organization_phone)||
       contact_person.length<2||contact_person.length>120||!phoneValid(contact_phone)||
       requirements.length>3000||cc_emails.length>5||cc_emails.some((x:string)=>!emailValid(x))||
@@ -185,6 +191,7 @@ Deno.serve(async(req:Request)=>{
    if((count||0)>=3)return respond({error:'Too many recent requests. Please contact the hotel.'},429);
    const {data:created,error:e}=await db.from('hotel_website_conference_quotes').insert({
      organization_name,organization_kra_pin,number_of_pax,number_of_days,event_date,
+     event_start_time,event_end_date,event_end_time,
      package_id:package_id||null,package_name,requirements,organization_email,organization_phone,
      contact_person,contact_phone,cc_emails,status:'new'
    }).select('id').single();
