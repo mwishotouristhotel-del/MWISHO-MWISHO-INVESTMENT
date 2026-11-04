@@ -2,12 +2,26 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {downloadOtherIncomeInvoice} from './otherIncomeInvoicePdf.js';
 
 const empty={category:'House Rent',bill_to:'',contact:'',address:'',kra_pin:'',invoice_date:new Date().toLocaleDateString('en-CA'),due_date:'',description:''};
+const draftKey='mwisho-other-investment-invoice-draft-v1';
+const defaultLines=()=>[{description:'',quantity:'1',unit_price_kes:''}];
+const readDraft=()=>{
+ try{
+  const saved=JSON.parse(window.sessionStorage.getItem(draftKey)||'null');
+  if(saved&&saved.form&&Array.isArray(saved.lines)&&saved.lines.length&&saved.lines.length<=50)
+   return {form:{...empty,...saved.form},lines:saved.lines};
+ }catch{/* Private browsing or a malformed draft must never prevent invoice creation. */}
+ return {form:{...empty},lines:defaultLines()};
+};
 const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 export default function OtherInvestmentInvoices({supabase}){
- const [form,setForm]=useState({...empty}),[lines,setLines]=useState([{description:'',quantity:'1',unit_price_kes:''}]);
+ const [initialDraft]=useState(readDraft);
+ const [form,setForm]=useState(initialDraft.form),[lines,setLines]=useState(initialDraft.lines);
  const [invoices,setInvoices]=useState([]),[items,setItems]=useState([]),[payments,setPayments]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[issuerPin,setIssuerPin]=useState('');
  const [selected,setSelected]=useState({}),[payDraft,setPayDraft]=useState({}),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const total=useMemo(()=>lines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price_kes||0),0),[lines]);
+ useEffect(()=>{
+  try{window.sessionStorage.setItem(draftKey,JSON.stringify({form,lines}));}catch{/* Keep the form usable when storage is unavailable. */}
+ },[form,lines]);
  const refresh=async()=>{
   const results=await Promise.all([
    supabase.from('hotel_other_income_invoices').select('*').order('created_at',{ascending:false}).limit(100),
@@ -26,7 +40,11 @@ export default function OtherInvestmentInvoices({supabase}){
   if(!lines.length||lines.some(x=>x.description.trim().length<2||!(Number(x.quantity)>0)||Number(x.unit_price_kes)<0||x.unit_price_kes==='')||total<=0){setError('Complete each item with a description, positive quantity, valid price and positive invoice total.');return;}
   setBusy(true);
   const {data,error:err}=await supabase.rpc('hotel_other_income_create_invoice',{p_category:form.category,p_bill_to:form.bill_to,p_contact:form.contact,p_address:form.address,p_kra_pin:form.kra_pin,p_date:form.invoice_date,p_due_date:form.due_date||null,p_description:form.description,p_items:lines.map(x=>({description:x.description,quantity:Number(x.quantity),unit_price_kes:Number(x.unit_price_kes)}))});
-  if(err)setError(err.message);else{setMessage('Invoice '+data+' created. No income has been posted until payment is recorded.');setForm({...empty});setLines([{description:'',quantity:'1',unit_price_kes:''}]);await refresh();}
+  if(err)setError(err.message);else{
+   setMessage('Invoice '+data+' created. No income has been posted until payment is recorded.');
+   try{window.sessionStorage.removeItem(draftKey);}catch{}
+   setForm({...empty});setLines(defaultLines());await refresh();
+  }
   setBusy(false);
  };
  const recordPayment=async invoice=>{
@@ -47,6 +65,7 @@ export default function OtherInvestmentInvoices({supabase}){
   {error&&<p role="alert" style={{color:'#a21c37'}}>{error}</p>}{message&&<p role="status" style={{color:'#176b3b'}}>{message}</p>}
   <form onSubmit={makeInvoice} style={{padding:16,border:'1px solid #dccce7',borderRadius:14,display:'grid',gap:12}}>
    <h4>Create Internal Invoice</h4>
+   <small>Your unfinished invoice is kept in this browser tab if the page refreshes. It is cleared after successful creation.</small>
    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
     <label>Income Category<input required maxLength={100} list="mw-other-income-categories" value={form.category} onChange={e=>set('category',e.target.value)}/></label>
     <datalist id="mw-other-income-categories"><option value="House Rent"/><option value="Equipment Hire"/><option value="Property Lease"/><option value="Other Services"/></datalist>
