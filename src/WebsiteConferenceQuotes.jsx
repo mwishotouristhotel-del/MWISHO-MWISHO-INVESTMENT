@@ -4,21 +4,21 @@ export default function WebsiteConferenceQuotes({supabase}){
  const [quotes,setQuotes]=useState([]),[staff,setStaff]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [edits,setEdits]=useState({});
  const [drafts,setDrafts]=useState({}),[pdfFiles,setPdfFiles]=useState({});
- const [documentTerms,setDocumentTerms]=useState(''),[approvedAccounts,setApprovedAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
+ const [documentTerms,setDocumentTerms]=useState(''),[companyDetails,setCompanyDetails]=useState({}),[approvedAccounts,setApprovedAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
  const draftFor=q=>drafts[q.id]||{items:[{description:q.package_name||'Conference Package',unitPrice:'',pax:q.number_of_pax||1,days:q.number_of_days||1}],vat:'0'};
  const chosenAccounts=q=>selectedAccounts[q.id]??approvedAccounts.filter(a=>a.is_active&&a.show_on_quotation).map(a=>a.id);
  const changeDraft=(q,patch)=>setDrafts(old=>({...old,[q.id]:{...draftFor(q),...patch}}));
  async function preparePdf(q){
-  setError('');try{const d=draftFor(q);const paymentText=approvedAccounts.filter(a=>a.is_active&&chosenAccounts(q).includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n');await downloadConferenceQuotation(q,d.items,d.vat,documentTerms,paymentText);}
+  setError('');try{const d=draftFor(q);const paymentText=approvedAccounts.filter(a=>a.is_active&&chosenAccounts(q).includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n');await downloadConferenceQuotation(q,d.items,d.vat,documentTerms,paymentText,companyDetails);}
   catch(e){setError(e.message||'Could not prepare PDF');}
  }
  useEffect(()=>{
   let alive=true;
-  Promise.all([supabase.from('hotel_document_settings').select('quotation_terms').eq('id',1).maybeSingle(),
+  Promise.all([supabase.from('hotel_document_settings').select('quotation_terms,company_details').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
    if(!alive)return;
    if(a.error||b.error)setError('Document settings unavailable: '+(a.error?.message||b.error?.message));
-   else{setDocumentTerms(a.data?.quotation_terms||'');setApprovedAccounts(b.data||[]);}
+   else{setDocumentTerms(a.data?.quotation_terms||'');setCompanyDetails(a.data?.company_details||{});setApprovedAccounts(b.data||[]);}
   });return()=>{alive=false;};
  },[supabase]);
  async function publishPdf(q){
