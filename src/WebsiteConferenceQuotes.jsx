@@ -1,7 +1,29 @@
 import React,{useEffect,useState} from 'react';
+import {downloadConferenceQuotation} from './conferenceQuotationPdf.js';
 export default function WebsiteConferenceQuotes({supabase}){
  const [quotes,setQuotes]=useState([]),[staff,setStaff]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [edits,setEdits]=useState({});
+ const [drafts,setDrafts]=useState({}),[pdfFiles,setPdfFiles]=useState({});
+ const draftFor=q=>drafts[q.id]||{items:[{description:q.package_name||'Conference Package',unitPrice:'',pax:q.number_of_pax||1,days:q.number_of_days||1}],vat:'0',terms:'',payment:''};
+ const changeDraft=(q,patch)=>setDrafts(old=>({...old,[q.id]:{...draftFor(q),...patch}}));
+ async function preparePdf(q){
+  setError('');try{const d=draftFor(q);await downloadConferenceQuotation(q,d.items,d.vat,d.terms,d.payment);}
+  catch(e){setError(e.message||'Could not prepare PDF');}
+ }
+ async function publishPdf(q){
+  const file=pdfFiles[q.id];
+  if(!file||file.type!=='application/pdf'||file.size>10*1024*1024||file.size===0){setError('Select a stamped PDF of 10 MB or less.');return;}
+  if(!window.confirm('Publish this stamped quotation and email the customer a secure 30-day download link?'))return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const path=q.id+'/'+crypto.randomUUID()+'.pdf';
+   const {error:uploadError}=await supabase.storage.from('mwisho-conference-quotes').upload(path,file,{upsert:false,contentType:'application/pdf'});
+   if(uploadError)throw Error('Upload failed: '+uploadError.message);
+   const {data,error}=await supabase.functions.invoke('hotel-conference-quotation',{body:{action:'publish',quote_id:q.id,path}});
+   if(error||!data?.ok)throw Error(data?.error||error?.message||'Publication failed. The PDF uploaded but was not published; please contact Admin.');
+   setNotice(data.reference+': '+data.message);setPdfFiles(old=>({...old,[q.id]:null}));await refresh();
+  }catch(e){setError(e.message||'Could not publish quotation');}finally{setBusy(false);}
+ }
  async function refresh(){
   const [a,b]=await Promise.all([
    supabase.from('hotel_website_conference_quotes').select('*').order('created_at',{ascending:false}).limit(200),
@@ -35,7 +57,7 @@ export default function WebsiteConferenceQuotes({supabase}){
  }
  return <section style={{display:'grid',gap:15}}>
   <h3>Conference Quotation Requests</h3>
-  <p>Review requests and assign staff. Enabled notification channels send status updates; the actual prepared quotation document is still sent separately. CC recipients remain saved for quotation preparation.</p>
+  <p>Prepare an itemized PDF, print it for authorized signing and stamping, then upload the approved PDF. Publishing makes a secure 30-day download link available by email when hotel email notifications are enabled.</p>
   {error&&<p role="alert" style={{color:'#b42331'}}>{error}</p>}{notice&&<p role="status" style={{color:'#197550'}}>{notice}</p>}
   <button type="button" disabled={busy} onClick={refresh}>Refresh Requests</button>
   {!quotes.length&&<p>No quotation requests have been submitted.</p>}
@@ -52,6 +74,25 @@ export default function WebsiteConferenceQuotes({supabase}){
     <span>Contact: {q.contact_person} | {q.contact_phone}</span>
     {q.requirements&&<p style={{whiteSpace:'pre-wrap'}}><strong>Requirements:</strong> {q.requirements}</p>}
     {!!q.cc_emails?.length&&<p>Quotation CC addresses: {q.cc_emails.join(', ')}</p>}
+    <details style={{border:'1px solid #e3d8ef',borderRadius:10,padding:12}}>
+     <summary style={{fontWeight:700,cursor:'pointer'}}>Prepare Quotation PDF · Stamp · Publish</summary>
+     <p>Enter agreed rates (KSh), quantities and days. VAT defaults to 0%; enter the applicable rate only when confirmed. Payment instructions are editable and are not taken from the sample document.</p>
+     {draftFor(q).items.map((item,i)=><div key={i} style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(125px,1fr))',gap:8,marginBottom:8,alignItems:'end'}}>
+      <label>Item / service<input value={item.description} onChange={e=>changeDraft(q,{items:draftFor(q).items.map((x,n)=>n===i?{...x,description:e.target.value}:x)})}/></label>
+      {['unitPrice','pax','days'].map((field,n)=><label key={field}>{['Rate (KSh)','Pax / Qty','Days'][n]}<input type="number" min="0" step={field==='unitPrice'?'0.01':'1'} value={item[field]} onChange={e=>changeDraft(q,{items:draftFor(q).items.map((x,j)=>j===i?{...x,[field]:e.target.value}:x)})}/></label>)}
+      <button type="button" onClick={()=>changeDraft(q,{items:draftFor(q).items.filter((_,n)=>n!==i)})}>Remove</button>
+     </div>)}
+     <button type="button" onClick={()=>changeDraft(q,{items:[...draftFor(q).items,{description:'',unitPrice:'',pax:1,days:1}]})}>+ Add quotation item</button>
+     <label>VAT (%)<input type="number" min="0" max="100" step="0.01" value={draftFor(q).vat} onChange={e=>changeDraft(q,{vat:e.target.value})}/></label>
+     <strong>Grand total: KSh {(draftFor(q).items.reduce((s,x)=>s+Number(x.unitPrice||0)*Number(x.pax||0)*Number(x.days||0),0)*(1+Number(draftFor(q).vat||0)/100)).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>
+     <label>Terms, inclusions and validity<textarea rows={3} value={draftFor(q).terms} onChange={e=>changeDraft(q,{terms:e.target.value})}/></label>
+     <label>Verified bank / M-Pesa payment instructions<textarea rows={3} value={draftFor(q).payment} onChange={e=>changeDraft(q,{payment:e.target.value})} placeholder="Enter only current hotel-approved payment information"/></label>
+     <button type="button" disabled={busy} onClick={()=>preparePdf(q)}>⬇ Download Draft Quotation PDF</button>
+     <p>After authorized signature and hotel stamp, scan or save the signed document as a PDF and upload it below.</p>
+     <label>Stamped and approved PDF (max 10 MB)<input type="file" accept="application/pdf,.pdf" onChange={e=>setPdfFiles(old=>({...old,[q.id]:e.target.files?.[0]||null}))}/></label>
+     <button type="button" disabled={busy||!pdfFiles[q.id]} onClick={()=>publishPdf(q)}>Publish Approved PDF & Email Customer Link</button>
+     {q.quote_published_at&&<p><strong>Last published:</strong> {new Date(q.quote_published_at).toLocaleString('en-KE')}. Link expires {new Date(q.quote_link_expires_at).toLocaleDateString('en-KE')}. {q.quote_download_token&&<a href={'https://vsrkdykljelafkoixjtq.supabase.co/functions/v1/hotel-conference-quotation?token='+q.quote_download_token} target="_blank" rel="noreferrer">Download approved quotation</a>}</p>}
+    </details>
     <label>Assign staff member<select value={current.assigned_to===undefined?(q.assigned_to||''):current.assigned_to} onChange={e=>edit(q.id,'assigned_to',e.target.value)}>
      <option value="">Not assigned</option>{staff.map(member=><option value={member.user_id} key={member.user_id}>{member.display_name||member.user_id}</option>)}
     </select></label>
