@@ -41,8 +41,11 @@ export default function WebsiteConferenceQuotes({supabase}){
   {!quotes.length&&<p>No quotation requests have been submitted.</p>}
   {quotes.map(q=>{
    const current=edits[q.id]||{};
+   const referenceYear=new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(q.created_at));
+   const quotationReference='MTH'+referenceYear+'-'+q.id.replace(/-/g,'').slice(0,10).toUpperCase();
    return <article key={q.id} style={{border:'1px solid #e4d9ef',borderRadius:12,padding:16,display:'grid',gap:9}}>
     <strong>{q.organization_name} — {q.package_name||'Custom Requirements'}</strong>
+    <span><strong>Quotation Reference:</strong> {quotationReference}</span>
     <span>Event: {q.event_date}{q.event_start_time?' at '+q.event_start_time.slice(0,5):''}{q.event_end_date?' — '+q.event_end_date+' at '+(q.event_end_time||'').slice(0,5):''} · {q.number_of_pax} pax · {q.number_of_days??1} day{Number(q.number_of_days??1)===1?'':'s'} · Submitted: {new Date(q.created_at).toLocaleString('en-KE')}</span>
     <span>KRA PIN: {q.organization_kra_pin}</span>
     <span>Organization: {q.organization_email} | {q.organization_phone}</span>
