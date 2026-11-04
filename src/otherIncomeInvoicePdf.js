@@ -1,7 +1,7 @@
 import {printHotelInvoice} from './hotelInvoicePrintLayout.js';
 
-export function downloadOtherIncomeInvoice({invoice,items,terms='',accounts=[],issuerPin='',companyDetails={}}){
- return printHotelInvoice({companyDetails,
+export function downloadOtherIncomeInvoice({invoice,items,terms='',accounts=[],issuerPin='',companyDetails={},issuerEntity='hotel'}){
+ return printHotelInvoice({companyDetails,issuerEntity,
   reference:invoice.invoice_number,
   invoiceDate:invoice.invoice_date,
   client:invoice.bill_to,
