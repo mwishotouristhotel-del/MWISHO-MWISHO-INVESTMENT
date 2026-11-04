@@ -168,7 +168,10 @@ footer .brand-tagline{color:#ffcf4a}
  <label>Organization KRA PIN *<input name="organization_kra_pin" required maxlength="11" placeholder="A123456789B" autocapitalize="characters" aria-describedby="mwQuotePinHint"/><small id="mwQuotePinHint">Enter the 11-character KRA PIN: letter, 9 digits, letter.</small></label>
  <label>Expected Number of Pax *<input name="number_of_pax" required type="number" min="1" max="10000"/></label>
  <label>Number of Days *<input name="number_of_days" required type="number" min="1" max="365" step="1" value="1"/></label>
- <label>Expected Event Date *<input name="event_date" required type="date"/></label>
+ <label>Expected Event Starting Date *<input name="event_date" required type="date"/></label>
+ <label>Expected Event Starting Time *<input name="event_start_time" required type="time"/></label>
+ <label>Expected Event Ending Date *<input name="event_end_date" required type="date"/></label>
+ <label>Expected Event Ending Time *<input name="event_end_time" required type="time"/></label>
  <label>Conference Package<select name="package_id" id="mwQuotePackage"><option value="">Custom package / describe requirements</option></select></label>
  <label>Organization Email *<input name="organization_email" required type="email" maxlength="254"/></label>
  <label>Organization Phone Number *<input name="organization_phone" required type="tel" maxlength="30"/></label>
@@ -392,8 +395,14 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
    if(!Number.isInteger(Number(data.get('number_of_pax')))||Number(data.get('number_of_pax'))<1||Number(data.get('number_of_pax'))>10000){fieldError('number_of_pax','Enter a valid number of attendees (1–10,000).');return;}
    if(!Number.isInteger(Number(data.get('number_of_days')))||Number(data.get('number_of_days'))<1||Number(data.get('number_of_days'))>365){fieldError('number_of_days','Enter a valid number of days (1–365).');return;}
    const date=String(data.get('event_date')||'');
+   const endDate=String(data.get('event_end_date')||'');
+   const startTime=String(data.get('event_start_time')||'');
+   const endTime=String(data.get('event_end_time')||'');
    const today=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'});
    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||date<today){fieldError('event_date','Choose an event date of today or later.');return;}
+   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)){fieldError('event_start_time','Enter the expected event starting time.');return;}
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||!Number.isFinite(Date.parse(endDate))){fieldError('event_end_date','Enter the expected event ending date.');return;}
+   if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(endTime)||endDate+'T'+endTime<=date+'T'+startTime){fieldError('event_end_time','The event must end after its starting date and time.');return;}
    for(const [key,label] of [['organization_phone','organization'],['contact_phone','contact person']]){
     if(!/^\+?[0-9 ()-]{9,30}$/.test(String(data.get(key)||'').trim())){fieldError(key,'Enter a valid '+label+' phone number, e.g. 0745396385.');return;}
    }
@@ -828,6 +837,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
     const records=Array.isArray(conference_packages)?conference_packages:[];
     packageSelect.replaceChildren(new Option('Custom package / describe requirements',''),...records.map(p=>new Option(p.name,p.id)));
     quoteForm.elements.event_date.min=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'});
+    quoteForm.elements.event_date.addEventListener('change',()=>{quoteForm.elements.event_end_date.min=quoteForm.elements.event_date.value;});
    }
    // Conference services are managed by Admin, never hard-coded rates.
    const conferenceGrid=document.getElementById('conference-package-list');
