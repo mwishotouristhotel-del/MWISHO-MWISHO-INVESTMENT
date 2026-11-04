@@ -165,7 +165,7 @@ footer .brand-tagline{color:#ffcf4a}
  <div class="section-head"><span class="eyebrow">CONFERENCE QUOTATIONS</span><h2 class="serif">Request a Conference Quotation</h2><p>Complete your organization and event details. Our team will review your request and prepare a quotation.</p></div>
  <form id="mwConferenceQuoteForm" class="conference-quote-form">
  <label>Organization Name *<input name="organization_name" required maxlength="150"/></label>
- <label>Organization KRA PIN *<input name="organization_kra_pin" required maxlength="11" placeholder="A123456789B" autocapitalize="characters"/></label>
+ <label>Organization KRA PIN *<input name="organization_kra_pin" required maxlength="11" placeholder="A123456789B" autocapitalize="characters" aria-describedby="mwQuotePinHint"/><small id="mwQuotePinHint">Enter the 11-character KRA PIN: letter, 9 digits, letter.</small></label>
  <label>Expected Number of Pax *<input name="number_of_pax" required type="number" min="1" max="10000"/></label>
  <label>Number of Days *<input name="number_of_days" required type="number" min="1" max="365" step="1" value="1"/></label>
  <label>Expected Event Date *<input name="event_date" required type="date"/></label>
@@ -386,12 +386,23 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
    const cc=String(data.get('cc_emails')||'').split(',').map(x=>x.trim()).filter(Boolean);
    const id=String(data.get('package_id')||'');
    const requirements=String(data.get('requirements')||'').trim();
-   if(cc.length>5){status.textContent='Enter no more than five CC email addresses.';return;}
-   if(!id&&requirements.length<10){status.textContent='Please choose a package or describe your requirements.';return;}
+   const fieldError=(name,message)=>{status.textContent=message;const field=quoteRequest.elements.namedItem(name);if(field?.focus)field.focus();};
+   const pin=String(data.get('organization_kra_pin')||'').trim().toUpperCase();
+   if(!/^[A-Z][0-9]{9}[A-Z]$/.test(pin)){fieldError('organization_kra_pin','Check the organization KRA PIN: it must have 11 characters (letter, 9 digits, letter).');return;}
+   if(!Number.isInteger(Number(data.get('number_of_pax')))||Number(data.get('number_of_pax'))<1||Number(data.get('number_of_pax'))>10000){fieldError('number_of_pax','Enter a valid number of attendees (1–10,000).');return;}
+   if(!Number.isInteger(Number(data.get('number_of_days')))||Number(data.get('number_of_days'))<1||Number(data.get('number_of_days'))>365){fieldError('number_of_days','Enter a valid number of days (1–365).');return;}
+   const date=String(data.get('event_date')||'');
+   const today=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'});
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||date<today){fieldError('event_date','Choose an event date of today or later.');return;}
+   for(const [key,label] of [['organization_phone','organization'],['contact_phone','contact person']]){
+    if(!/^\+?[0-9 ()-]{9,30}$/.test(String(data.get(key)||'').trim())){fieldError(key,'Enter a valid '+label+' phone number, e.g. 0745396385.');return;}
+   }
+   if(cc.length>5||cc.some(email=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254)){fieldError('cc_emails','Enter up to five valid CC email addresses separated by commas, or leave this field empty.');return;}
+   if(!id&&requirements.length<10){fieldError('package_id','Select a conference package or enter at least 10 characters in the custom requirements box.');return;}
    button.disabled=true;status.textContent='Submitting your quotation request…';
    try{
     const payload=Object.fromEntries(data.entries());payload.action='conference_quote_request';
-    payload.package_id=id;payload.requirements=requirements;payload.cc_emails=cc;
+    payload.organization_kra_pin=pin;payload.package_id=id;payload.requirements=requirements;payload.cc_emails=cc;
     const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     const result=await response.json();
     if(!response.ok||!result.ok)throw Error(result.error||'Unable to submit request');
