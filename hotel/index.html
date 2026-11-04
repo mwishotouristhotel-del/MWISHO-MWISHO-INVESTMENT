@@ -415,7 +415,7 @@ document.getElementById('contactForm').addEventListener('submit',async e=>{
     const response=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     const result=await response.json();
     if(!response.ok||!result.ok)throw Error(result.error||'Unable to submit request');
-    status.textContent='Request received. Reference: '+result.request_id+'. Hotel Admin will review and prepare your quotation.';
+    status.textContent='Quotation Reference: '+(result.quotation_reference||result.request_id)+' — Thank you! Your quotation request has been submitted successfully. We will review it and respond as soon as possible.';
     quoteRequest.reset();
    }catch(e){status.textContent=e.message||'Submission failed. Please try again.';}
    finally{button.disabled=false;}
