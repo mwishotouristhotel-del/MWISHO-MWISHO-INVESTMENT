@@ -8,7 +8,7 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
  const [invoices,setInvoices]=useState([]),[invoiceItems,setInvoiceItems]=useState([]),[requests,setRequests]=useState([]);
  const [org,setOrg]=useState({organization_name:'',organization_address:'',kra_pin:'',payment_terms:'Due on receipt'});
  const [chosen,setChosen]=useState([]),[requestsDraft,setRequestsDraft]=useState({}),[busy,setBusy]=useState(false);
- const [documentTerms,setDocumentTerms]=useState(''),[paymentAccounts,setPaymentAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
+ const [documentTerms,setDocumentTerms]=useState(''),[issuerPin,setIssuerPin]=useState(''),[paymentAccounts,setPaymentAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
  const [canApprove,setCanApprove]=useState(false);
  const [message,setMessage]=useState('');
  const organizationNameForStay=stay=>stay.invoice_organization_name||organizations.find(o=>o.id===stay.organization_id)?.name||'';
@@ -25,11 +25,11 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
  useEffect(()=>{load()},[stays,payments]);
  useEffect(()=>{
   let alive=true;
-  Promise.all([supabase.from('hotel_document_settings').select('invoice_terms').eq('id',1).maybeSingle(),
+  Promise.all([supabase.from('hotel_document_settings').select('invoice_terms,issuer_kra_pin').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
    if(!alive)return;
    if(a.error||b.error)setMessage('Document settings unavailable: '+(a.error?.message||b.error?.message));
-   else{setDocumentTerms(a.data?.invoice_terms||'');setPaymentAccounts(b.data||[]);}
+   else{setDocumentTerms(a.data?.invoice_terms||'');setIssuerPin(a.data?.issuer_kra_pin||'');setPaymentAccounts(b.data||[]);}
   });return()=>{alive=false;};
  },[supabase]);
  const chosenAccounts=invoice=>selectedAccounts[invoice.id]??paymentAccounts.filter(a=>a.is_active&&a.show_on_invoice).map(a=>a.id);
@@ -67,7 +67,7 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
     check_in_date:stay?.check_in_date||'',expected_check_out_date:stay?.expected_check_out_date||''};
   });
   const paymentDetails=paymentAccounts.filter(a=>a.is_active&&chosenAccounts(invoice).includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n');
-  downloadAccommodationInvoice({invoice,items,documentTerms,paymentDetails});
+  downloadAccommodationInvoice({invoice,items,documentTerms,paymentDetails,issuerPin});
  };
  return <section id="accommodation-billing" className="mw-accommodation-panel mw-accommodation-billing">
   <h3>🧾 Accommodation Bill Clearance & Invoicing</h3>
