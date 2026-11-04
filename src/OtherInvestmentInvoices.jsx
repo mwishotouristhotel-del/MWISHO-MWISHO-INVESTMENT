@@ -5,7 +5,7 @@ const empty={category:'House Rent',bill_to:'',contact:'',address:'',kra_pin:'',i
 const money=n=>'KSh '+Number(n||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 export default function OtherInvestmentInvoices({supabase}){
  const [form,setForm]=useState({...empty}),[lines,setLines]=useState([{description:'',quantity:'1',unit_price_kes:''}]);
- const [invoices,setInvoices]=useState([]),[items,setItems]=useState([]),[payments,setPayments]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState('');
+ const [invoices,setInvoices]=useState([]),[items,setItems]=useState([]),[payments,setPayments]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[issuerPin,setIssuerPin]=useState('');
  const [selected,setSelected]=useState({}),[payDraft,setPayDraft]=useState({}),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const total=useMemo(()=>lines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price_kes||0),0),[lines]);
  const refresh=async()=>{
@@ -13,12 +13,12 @@ export default function OtherInvestmentInvoices({supabase}){
    supabase.from('hotel_other_income_invoices').select('*').order('created_at',{ascending:false}).limit(100),
    supabase.from('hotel_other_income_invoice_items').select('*').limit(500),
    supabase.from('hotel_other_income_payments').select('*').order('created_at',{ascending:false}).limit(500),
-   supabase.from('hotel_document_settings').select('invoice_terms').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_settings').select('invoice_terms,issuer_kra_pin').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')
   ]);
   const e=results.find(r=>r.error)?.error;if(e){setError(e.message);return;}
   setInvoices(results[0].data||[]);setItems(results[1].data||[]);setPayments(results[2].data||[]);
-  setTerms(results[3].data?.invoice_terms||'');setAccounts(results[4].data||[]);
+  setTerms(results[3].data?.invoice_terms||'');setIssuerPin(results[3].data?.issuer_kra_pin||'');setAccounts(results[4].data||[]);
  };
  useEffect(()=>{refresh()},[supabase]);
  const makeInvoice=async e=>{
@@ -36,7 +36,7 @@ export default function OtherInvestmentInvoices({supabase}){
  };
  const download=invoice=>{
   const chosen=selected[invoice.id]??accounts.filter(a=>a.show_on_invoice).map(a=>a.id);
-  downloadOtherIncomeInvoice({invoice,items:items.filter(x=>x.invoice_id===invoice.id),terms,accounts:accounts.filter(a=>chosen.includes(a.id))});
+  downloadOtherIncomeInvoice({invoice,items:items.filter(x=>x.invoice_id===invoice.id),terms,accounts:accounts.filter(a=>chosen.includes(a.id)),issuerPin});
  };
  const set=(key,value)=>setForm(old=>({...old,[key]:value}));
  const setLine=(index,key,value)=>setLines(old=>old.map((row,i)=>i===index?{...row,[key]:value}:row));
