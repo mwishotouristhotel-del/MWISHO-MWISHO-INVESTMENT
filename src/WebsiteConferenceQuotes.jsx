@@ -4,12 +4,23 @@ export default function WebsiteConferenceQuotes({supabase}){
  const [quotes,setQuotes]=useState([]),[staff,setStaff]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [edits,setEdits]=useState({});
  const [drafts,setDrafts]=useState({}),[pdfFiles,setPdfFiles]=useState({});
- const draftFor=q=>drafts[q.id]||{items:[{description:q.package_name||'Conference Package',unitPrice:'',pax:q.number_of_pax||1,days:q.number_of_days||1}],vat:'0',terms:'',payment:''};
+ const [documentTerms,setDocumentTerms]=useState(''),[approvedAccounts,setApprovedAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
+ const draftFor=q=>drafts[q.id]||{items:[{description:q.package_name||'Conference Package',unitPrice:'',pax:q.number_of_pax||1,days:q.number_of_days||1}],vat:'0'};
+ const chosenAccounts=q=>selectedAccounts[q.id]??approvedAccounts.filter(a=>a.is_active&&a.show_on_quotation).map(a=>a.id);
  const changeDraft=(q,patch)=>setDrafts(old=>({...old,[q.id]:{...draftFor(q),...patch}}));
  async function preparePdf(q){
-  setError('');try{const d=draftFor(q);await downloadConferenceQuotation(q,d.items,d.vat,d.terms,d.payment);}
+  setError('');try{const d=draftFor(q);const paymentText=approvedAccounts.filter(a=>a.is_active&&chosenAccounts(q).includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n');await downloadConferenceQuotation(q,d.items,d.vat,documentTerms,paymentText);}
   catch(e){setError(e.message||'Could not prepare PDF');}
  }
+ useEffect(()=>{
+  let alive=true;
+  Promise.all([supabase.from('hotel_document_settings').select('terms_text').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
+   if(!alive)return;
+   if(a.error||b.error)setError('Document settings unavailable: '+(a.error?.message||b.error?.message));
+   else{setDocumentTerms(a.data?.terms_text||'');setApprovedAccounts(b.data||[]);}
+  });return()=>{alive=false;};
+ },[supabase]);
  async function publishPdf(q){
   const file=pdfFiles[q.id];
   if(!file||file.type!=='application/pdf'||file.size>10*1024*1024||file.size===0){setError('Select a stamped PDF of 10 MB or less.');return;}
@@ -85,8 +96,11 @@ export default function WebsiteConferenceQuotes({supabase}){
      <button type="button" onClick={()=>changeDraft(q,{items:[...draftFor(q).items,{description:'',unitPrice:'',pax:1,days:1}]})}>+ Add quotation item</button>
      <label>VAT (%)<input type="number" min="0" max="100" step="0.01" value={draftFor(q).vat} onChange={e=>changeDraft(q,{vat:e.target.value})}/></label>
      <strong>Grand total: KSh {(draftFor(q).items.reduce((s,x)=>s+Number(x.unitPrice||0)*Number(x.pax||0)*Number(x.days||0),0)*(1+Number(draftFor(q).vat||0)/100)).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>
-     <label>Terms, inclusions and validity<textarea rows={3} value={draftFor(q).terms} onChange={e=>changeDraft(q,{terms:e.target.value})}/></label>
-     <label>Verified bank / M-Pesa payment instructions<textarea rows={3} value={draftFor(q).payment} onChange={e=>changeDraft(q,{payment:e.target.value})} placeholder="Enter only current hotel-approved payment information"/></label>
+     <div><strong>Admin-approved Terms & Conditions</strong><p style={{whiteSpace:'pre-wrap'}}>{documentTerms||'No shared terms configured. Ask Admin to add document terms.'}</p></div>
+     <div><strong>Payment Accounts to Print on this Quotation</strong>
+      {approvedAccounts.map(a=><label key={a.id} style={{display:'block'}}><input type="checkbox" checked={chosenAccounts(q).includes(a.id)} onChange={e=>setSelectedAccounts(old=>({...old,[q.id]:e.target.checked?[...chosenAccounts(q),a.id]:chosenAccounts(q).filter(id=>id!==a.id)}))}/> {a.label} — {a.details}</label>)}
+      {!approvedAccounts.length&&<p>No active payment accounts are configured. Admin can add Equity Bank, M-Pesa Till and other approved accounts in Document Settings.</p>}
+     </div>
      <button type="button" disabled={busy} onClick={()=>preparePdf(q)}>⬇ Download Draft Quotation PDF</button>
      <p>After authorized signature and hotel stamp, scan or save the signed document as a PDF and upload it below.</p>
      <label>Stamped and approved PDF (max 10 MB)<input type="file" accept="application/pdf,.pdf" onChange={e=>setPdfFiles(old=>({...old,[q.id]:e.target.files?.[0]||null}))}/></label>
