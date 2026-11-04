@@ -105,7 +105,7 @@ export function downloadBlankRegistrationBatch({count=1,startNumber=1}={}){
  doc.save(`Mwisho-Guest-Registration-Forms-${registrationSerial(first)}-${registrationSerial(last)}.pdf`);
 }
 
-export function downloadAccommodationInvoice({invoice,items}){
+export function downloadAccommodationInvoice({invoice,items,documentTerms='',paymentDetails=''}){
  const doc=new jsPDF({unit:'mm',format:'a4'});
  page(doc,'ACCOMMODATION INVOICE',`Invoice ${invoice.invoice_number||''} - ${invoice.invoice_date||''}`);
  field(doc,'Bill To:',invoice.organization_name,15,62);
@@ -126,7 +126,23 @@ export function downloadAccommodationInvoice({invoice,items}){
  }
  const amount=items.reduce((sum,i)=>sum+Number(i.amount_kes||0),0);
  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(86,41,122);
- doc.text(`TOTAL DUE: KSh ${amount.toLocaleString('en-KE',{minimumFractionDigits:2})}`,188,Math.min(264,y+5),{align:'right'});
+ y=Math.min(264,y+5);
+ doc.text(`TOTAL DUE: KSh ${amount.toLocaleString('en-KE',{minimumFractionDigits:2})}`,188,y,{align:'right'});
+ y+=9;
+ const printBlock=(heading,value)=>{
+  if(!text(value))return;
+  if(y>255){doc.addPage();page(doc,'ACCOMMODATION INVOICE (continued)',invoice.invoice_number||'');y=62;}
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);doc.text(heading,15,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
+  const lines=doc.splitTextToSize(text(value),176);
+  for(const line of lines){
+   if(y>262){doc.addPage();page(doc,'ACCOMMODATION INVOICE (continued)',invoice.invoice_number||'');y=62;}
+   doc.text(line,15,y);y+=4;
+  }
+  y+=5;
+ };
+ printBlock('HOTEL TERMS & CONDITIONS',documentTerms);
+ printBlock('APPROVED PAYMENT ACCOUNTS',paymentDetails);
  invoiceFooter(doc);
  doc.save(`Mwisho-Invoice-${text(invoice.invoice_number||'draft').replace(/[^a-z0-9-]/gi,'-')}.pdf`);
 }

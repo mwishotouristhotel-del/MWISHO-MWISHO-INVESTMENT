@@ -38,7 +38,13 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
   styles:{fontSize:8,cellPadding:3},headStyles:{fillColor:[92,41,145]},
   columnStyles:{0:{cellWidth:77},1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'}}});
  let y=doc.lastAutoTable.finalY+7;
- const ensure=needed=>{if(y+needed>269){doc.addPage();y=20;}};
+ const ensure=needed=>{if(y+needed>269){
+  doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);
+  doc.text('MWISHO TOURIST HOTEL',105,17,{align:'center'});
+  doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,25,{align:'center'});
+  doc.setDrawColor(130,50,120);doc.line(14,29,196,29);
+  doc.text('QUOTATION (CONTINUED)',105,37,{align:'center'});y=48;
+ }};
  ensure(28);doc.setFont('helvetica','bold');doc.setFontSize(10);
  for(const [label,amount] of [['SUB-TOTAL',subtotal],['VAT ('+Number(vatRate||0)+'%)',vat],['GRAND TOTAL',subtotal+vat]]){
   doc.text(label,126,y);doc.text('KSh '+money(amount),195,y,{align:'right'});y+=7;
@@ -47,9 +53,11 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
  for(const [heading,value] of [['Package / service details',quote.requirements],['Terms and inclusions',terms],['Payment information',paymentDetails]]){
   if(!clean(value))continue;
   const wrapped=doc.splitTextToSize(clean(value),181);
-  ensure(10+wrapped.length*4.5);
+  ensure(10);
   doc.setFont('helvetica','bold');doc.text(heading,14,y);y+=5;
-  doc.setFont('helvetica','normal');doc.text(wrapped,14,y);y+=wrapped.length*4.5+4;
+  doc.setFont('helvetica','normal');
+  for(const line of wrapped){ensure(5);doc.text(line,14,y);y+=4.5;}
+  y+=4;
  }
  ensure(33);doc.text('Prepared by: __________________________',14,y+5);
  doc.text('Authorized signature: ___________________',14,y+14);

@@ -8,6 +8,7 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
  const [invoices,setInvoices]=useState([]),[invoiceItems,setInvoiceItems]=useState([]),[requests,setRequests]=useState([]);
  const [org,setOrg]=useState({organization_name:'',organization_address:'',kra_pin:'',payment_terms:'Due on receipt'});
  const [chosen,setChosen]=useState([]),[requestsDraft,setRequestsDraft]=useState({}),[busy,setBusy]=useState(false);
+ const [documentTerms,setDocumentTerms]=useState(''),[paymentAccounts,setPaymentAccounts]=useState([]),[selectedAccounts,setSelectedAccounts]=useState({});
  const [canApprove,setCanApprove]=useState(false);
  const [message,setMessage]=useState('');
  const organizationNameForStay=stay=>stay.invoice_organization_name||organizations.find(o=>o.id===stay.organization_id)?.name||'';
@@ -22,6 +23,16 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
   setInvoices(results[0].data||[]);setInvoiceItems(results[1].data||[]);setRequests(results[2].data||[]);
  };
  useEffect(()=>{load()},[stays,payments]);
+ useEffect(()=>{
+  let alive=true;
+  Promise.all([supabase.from('hotel_document_settings').select('terms_text').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
+   if(!alive)return;
+   if(a.error||b.error)setMessage('Document settings unavailable: '+(a.error?.message||b.error?.message));
+   else{setDocumentTerms(a.data?.terms_text||'');setPaymentAccounts(b.data||[]);}
+  });return()=>{alive=false;};
+ },[supabase]);
+ const chosenAccounts=invoice=>selectedAccounts[invoice.id]??paymentAccounts.filter(a=>a.is_active&&a.show_on_invoice).map(a=>a.id);
  useEffect(()=>{supabase.rpc('hotel_accommodation_can_manage_all').then(({data,error})=>setCanApprove(!error&&data===true))},[supabase]);
  const options=useMemo(()=>stays.filter(s=>{
   const due=accommodationTotals(s.check_in_date,s.expected_check_out_date,s.nightly_rate_kes,payments.filter(p=>p.stay_id===s.id)).balance;
@@ -55,7 +66,8 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
    return {...x,guest_name:stay?.guest_name||'Guest',room_number:rooms.find(r=>r.id===stay?.room_id)?.room_number||'',
     check_in_date:stay?.check_in_date||'',expected_check_out_date:stay?.expected_check_out_date||''};
   });
-  downloadAccommodationInvoice({invoice,items});
+  const paymentDetails=paymentAccounts.filter(a=>a.is_active&&chosenAccounts(invoice).includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n');
+  downloadAccommodationInvoice({invoice,items,documentTerms,paymentDetails});
  };
  return <section id="accommodation-billing" className="mw-accommodation-panel mw-accommodation-billing">
   <h3>🧾 Accommodation Bill Clearance & Invoicing</h3>
@@ -85,7 +97,9 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
    <button className="primary" disabled={busy||!chosen.length||!org.organization_name.trim()} onClick={createInvoice}>Create Invoice for {chosen.length} Room(s)</button>
   </details>
   <h4>Issued Invoices</h4>
-  {invoices.map(invoice=><div key={invoice.id} className="mw-accommodation-stay"><div><strong>{invoice.invoice_number} — {invoice.organization_name}</strong><span>{invoice.invoice_date} • {invoiceItems.filter(i=>i.invoice_id===invoice.id).length} room(s) • {money(invoiceItems.filter(i=>i.invoice_id===invoice.id).reduce((n,i)=>n+Number(i.amount_kes),0))}</span></div><button onClick={()=>exportInvoice(invoice)}>Download PDF Invoice</button></div>)}
+  {invoices.map(invoice=><div key={invoice.id} className="mw-accommodation-stay"><div><strong>{invoice.invoice_number} — {invoice.organization_name}</strong><span>{invoice.invoice_date} • {invoiceItems.filter(i=>i.invoice_id===invoice.id).length} room(s) • {money(invoiceItems.filter(i=>i.invoice_id===invoice.id).reduce((n,i)=>n+Number(i.amount_kes),0))}</span></div>
+   <details><summary>Payment Accounts to Show on Invoice</summary>{paymentAccounts.map(a=><label key={a.id} style={{display:'block'}}><input type="checkbox" checked={chosenAccounts(invoice).includes(a.id)} onChange={e=>setSelectedAccounts(old=>({...old,[invoice.id]:e.target.checked?[...chosenAccounts(invoice),a.id]:chosenAccounts(invoice).filter(id=>id!==a.id)}))}/> {a.label} — {a.details}</label>)}{!paymentAccounts.length&&<p>Admin has not configured active payment accounts.</p>}</details>
+   <button onClick={()=>exportInvoice(invoice)}>Download PDF Invoice</button></div>)}
   {!invoices.length&&<p>No invoices issued.</p>}
  </section>;
 }
