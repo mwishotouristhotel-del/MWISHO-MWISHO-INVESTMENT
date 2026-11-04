@@ -1,23 +1,32 @@
 import React,{useEffect,useState} from 'react';
+import {companyDetailsWithDefaults} from './hotelCompanyDetails.js';
 
 const blank={label:'',account_type:'bank',details:'',is_active:true,show_on_invoice:true,show_on_quotation:true,display_order:0};
 export default function HotelDocumentSettings({supabase}){
- const [terms,setTerms]=useState({invoice_terms:'',quotation_terms:'',receipt_terms:''}),[issuerPin,setIssuerPin]=useState(''),[accounts,setAccounts]=useState([]),[newAccount,setNewAccount]=useState({...blank});
+ const [terms,setTerms]=useState({invoice_terms:'',quotation_terms:'',receipt_terms:''}),[company,setCompany]=useState(companyDetailsWithDefaults()),[accounts,setAccounts]=useState([]),[newAccount,setNewAccount]=useState({...blank});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function refresh(){
   const [a,b]=await Promise.all([
-   supabase.from('hotel_document_settings').select('invoice_terms,quotation_terms,receipt_terms,issuer_kra_pin').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_settings').select('invoice_terms,quotation_terms,receipt_terms,issuer_kra_pin,company_details').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').order('display_order').order('label')
   ]);
   if(a.error||b.error)setError(a.error?.message||b.error?.message);
-  else{setTerms({invoice_terms:a.data?.invoice_terms||'',quotation_terms:a.data?.quotation_terms||'',receipt_terms:a.data?.receipt_terms||''});setIssuerPin(a.data?.issuer_kra_pin||'');setAccounts(b.data||[]);setError('');}
+  else{setTerms({invoice_terms:a.data?.invoice_terms||'',quotation_terms:a.data?.quotation_terms||'',receipt_terms:a.data?.receipt_terms||''});setCompany(companyDetailsWithDefaults({...a.data?.company_details,kra_pin:a.data?.company_details?.kra_pin||a.data?.issuer_kra_pin||''}));setAccounts(b.data||[]);setError('');}
  }
  useEffect(()=>{refresh()},[supabase]);
  const edit=(id,key,value)=>setAccounts(old=>old.map(a=>a.id===id?{...a,[key]:value}:a));
  async function saveTerms(){
   setBusy(true);setError('');setNotice('');
-  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,...Object.fromEntries(Object.entries(terms).map(([k,v])=>[k,v.trim()])),issuer_kra_pin:issuerPin.trim().toUpperCase(),updated_at:new Date().toISOString()});
+  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,...Object.fromEntries(Object.entries(terms).map(([k,v])=>[k,v.trim()])),updated_at:new Date().toISOString()});
   if(e)setError(e.message);else setNotice('Invoice, quotation and receipt terms saved independently. Newly issued documents will use their respective wording.');
+  setBusy(false);
+ }
+ async function saveCompany(){
+  setBusy(true);setError('');setNotice('');
+  const details=Object.fromEntries(Object.entries(company).map(([k,v])=>[k,String(v||'').trim()]));
+  details.kra_pin=details.kra_pin.toUpperCase();
+  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,company_details:details,issuer_kra_pin:details.kra_pin,updated_at:new Date().toISOString()});
+  if(e)setError(e.message);else setNotice('Company details saved for invoices and quotations.');
   setBusy(false);
  }
  async function saveAccount(account,isNew=false){
@@ -51,9 +60,16 @@ export default function HotelDocumentSettings({supabase}){
   <h3>Invoice, Quotation & Receipt Terms and Payment Accounts</h3>
   <p>Admin manages the official document terms and payment accounts here. Staff can select from active accounts when downloading an invoice or quotation; inactive accounts will not be offered. Changes affect newly generated PDFs, not previously issued documents.</p>
   {error&&<p role="alert" style={{color:'#b42331'}}>{error}</p>}{notice&&<p role="status" style={{color:'#167447'}}>{notice}</p>}
-  <label><strong>Hotel Issuer KRA PIN (printed invoice header)</strong><input maxLength={30} value={issuerPin} onChange={e=>setIssuerPin(e.target.value)} placeholder="Enter the verified hotel KRA PIN"/></label>
   {[['quotation_terms','Quotation Terms & Conditions'],['invoice_terms','Invoice Terms & Conditions'],['receipt_terms','Receipt Terms & Conditions']].map(([key,label])=><label key={key}><strong>{label}</strong><textarea rows={6} maxLength={5000} value={terms[key]} onChange={e=>setTerms(old=>({...old,[key]:e.target.value}))} placeholder={`Enter hotel-approved ${label.toLowerCase()}`}/></label>)}
   <button disabled={busy} type="button" onClick={saveTerms}>Save Document Terms & Conditions</button>
+  <div style={{padding:16,border:'1px solid #dfd3ea',borderRadius:12,display:'grid',gap:12}}>
+   <h4>Company Details — Invoice & Quotation Headers / Footers</h4>
+   <p>These details are shared by the two document types. Use only verified business information; changes apply to newly downloaded PDFs.</p>
+   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:12}}>
+    {[['company_name','Company / Hotel Name'],['kra_pin','Company KRA PIN'],['registration_number','Company Registration Number'],['phone','Primary Phone'],['alternate_phone','Additional Phone'],['email','Primary Email'],['alternate_email','Additional Email'],['postal_address','Postal Address'],['location','Physical Location / Road'],['landmark','Landmark / Directions']].map(([key,label])=><label key={key}>{label}<input maxLength={200} value={company[key]||''} onChange={e=>setCompany(old=>({...old,[key]:e.target.value}))}/></label>)}
+   </div>
+   <button disabled={busy} type="button" onClick={saveCompany}>Save Company Details</button>
+  </div>
   <h4>Approved Payment Accounts</h4>
   {accounts.map(a=>editor(a))}
   <h4>Add Payment Account</h4>
