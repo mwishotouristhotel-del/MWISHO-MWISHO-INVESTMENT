@@ -14,11 +14,11 @@ export default function WebsiteConferenceQuotes({supabase}){
  }
  useEffect(()=>{
   let alive=true;
-  Promise.all([supabase.from('hotel_document_settings').select('terms_text').eq('id',1).maybeSingle(),
+  Promise.all([supabase.from('hotel_document_settings').select('quotation_terms').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
    if(!alive)return;
    if(a.error||b.error)setError('Document settings unavailable: '+(a.error?.message||b.error?.message));
-   else{setDocumentTerms(a.data?.terms_text||'');setApprovedAccounts(b.data||[]);}
+   else{setDocumentTerms(a.data?.quotation_terms||'');setApprovedAccounts(b.data||[]);}
   });return()=>{alive=false;};
  },[supabase]);
  async function publishPdf(q){
