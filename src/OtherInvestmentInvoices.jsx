@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState} from 'react';
 import {downloadOtherIncomeInvoice} from './otherIncomeInvoicePdf.js';
 
 const empty={category:'House Rent',bill_to:'',contact:'',address:'',kra_pin:'',invoice_date:new Date().toLocaleDateString('en-CA'),due_date:'',description:''};
+const initialCategories=['House Rent','Equipment Hire','Property Lease','Other Services'];
 const draftKey='mwisho-other-investment-invoice-draft-v1';
 const defaultLines=()=>[{description:'',quantity:'1',unit_price_kes:''}];
 const readDraft=()=>{
@@ -17,6 +18,7 @@ export default function OtherInvestmentInvoices({supabase}){
  const [initialDraft]=useState(readDraft);
  const [form,setForm]=useState(initialDraft.form),[lines,setLines]=useState(initialDraft.lines);
  const [invoices,setInvoices]=useState([]),[items,setItems]=useState([]),[payments,setPayments]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[issuerPin,setIssuerPin]=useState(''),[companyDetails,setCompanyDetails]=useState({});
+ const [categories,setCategories]=useState(initialCategories),[newCategory,setNewCategory]=useState('');
  const [selected,setSelected]=useState({}),[payDraft,setPayDraft]=useState({}),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const total=useMemo(()=>lines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price_kes||0),0),[lines]);
  useEffect(()=>{
@@ -27,14 +29,25 @@ export default function OtherInvestmentInvoices({supabase}){
    supabase.from('hotel_other_income_invoices').select('*').order('created_at',{ascending:false}).limit(100),
    supabase.from('hotel_other_income_invoice_items').select('*').limit(500),
    supabase.from('hotel_other_income_payments').select('*').order('created_at',{ascending:false}).limit(500),
-   supabase.from('hotel_document_settings').select('invoice_terms,issuer_kra_pin,company_details').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_settings').select('invoice_terms,issuer_kra_pin,company_details,other_income_categories').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')
   ]);
   const e=results.find(r=>r.error)?.error;if(e){setError(e.message);return;}
   setInvoices(results[0].data||[]);setItems(results[1].data||[]);setPayments(results[2].data||[]);
   setTerms(results[3].data?.invoice_terms||'');setIssuerPin(results[3].data?.issuer_kra_pin||'');setCompanyDetails(results[3].data?.company_details||{});setAccounts(results[4].data||[]);
+  setCategories(Array.isArray(results[3].data?.other_income_categories)?results[3].data.other_income_categories:initialCategories);
  };
  useEffect(()=>{refresh()},[supabase]);
+ const addIncomeSource=async()=>{
+  const name=newCategory.trim().replace(/\s+/g,' ');
+  if(name.length<2||name.length>100){setError('Income source name must contain 2–100 characters.');return;}
+  if(categories.some(c=>c.toLowerCase()===name.toLowerCase())){setError('This income source already exists.');return;}
+  setBusy(true);setError('');setMessage('');
+  const next=[...categories,name];
+  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,other_income_categories:next,updated_at:new Date().toISOString()});
+  if(e)setError(e.message);else{setCategories(next);setNewCategory('');setMessage('Income source “'+name+'” added. It is now available when creating invoices.');}
+  setBusy(false);
+ };
  const makeInvoice=async e=>{
   e.preventDefault();setError('');setMessage('');
   if(!lines.length||lines.some(x=>x.description.trim().length<2||!(Number(x.quantity)>0)||Number(x.unit_price_kes)<0||x.unit_price_kes==='')||total<=0){setError('Complete each item with a description, positive quantity, valid price and positive invoice total.');return;}
@@ -63,12 +76,20 @@ export default function OtherInvestmentInvoices({supabase}){
   <h3>Other MWISHO Investment Income — Internal Invoicing</h3>
   <p>Issue invoices for House Rent and other non-POS services. An invoice is a receivable; only recorded payments count as collected income. These do not affect accommodation sales, waiter bills or stock.</p>
   {error&&<p role="alert" style={{color:'#a21c37'}}>{error}</p>}{message&&<p role="status" style={{color:'#176b3b'}}>{message}</p>}
+  <div style={{border:'1px solid #dccce7',borderRadius:14,padding:16,display:'grid',gap:9}}>
+   <h4>Admin — Manage Other Investment Income Sources</h4>
+   <p>Choose an existing income category when preparing an invoice. Add new sources such as Parking Fees, Property Rent, Hall Hire or Consultancy Income here. Previous invoices keep their saved categories.</p>
+   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>{categories.map(c=><span key={c} style={{border:'1px solid #d6c9e3',borderRadius:20,padding:'4px 10px'}}>{c}</span>)}</div>
+   <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'end'}}><label>New Income Source<input maxLength={100} value={newCategory} onChange={e=>setNewCategory(e.target.value)} placeholder="e.g. Parking Fees"/></label><button type="button" disabled={busy||!newCategory.trim()} onClick={addIncomeSource}>Add Income Source</button></div>
+  </div>
   <form onSubmit={makeInvoice} style={{padding:16,border:'1px solid #dccce7',borderRadius:14,display:'grid',gap:12}}>
    <h4>Create Internal Invoice</h4>
    <small>Your unfinished invoice is kept in this browser tab if the page refreshes. It is cleared after successful creation.</small>
    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
-    <label>Income Category<input required maxLength={100} list="mw-other-income-categories" value={form.category} onChange={e=>set('category',e.target.value)}/></label>
-    <datalist id="mw-other-income-categories"><option value="House Rent"/><option value="Equipment Hire"/><option value="Property Lease"/><option value="Other Services"/></datalist>
+    <label>Income Source / Category<select required value={form.category} onChange={e=>set('category',e.target.value)}>
+     {!categories.includes(form.category)&&<option value={form.category}>{form.category} (saved draft)</option>}
+     {categories.map(c=><option key={c} value={c}>{c}</option>)}
+    </select></label>
     <label>Bill To / Tenant / Organization<input required maxLength={180} value={form.bill_to} onChange={e=>set('bill_to',e.target.value)}/></label>
     <label>Contact (optional)<input value={form.contact} onChange={e=>set('contact',e.target.value)}/></label>
     <label>Address (optional)<input value={form.address} onChange={e=>set('address',e.target.value)}/></label>
