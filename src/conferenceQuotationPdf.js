@@ -22,7 +22,7 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
  doc.setDrawColor(130,50,120);doc.line(14,35,196,35);
  doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('QUOTATION',105,43,{align:'center'});
  const refYear=new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(quote.created_at));
- const reference='MTH'+refYear+'-'+quote.id.replace(/-/g,'').slice(0,10).toUpperCase();
+ const reference=quote.reference||'MTH'+refYear+'-'+quote.id.replace(/-/g,'').slice(0,10).toUpperCase();
  doc.setFontSize(9);doc.text('Quotation Reference: '+reference,14,52);
  doc.text('Prepared: '+new Date().toLocaleDateString('en-KE',{timeZone:'Africa/Nairobi'}),196,52,{align:'right'});
  doc.text('ATTN: '+clean(quote.organization_name),14,61);

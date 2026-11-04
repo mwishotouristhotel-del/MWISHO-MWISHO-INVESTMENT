@@ -111,7 +111,7 @@ export default function WebsiteConferenceQuotes({supabase}){
      <option value="">Not assigned</option>{staff.map(member=><option value={member.user_id} key={member.user_id}>{member.display_name||member.user_id}</option>)}
     </select></label>
     <label>Request status<select value={current.status||q.status} onChange={e=>edit(q.id,'status',e.target.value)}>
-     {['new','assigned','preparing','quoted','closed'].map(x=><option key={x} value={x}>{x.replace('_',' ')}</option>)}
+     {['new','assigned','preparing','quoted','approved','booked','closed'].map(x=><option key={x} value={x}>{x.replace('_',' ')}</option>)}
     </select></label>
     <label>Admin / quotation preparation notes<textarea rows={3} maxLength={3000} value={current.admin_notes===undefined?q.admin_notes:current.admin_notes} onChange={e=>edit(q.id,'admin_notes',e.target.value)}/></label>
     <button type="button" disabled={busy} onClick={()=>save(q)}>Save Assignment & Status</button>
