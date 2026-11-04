@@ -76,6 +76,7 @@ function WebsiteManager({supabase,userId}){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const [period,setPeriod]=useState('7');
  const [tab,setTab]=useState(()=>{const value=safelyRead(scope+'-tab','content');return WEBSITE_TABS.includes(value)?value:'content';});
+ useEffect(()=>{const openInvoices=()=>setTab('invoices_quotes');window.addEventListener('mwisho-open-invoices-quotations',openInvoices);return()=>window.removeEventListener('mwisho-open-invoices-quotations',openInvoices);},[]);
  useEffect(()=>{keepDraft(scope+'-tab',tab)},[scope,tab]);
  useEffect(()=>{keepDraft(scope+'-selected',selected)},[scope,selected]);
  const [imageNotice,setImageNotice]=useState(''),[imageError,setImageError]=useState(''),[imageUploadingSlug,setImageUploadingSlug]=useState('');
