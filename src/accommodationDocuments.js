@@ -1,5 +1,6 @@
 import {jsPDF} from 'jspdf';
 import websiteLogoSvg from '../hotel/assets/mwisho-logo.svg?raw';
+import {printHotelInvoice} from './hotelInvoicePrintLayout.js';
 
 // Use the same embedded PNG as the customer website's logo SVG (no redraw).
 const websiteLogoPng=websiteLogoSvg.match(/href="(data:image\/png;base64,[^"]+)"/)?.[1];
@@ -105,44 +106,16 @@ export function downloadBlankRegistrationBatch({count=1,startNumber=1}={}){
  doc.save(`Mwisho-Guest-Registration-Forms-${registrationSerial(first)}-${registrationSerial(last)}.pdf`);
 }
 
-export function downloadAccommodationInvoice({invoice,items,documentTerms='',paymentDetails=''}){
- const doc=new jsPDF({unit:'mm',format:'a4'});
- page(doc,'ACCOMMODATION INVOICE',`Invoice ${invoice.invoice_number||''} - ${invoice.invoice_date||''}`);
- field(doc,'Bill To:',invoice.organization_name,15,62);
- field(doc,'Organization Address:',invoice.organization_address,15,72);
- field(doc,'KRA PIN:',invoice.kra_pin,15,82,110);
- field(doc,'Payment Terms:',invoice.payment_terms,15,92);
- doc.setFillColor(244,236,249);doc.rect(15,102,180,10,'F');
- doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(55,32,70);
- doc.text('ROOM',18,109);doc.text('GUEST',48,109);doc.text('STAY DATES',112,109);doc.text('KSh',188,109,{align:'right'});
- let y=119;
- for(const item of items){
-  if(y>245){doc.addPage();page(doc,'ACCOMMODATION INVOICE (continued)',invoice.invoice_number||'');y=60;}
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(35,35,35);
-  doc.text(text(item.room_number),18,y);doc.text(text(item.guest_name).slice(0,30),48,y);
-  doc.text(`${item.check_in_date} - ${item.expected_check_out_date}`,112,y);
-  doc.text(Number(item.amount_kes||0).toLocaleString('en-KE',{minimumFractionDigits:2}),188,y,{align:'right'});
-  doc.setDrawColor(230,230,230);doc.line(15,y+3,195,y+3);y+=12;
- }
- const amount=items.reduce((sum,i)=>sum+Number(i.amount_kes||0),0);
- doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(86,41,122);
- y=Math.min(264,y+5);
- doc.text(`TOTAL DUE: KSh ${amount.toLocaleString('en-KE',{minimumFractionDigits:2})}`,188,y,{align:'right'});
- y+=9;
- const printBlock=(heading,value)=>{
-  if(!text(value))return;
-  if(y>255){doc.addPage();page(doc,'ACCOMMODATION INVOICE (continued)',invoice.invoice_number||'');y=62;}
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);doc.text(heading,15,y);y+=5;
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
-  const lines=doc.splitTextToSize(text(value),176);
-  for(const line of lines){
-   if(y>262){doc.addPage();page(doc,'ACCOMMODATION INVOICE (continued)',invoice.invoice_number||'');y=62;}
-   doc.text(line,15,y);y+=4;
-  }
-  y+=5;
- };
- printBlock('HOTEL TERMS & CONDITIONS',documentTerms);
- printBlock('APPROVED PAYMENT ACCOUNTS',paymentDetails);
- invoiceFooter(doc);
- doc.save(`Mwisho-Invoice-${text(invoice.invoice_number||'draft').replace(/[^a-z0-9-]/gi,'-')}.pdf`);
+export function downloadAccommodationInvoice({invoice,items,documentTerms='',paymentDetails='',issuerPin=''}){
+ const total=items.reduce((sum,item)=>sum+Number(item.amount_kes||0),0);
+ return printHotelInvoice({
+  reference:invoice.invoice_number||'DRAFT',invoiceDate:invoice.invoice_date,
+  client:invoice.organization_name,clientAddress:invoice.organization_address,
+  clientPin:invoice.kra_pin,issuerPin,
+  deliveryDates:items.map(item=>item.check_in_date+' to '+item.expected_check_out_date).filter(Boolean).join('; '),
+  rows:items.map(item=>({quantity:1,description:`Room ${item.room_number} - ${item.guest_name} (${item.check_in_date} to ${item.expected_check_out_date})`,unitPrice:item.amount_kes,days:'',amount:item.amount_kes})),
+  subtotal:total,vatAmount:0,
+  terms:[invoice.payment_terms,documentTerms].filter(Boolean).join('\n\n'),paymentDetails,
+  filename:`Mwisho-Invoice-${text(invoice.invoice_number||'draft').replace(/[^a-z0-9-]/gi,'-')}.pdf`
+ });
 }
