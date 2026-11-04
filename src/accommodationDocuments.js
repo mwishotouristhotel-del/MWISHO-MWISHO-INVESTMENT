@@ -13,14 +13,26 @@ export function validateRegistrationBatch(count,startNumber){
 }
 
 const page=(doc,title,subtitle)=>{
+ const isInvoice=title.includes('INVOICE');
  doc.setDrawColor(86,41,122);doc.setLineWidth(1);doc.rect(10,10,190,277);
  doc.setFillColor(250,247,252);doc.rect(11,11,188,22,'F');
- doc.setFillColor(86,41,122);doc.rect(11,32,188,1.2,'F');
+ doc.setFillColor(86,41,122);doc.rect(11,isInvoice?35:32,188,1.2,'F');
  doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(15);doc.text('MWISHO TOURIST HOTEL',17,20);
  doc.setFont('helvetica','italic');doc.setFontSize(9);doc.text('Taste of Class',17,26);
+ if(isInvoice){doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(86,41,122);doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',17,32);}
  if(websiteLogoPng)doc.addImage(websiteLogoPng,'PNG',155,12,38,17.23);
- doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(title,15,43);
- doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(subtitle,15,49);
+ doc.setTextColor(86,41,122);doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(title,15,isInvoice?46:43);
+ doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text(subtitle,15,isInvoice?52:49);
+};
+const invoiceFooter=(doc)=>{
+ const pages=doc.getNumberOfPages();
+ for(let n=1;n<=pages;n++){
+  doc.setPage(n);doc.setFont('helvetica','normal');doc.setFontSize(7.2);doc.setTextColor(86,41,122);
+  doc.text('Email: mwishotouristhotel@gmail.com  |  Phone: 0745396385',105,273,{align:'center'});
+  doc.text('Address: P.O.BOX 35-40600',105,277,{align:'center'});
+  doc.text('Location: Siaya Town, Along Kisumu-Luanda-Siaya Road',105,281,{align:'center'});
+  doc.text('Opposite Shell Petrol Station',105,285,{align:'center'});
+ }
 };
 const field=(doc,label,value,x,y,width=178)=>{
  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(35,35,35);doc.text(label,x,y);
@@ -115,5 +127,6 @@ export function downloadAccommodationInvoice({invoice,items}){
  const amount=items.reduce((sum,i)=>sum+Number(i.amount_kes||0),0);
  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(86,41,122);
  doc.text(`TOTAL DUE: KSh ${amount.toLocaleString('en-KE',{minimumFractionDigits:2})}`,188,Math.min(264,y+5),{align:'right'});
+ invoiceFooter(doc);
  doc.save(`Mwisho-Invoice-${text(invoice.invoice_number||'draft').replace(/[^a-z0-9-]/gi,'-')}.pdf`);
 }
