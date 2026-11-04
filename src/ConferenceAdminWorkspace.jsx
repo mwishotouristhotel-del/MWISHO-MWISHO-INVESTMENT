@@ -1,15 +1,17 @@
 import React,{useState} from 'react';
 import WebsiteConferenceQuotes from './WebsiteConferenceQuotes.jsx';
 import WebsiteConferencePackages from './WebsiteConferencePackages.jsx';
+import HotelDocumentSettings from './HotelDocumentSettings.jsx';
 import './ConferenceAdminWorkspace.css';
 
 const TABS=[
  {id:'requests',icon:'📋',label:'Quotation Requests',description:'Review requests, assign staff and track preparation'},
- {id:'packages',icon:'🏢',label:'Packages & Rates',description:'Maintain conference services, inclusions and prices'}
+ {id:'packages',icon:'🏢',label:'Packages & Rates',description:'Maintain conference services, inclusions and prices'},
+ {id:'document_settings',icon:'🧾',label:'Document Terms & Accounts',description:'Admin-managed quotation and invoice conditions and payment accounts'}
 ];
 export default function ConferenceAdminWorkspace({supabase}){
  const [tab,setTab]=useState(()=>{
-  try{return sessionStorage.getItem('mwisho-conference-admin-tab')==='packages'?'packages':'requests';}
+  try{const value=sessionStorage.getItem('mwisho-conference-admin-tab');return ['packages','document_settings'].includes(value)?value:'requests';}
   catch{return 'requests';}
  });
  const choose=id=>{setTab(id);try{sessionStorage.setItem('mwisho-conference-admin-tab',id);}catch{}};
@@ -29,9 +31,9 @@ export default function ConferenceAdminWorkspace({supabase}){
   <div className="mw-conf-panel">
    <div className="mw-conf-panel-heading">
     <div><span className="mw-conf-section-label">CONFERENCE CONTROL CENTER</span>
-    <h3>{tab==='requests'?'Quotation Requests & Staff Assignments':'Conference Packages & Pricing'}</h3></div>
+    <h3>{tab==='requests'?'Quotation Requests & Staff Assignments':tab==='packages'?'Conference Packages & Pricing':'Document Terms & Payment Accounts'}</h3></div>
    </div>
-   {tab==='requests'?<WebsiteConferenceQuotes supabase={supabase}/>:<WebsiteConferencePackages supabase={supabase}/>}
+   {tab==='requests'?<WebsiteConferenceQuotes supabase={supabase}/>:tab==='packages'?<WebsiteConferencePackages supabase={supabase}/>:<HotelDocumentSettings supabase={supabase}/>}
   </div>
  </section>;
 }
