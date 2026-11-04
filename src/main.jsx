@@ -21,6 +21,7 @@ function App(){
  const requested=new URLSearchParams(window.location.search).get('section');
  if(requested==='hotel-settings'){setSection('Hotel System Settings');loadHotelCounters();}
  else if(requested==='hotel-website')setSection('Hotel Website Management');
+ else if(requested==='invoice-approvals')setSection('Invoice Approvals');
  else {
   const saved=window.localStorage.getItem('mwisho-admin-last-section-'+(session?.user?.id||''));
   const adminWorkspaces=['Dashboard','Hotel Website Management','Hotel System Settings','Staff Management','Menu Management','Cancellation Approvals','Invoice Approvals','Complimentary Approvals','Staff Bills / Debts'];
@@ -298,7 +299,7 @@ async function confirmPayment(id){setBusy(true);setError('');const {error:err}=a
 {tabs.filter(t=>!['Dashboard','Staff Management','Hotel Website Management','Hotel System Settings','Menu Management','Cancellation Approvals','Invoice Approvals','Complimentary Approvals','Staff Bills / Debts'].includes(t)).map(t=><button key={t} className={section===t?'selected':''} onClick={()=>navigate(t)}><span className="menu-icon" aria-hidden="true">{operationIcons[t]||'✦'}</span><span className="menu-label">{t}</span><span className="menu-chevron" aria-hidden="true">›</span></button>)}
 {roles.some(r=>r.role==='director_admin')&&<>
 <div className="side-menu-title admin-menu-heading">ADMINISTRATION / CONTROL CENTER</div>
-{['Dashboard','Hotel Website Management','Hotel System Settings','Staff Management','Menu Management','Cancellation Approvals','Invoice Approvals','Complimentary Approvals','Staff Bills / Debts'].map(t=><button key={t} className={section===t?'selected':''} onClick={()=>navigate(t)}><span className="menu-icon" aria-hidden="true">{operationIcons[t]||'✦'}</span><span className="menu-label">{t==='Dashboard'?'Admin Dashboard':t}</span><span className="menu-chevron" aria-hidden="true">›</span></button>)}
+{['Dashboard','Hotel Website Management','Hotel System Settings','Staff Management','Menu Management','Cancellation Approvals','Invoice Approvals','Complimentary Approvals','Staff Bills / Debts'].map(t=><button key={t} className={section===t?'selected':''} onClick={()=>{if(t==='Invoice Approvals'){try{window.localStorage.setItem('mwisho-website-edit-'+(session?.user?.id||'no-user')+'-tab','invoices_quotes')}catch{}navigate('Hotel Website Management')}else navigate(t)}}><span className="menu-icon" aria-hidden="true">{operationIcons[t]||'✦'}</span><span className="menu-label">{t==='Dashboard'?'Admin Dashboard':t==='Invoice Approvals'?'Invoices & Quotations':t}</span><span className="menu-chevron" aria-hidden="true">›</span></button>)}
 </>}
 {!roles.some(r=>r.role==='director_admin')&&tabs.some(t=>['Dashboard','Staff Management','Hotel System Settings','Menu Management','Cancellation Approvals','Invoice Approvals','Complimentary Approvals','Staff Bills / Debts'].includes(t))&&<>
 <div className="side-menu-title admin-menu-heading">MANAGEMENT</div>
