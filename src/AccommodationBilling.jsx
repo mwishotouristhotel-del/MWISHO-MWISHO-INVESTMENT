@@ -25,11 +25,11 @@ export default function AccommodationBilling({supabase,stays,payments,rooms,orga
  useEffect(()=>{load()},[stays,payments]);
  useEffect(()=>{
   let alive=true;
-  Promise.all([supabase.from('hotel_document_settings').select('terms_text').eq('id',1).maybeSingle(),
+  Promise.all([supabase.from('hotel_document_settings').select('invoice_terms').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')]).then(([a,b])=>{
    if(!alive)return;
    if(a.error||b.error)setMessage('Document settings unavailable: '+(a.error?.message||b.error?.message));
-   else{setDocumentTerms(a.data?.terms_text||'');setPaymentAccounts(b.data||[]);}
+   else{setDocumentTerms(a.data?.invoice_terms||'');setPaymentAccounts(b.data||[]);}
   });return()=>{alive=false;};
  },[supabase]);
  const chosenAccounts=invoice=>selectedAccounts[invoice.id]??paymentAccounts.filter(a=>a.is_active&&a.show_on_invoice).map(a=>a.id);

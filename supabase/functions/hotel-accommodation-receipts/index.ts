@@ -34,7 +34,9 @@ const validEtims=(raw:unknown)=>{
 };
 const asThermalPdf=async(row:any)=>{
  const data=row.snapshot, count=Math.min(data.payments.length,30);
- const height=Math.max(510,425+count*18+(row.etims_url?120:0));
+ const receiptTerms=tidy(data.receipt_terms||'');
+ const termLines=receiptTerms?receiptTerms.match(/.{1,36}(?:\s|$)|.{1,36}/g)||[]:[];
+ const height=Math.max(510,425+count*18+(row.etims_url?120:0)+termLines.length*14+(termLines.length?36:0));
  const pdf=await PDFDocument.create(),page=pdf.addPage([226.77,height]);
  const font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
  let y=height-24;
@@ -57,6 +59,7 @@ const asThermalPdf=async(row:any)=>{
   page.drawImage(image,{x:73,y:y-93,width:80,height:80});y-=110;
   center('Scan To Open Etims/Etr Receipt',8,true);
  }
+ if(termLines.length){y-=8;center('RECEIPT TERMS & CONDITIONS',8,true);for(const segment of termLines){page.drawText(tidy(segment),{x:12,y,font,size:8});y-=14;}}
  center('Thank you for staying with us',8);
  return await pdf.save();
 };
@@ -100,6 +103,23 @@ const asPdf=async(row:any)=>{
   const image=await pdf.embedPng(Uint8Array.from(atob(imageData.split(',')[1]),c=>c.charCodeAt(0)));
   page.drawImage(image,{x:435,y:70,width:110,height:110});
   page.drawText('Scan To Open Etims/Etr Receipt',{x:404,y:58,font,size:8,color:purple});
+ }
+ if(tidy(data.receipt_terms||'')){
+  let termsPage=pdf.addPage([595,842]);
+  termsPage.drawRectangle({x:30,y:30,width:535,height:782,borderColor:purple,borderWidth:1});
+  termsPage.drawText('MWISHO TOURIST HOTEL - RECEIPT TERMS & CONDITIONS',{x:45,y:775,font:bold,size:13,color:purple});
+  let termsY=742;const maxWidth=500;
+  for(const paragraph of String(data.receipt_terms).split(/\r?\n/)){
+   let line='';
+   for(const word of tidy(paragraph).split(/\s+/).filter(Boolean)){
+    const next=line?line+' '+word:word;
+    if(font.widthOfTextAtSize(next,9)>maxWidth&&line){termsPage.drawText(line,{x:45,y:termsY,font,size:9,color:grey});termsY-=14;line=word;}
+    else line=next;
+   }
+   if(line){termsPage.drawText(line,{x:45,y:termsY,font,size:9,color:grey});termsY-=14;}
+   termsY-=7;
+   if(termsY<50){termsY=742;const continuation=pdf.addPage([595,842]);termsPage=continuation;}
+  }
  }
  page.drawText('This receipt records payments actually received. An invoice or pending approval is not a payment.',{x:45,y:45,font,size:8,color:grey});
  return await pdf.save();
@@ -172,7 +192,9 @@ Deno.serve(async(req:Request)=>{
    if(paymentError||!room)return json({error:'Could not verify room and payment records'},503,origin);
    const paid=(payments||[]).reduce((sum:number,p:any)=>sum+Number(p.amount_kes||0),0),total=Number(stay.total_kes||0),balance=Math.max(0,total-paid);
    const token=hex(crypto.getRandomValues(new Uint8Array(32)).buffer),now=new Date(),expiry=new Date(now.getTime()+30*86400000),receiptId=crypto.randomUUID();
-   const snapshot={receipt_number:`MTH-${now.getUTCFullYear()}-${receiptId.slice(0,8).toUpperCase()}`,guest_name:stay.guest_name,room_number:room.room_number,category:room.category,package:stay.package_key,
+   const {data:documentSettings,error:settingsError}=await db.from('hotel_document_settings').select('receipt_terms').eq('id',1).maybeSingle();
+   if(settingsError)return json({error:'Receipt terms are temporarily unavailable'},503,origin);
+   const snapshot={receipt_number:`MTH-${now.getUTCFullYear()}-${receiptId.slice(0,8).toUpperCase()}`,guest_name:stay.guest_name,room_number:room.room_number,category:room.category,package:stay.package_key,receipt_terms:documentSettings?.receipt_terms||'',
     check_in_date:stay.check_in_date,check_out_date:stay.actual_check_out_date||stay.expected_check_out_date,
     total,paid,balance,organization:stay.invoice_organization_name||'',status:balance>0?(stay.invoice_organization_name?'INVOICE PENDING':'PAYMENT / APPROVAL PENDING'):'PAID',
     payments:(payments||[]).map((p:any)=>({date:String(p.received_at).slice(0,10),method:p.method,reference:p.reference,amount:p.amount_kes}))};
