@@ -1,6 +1,7 @@
 import {jsPDF} from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import hotelLogoUrl from '../hotel/assets/mwisho-logo.svg';
+import {companyDetailsWithDefaults,companyContactLines} from './hotelCompanyDetails.js';
 
 const money=value=>Number(value||0).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const clean=value=>String(value??'').trim();
@@ -11,12 +12,13 @@ async function logoData(){
  canvas.getContext('2d').drawImage(image,0,0,450,180);
  return canvas.toDataURL('image/png');
 }
-export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paymentDetails){
+export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paymentDetails,companyDetails={}){
+ const company=companyDetailsWithDefaults(companyDetails);
  const valid=lines.filter(x=>clean(x.description));
  if(!valid.length)throw Error('Add at least one quotation item.');
  if(valid.some(x=>![x.unitPrice,x.pax,x.days].every(v=>Number.isFinite(Number(v))&&Number(v)>=0)))throw Error('Check item prices and quantities.');
  const doc=new jsPDF({format:'a4',unit:'mm'}),pageWidth=210;
- try{doc.addImage(await logoData(),'PNG',84,8,42,17);}catch{doc.setFontSize(15);doc.text('MWISHO TOURIST HOTEL',105,17,{align:'center'});}
+ try{doc.addImage(await logoData(),'PNG',84,8,42,17);}catch{doc.setFontSize(15);doc.text(company.company_name||'MWISHO TOURIST HOTEL',105,17,{align:'center',maxWidth:180});}
  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);
  doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,31,{align:'center'});
  doc.setDrawColor(130,50,120);doc.line(14,35,196,35);
@@ -25,6 +27,7 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
  const reference=quote.reference||'MTH'+refYear+'-'+quote.id.replace(/-/g,'').slice(0,10).toUpperCase();
  doc.setFontSize(9);doc.text('Quotation Reference: '+reference,14,52);
  doc.text('Prepared: '+new Date().toLocaleDateString('en-KE',{timeZone:'Africa/Nairobi'}),196,52,{align:'right'});
+ if(company.kra_pin||company.registration_number){doc.setFontSize(7);doc.text([company.kra_pin?'KRA PIN: '+company.kra_pin:'',company.registration_number?'Reg: '+company.registration_number:''].filter(Boolean).join('  |  '),105,47,{align:'center',maxWidth:170});doc.setFontSize(9);}
  doc.text('ATTN: '+clean(quote.organization_name),14,61);
  doc.setFont('helvetica','normal');doc.text('Dear '+clean(quote.contact_person)+',',14,68);
  doc.text('Thank you for your enquiry. Please find our quotation below.',14,74);
@@ -40,7 +43,7 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
  let y=doc.lastAutoTable.finalY+7;
  const ensure=needed=>{if(y+needed>269){
   doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(86,41,122);
-  doc.text('MWISHO TOURIST HOTEL',105,17,{align:'center'});
+  doc.text(company.company_name||'MWISHO TOURIST HOTEL',105,17,{align:'center',maxWidth:180});
   doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,25,{align:'center'});
   doc.setDrawColor(130,50,120);doc.line(14,29,196,29);
   doc.text('QUOTATION (CONTINUED)',105,37,{align:'center'});y=48;
@@ -66,10 +69,7 @@ export async function downloadConferenceQuotation(quote,lines,vatRate,terms,paym
  const pages=doc.getNumberOfPages();for(let p=1;p<=pages;p++){
   doc.setPage(p);doc.setFontSize(8);doc.setTextColor(90);
   doc.setTextColor(86,41,122);
-  doc.text('Email: mwishotouristhotel@gmail.com  |  Phone: 0745396385',105,273,{align:'center'});
-  doc.text('Address: P.O.BOX 35-40600',105,277,{align:'center'});
-  doc.text('Location: Siaya Town, Along Kisumu-Luanda-Siaya Road',105,281,{align:'center'});
-  doc.text('Opposite Shell Petrol Station',105,285,{align:'center'});
+  companyContactLines(company).slice(0,3).forEach((line,i)=>doc.text(line,105,275+i*4.5,{align:'center',maxWidth:180}));
   doc.text('Page '+p+' of '+pages,196,292,{align:'right'});
  }
  doc.save('MWISHO-Quotation-'+reference+'.pdf');

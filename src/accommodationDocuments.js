@@ -106,9 +106,9 @@ export function downloadBlankRegistrationBatch({count=1,startNumber=1}={}){
  doc.save(`Mwisho-Guest-Registration-Forms-${registrationSerial(first)}-${registrationSerial(last)}.pdf`);
 }
 
-export function downloadAccommodationInvoice({invoice,items,documentTerms='',paymentDetails='',issuerPin=''}){
+export function downloadAccommodationInvoice({invoice,items,documentTerms='',paymentDetails='',issuerPin='',companyDetails={}}){
  const total=items.reduce((sum,item)=>sum+Number(item.amount_kes||0),0);
- return printHotelInvoice({
+ return printHotelInvoice({companyDetails,
   reference:invoice.invoice_number||'DRAFT',invoiceDate:invoice.invoice_date,
   client:invoice.organization_name,clientAddress:invoice.organization_address,
   clientPin:invoice.kra_pin,issuerPin,
