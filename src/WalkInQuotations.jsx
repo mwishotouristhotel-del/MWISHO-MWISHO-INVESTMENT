@@ -6,14 +6,14 @@ const empty=()=>({organization_name:'',contact_person:'',contact_phone:'',organi
 const firstItem=()=>({description:'',unitPrice:'',pax:'1',days:'1'});
 const money=v=>'KSh '+Number(v||0).toLocaleString('en-KE',{minimumFractionDigits:2});
 export default function WalkInQuotations({supabase}){
- const [form,setForm]=useState(empty),[items,setItems]=useState([firstItem()]),[quotes,setQuotes]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[accountChoices,setAccountChoices]=useState({});
+ const [form,setForm]=useState(empty),[items,setItems]=useState([firstItem()]),[quotes,setQuotes]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[companyDetails,setCompanyDetails]=useState({}),[accountChoices,setAccountChoices]=useState({});
  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[error,setError]=useState('');
  async function refresh(){const [a,b,c]=await Promise.all([
   supabase.from('hotel_walkin_quotations').select('*').order('created_at',{ascending:false}).limit(150),
-  supabase.from('hotel_document_settings').select('quotation_terms').eq('id',1).maybeSingle(),
+  supabase.from('hotel_document_settings').select('quotation_terms,company_details').eq('id',1).maybeSingle(),
   supabase.from('hotel_document_payment_accounts').select('*').eq('is_active',true).order('display_order')
  ]);if(a.error||b.error||c.error)setError(a.error?.message||b.error?.message||c.error?.message);
- else{setQuotes(a.data||[]);setTerms(b.data?.quotation_terms||'');setAccounts(c.data||[]);}}
+ else{setQuotes(a.data||[]);setTerms(b.data?.quotation_terms||'');setCompanyDetails(b.data?.company_details||{});setAccounts(c.data||[]);}}
  useEffect(()=>{refresh()},[supabase]);
  const change=(key,value)=>setForm(f=>({...f,[key]:value}));
  const changeItem=(i,key,value)=>setItems(rows=>rows.map((r,j)=>i===j?{...r,[key]:value}:r));
@@ -28,7 +28,7 @@ export default function WalkInQuotations({supabase}){
   setBusy(true);setError('');const {error:e}=await supabase.rpc('hotel_walkin_quote_status',{p_id:q.id,p_status:status});if(e)setError(e.message);else{setNotice('Quotation '+q.reference+' marked '+status+'.');await refresh();}setBusy(false);
  }
  async function download(q){setError('');try{const chosen=accountChoices[q.id]??accounts.filter(a=>a.show_on_quotation).map(a=>a.id);
-   await downloadConferenceQuotation(q,q.items,q.vat_rate,terms,accounts.filter(a=>chosen.includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n'));
+   await downloadConferenceQuotation(q,q.items,q.vat_rate,terms,accounts.filter(a=>chosen.includes(a.id)).map(a=>a.label+'\n'+a.details).join('\n\n'),companyDetails);
   }catch(e){setError(e.message||'Unable to prepare quotation PDF');}}
  return <section style={{display:'grid',gap:15}}>
   <h3>Walk-in / Email / Telephone Quotations</h3><p>Create a quotation internally even when the customer never submitted a website form. It uses the same hotel PDF design, quotation terms and approved payment accounts.</p>
