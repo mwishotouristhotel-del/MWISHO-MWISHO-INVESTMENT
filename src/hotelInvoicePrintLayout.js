@@ -1,6 +1,7 @@
 import {jsPDF} from 'jspdf';
 import websiteLogoSvg from '../hotel/assets/mwisho-logo.svg?raw';
-import {companyDetailsWithDefaults,companyContactLines} from './hotelCompanyDetails.js';
+import investmentLogoData from '../hotel/assets/mwisho-investment-logo.png?inline';
+import {companyDetailsWithDefaults,investmentDetailsWithDefaults,companyContactLines} from './hotelCompanyDetails.js';
 
 const logo=websiteLogoSvg.match(/href="(data:image\/png;base64,[^"]+)"/)?.[1];
 const purple=[76,38,108],blue=[71,145,184],yellow=[252,219,92],red=[170,63,82];
@@ -9,14 +10,16 @@ const clean=value=>String(value??'').trim();
 
 // Shared document template: the photographed hotel invoice is a layout reference,
 // while tax, payment accounts and legal terms are supplied from actual records.
-export function printHotelInvoice({reference,invoiceDate,client,clientAddress='',clientPin='',deliveryDates='',purchaseOrder='',deliveryNote='',issuerPin='',companyDetails={},category='',rows=[],subtotal,vatAmount=0,terms='',paymentDetails='',filename='MWISHO-Invoice.pdf'}){
+export function printHotelInvoice({reference,invoiceDate,client,clientAddress='',clientPin='',deliveryDates='',purchaseOrder='',deliveryNote='',issuerPin='',companyDetails={},issuerEntity='hotel',category='',rows=[],subtotal,vatAmount=0,terms='',paymentDetails='',filename='MWISHO-Invoice.pdf'}){
  const doc=new jsPDF({format:'a4',unit:'mm'});
- const company=companyDetailsWithDefaults(companyDetails);
+ const investment=issuerEntity==='investment';
+ const company=investment?investmentDetailsWithDefaults(companyDetails):companyDetailsWithDefaults(companyDetails);
  const frame=()=>{
   doc.setDrawColor(...purple);doc.setLineWidth(.45);doc.rect(9,9,192,279);
-  if(logo)doc.addImage(logo,'PNG',15,13,39,18);
-  doc.setFont('times','bold');doc.setFontSize(19);doc.setTextColor(44,32,44);doc.text(company.company_name||'MWISHO TOURIST HOTEL',122,21,{align:'center',maxWidth:145});
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...purple);doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,32,{align:'center'});
+  if(investment)doc.addImage(investmentLogoData,'PNG',15,11,33,24);
+  else if(logo)doc.addImage(logo,'PNG',15,13,39,18);
+  doc.setFont('times','bold');doc.setFontSize(investment?15:19);doc.setTextColor(44,32,44);doc.text(company.company_name,122,21,{align:'center',maxWidth:145});
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...purple);doc.text(investment?'HARDWARE : CONSTRUCTION : HOSPITALITY':'BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,32,{align:'center'});
   doc.setFillColor(...blue);doc.roundedRect(59,34,92,10,2,2,'F');doc.setTextColor(255,255,255);doc.setFontSize(11);doc.text('PAYMENT INVOICE',105,41,{align:'center'});
   doc.setFillColor(...yellow);doc.roundedRect(13,47,80,8,2,2,'F');doc.roundedRect(118,47,79,8,2,2,'F');
   doc.setTextColor(49,39,53);doc.setFontSize(8);doc.text(company.kra_pin||issuerPin?'PIN NO: '+clean(company.kra_pin||issuerPin):'MWISHO INVESTMENT',17,52.5);
