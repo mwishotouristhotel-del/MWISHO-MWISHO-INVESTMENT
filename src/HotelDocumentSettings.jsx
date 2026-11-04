@@ -2,22 +2,22 @@ import React,{useEffect,useState} from 'react';
 
 const blank={label:'',account_type:'bank',details:'',is_active:true,show_on_invoice:true,show_on_quotation:true,display_order:0};
 export default function HotelDocumentSettings({supabase}){
- const [terms,setTerms]=useState(''),[accounts,setAccounts]=useState([]),[newAccount,setNewAccount]=useState({...blank});
+ const [terms,setTerms]=useState({invoice_terms:'',quotation_terms:'',receipt_terms:''}),[accounts,setAccounts]=useState([]),[newAccount,setNewAccount]=useState({...blank});
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  async function refresh(){
   const [a,b]=await Promise.all([
-   supabase.from('hotel_document_settings').select('terms_text').eq('id',1).maybeSingle(),
+   supabase.from('hotel_document_settings').select('invoice_terms,quotation_terms,receipt_terms').eq('id',1).maybeSingle(),
    supabase.from('hotel_document_payment_accounts').select('*').order('display_order').order('label')
   ]);
   if(a.error||b.error)setError(a.error?.message||b.error?.message);
-  else{setTerms(a.data?.terms_text||'');setAccounts(b.data||[]);setError('');}
+  else{setTerms({invoice_terms:a.data?.invoice_terms||'',quotation_terms:a.data?.quotation_terms||'',receipt_terms:a.data?.receipt_terms||''});setAccounts(b.data||[]);setError('');}
  }
  useEffect(()=>{refresh()},[supabase]);
  const edit=(id,key,value)=>setAccounts(old=>old.map(a=>a.id===id?{...a,[key]:value}:a));
  async function saveTerms(){
   setBusy(true);setError('');setNotice('');
-  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,terms_text:terms.trim(),updated_at:new Date().toISOString()});
-  if(e)setError(e.message);else setNotice('Shared invoice and quotation terms saved. Newly downloaded documents will use this wording.');
+  const {error:e}=await supabase.from('hotel_document_settings').upsert({id:1,...Object.fromEntries(Object.entries(terms).map(([k,v])=>[k,v.trim()])),updated_at:new Date().toISOString()});
+  if(e)setError(e.message);else setNotice('Invoice, quotation and receipt terms saved independently. Newly issued documents will use their respective wording.');
   setBusy(false);
  }
  async function saveAccount(account,isNew=false){
@@ -48,11 +48,11 @@ export default function HotelDocumentSettings({supabase}){
   </div>;
  };
  return <section style={{display:'grid',gap:16}}>
-  <h3>Invoice & Quotation Terms and Payment Accounts</h3>
+  <h3>Invoice, Quotation & Receipt Terms and Payment Accounts</h3>
   <p>Admin manages the official document terms and payment accounts here. Staff can select from active accounts when downloading an invoice or quotation; inactive accounts will not be offered. Changes affect newly generated PDFs, not previously issued documents.</p>
   {error&&<p role="alert" style={{color:'#b42331'}}>{error}</p>}{notice&&<p role="status" style={{color:'#167447'}}>{notice}</p>}
-  <label><strong>Shared Terms & Conditions</strong><textarea rows={7} maxLength={5000} value={terms} onChange={e=>setTerms(e.target.value)} placeholder="Enter hotel-approved terms covering validity, deposits, payment deadlines and cancellation conditions"/></label>
-  <button disabled={busy} type="button" onClick={saveTerms}>Save Shared Terms & Conditions</button>
+  {[['quotation_terms','Quotation Terms & Conditions'],['invoice_terms','Invoice Terms & Conditions'],['receipt_terms','Receipt Terms & Conditions']].map(([key,label])=><label key={key}><strong>{label}</strong><textarea rows={6} maxLength={5000} value={terms[key]} onChange={e=>setTerms(old=>({...old,[key]:e.target.value}))} placeholder={`Enter hotel-approved ${label.toLowerCase()}`}/></label>)}
+  <button disabled={busy} type="button" onClick={saveTerms}>Save Document Terms & Conditions</button>
   <h4>Approved Payment Accounts</h4>
   {accounts.map(a=>editor(a))}
   <h4>Add Payment Account</h4>
