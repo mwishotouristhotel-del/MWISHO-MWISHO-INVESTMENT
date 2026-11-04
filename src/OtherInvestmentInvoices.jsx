@@ -19,7 +19,7 @@ export default function OtherInvestmentInvoices({supabase}){
  const [form,setForm]=useState(initialDraft.form),[lines,setLines]=useState(initialDraft.lines);
  const [invoices,setInvoices]=useState([]),[items,setItems]=useState([]),[payments,setPayments]=useState([]),[accounts,setAccounts]=useState([]),[terms,setTerms]=useState(''),[issuerPin,setIssuerPin]=useState(''),[companyDetails,setCompanyDetails]=useState({}),[investmentCompanyDetails,setInvestmentCompanyDetails]=useState({});
  const [categories,setCategories]=useState(initialCategories),[newCategory,setNewCategory]=useState('');
- const [selected,setSelected]=useState({}),[payDraft,setPayDraft]=useState({}),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
+ const [selected,setSelected]=useState({}),[payDraft,setPayDraft]=useState({}),[cancelDraft,setCancelDraft]=useState({}),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const total=useMemo(()=>lines.reduce((s,x)=>s+Number(x.quantity||0)*Number(x.unit_price_kes||0),0),[lines]);
  useEffect(()=>{
   try{window.sessionStorage.setItem(draftKey,JSON.stringify({form,lines}));}catch{/* Keep the form usable when storage is unavailable. */}
@@ -60,10 +60,19 @@ export default function OtherInvestmentInvoices({supabase}){
   }
   setBusy(false);
  };
- const recordPayment=async invoice=>{
+ const recordPayment=async (invoice,amountOverride)=>{
   const draft=payDraft[invoice.id]||{};setError('');setMessage('');setBusy(true);
-  const {error:e}=await supabase.rpc('hotel_other_income_record_payment',{p_invoice_id:invoice.id,p_amount:Number(draft.amount),p_method:draft.method||'cash',p_reference:draft.reference||'',p_date:draft.date||new Date().toLocaleDateString('en-CA')});
+  const {error:e}=await supabase.rpc('hotel_other_income_record_payment',{p_invoice_id:invoice.id,p_amount:Number(amountOverride??draft.amount),p_method:draft.method||'cash',p_reference:draft.reference||'',p_date:draft.date||new Date().toLocaleDateString('en-CA')});
   if(e)setError(e.message);else{setMessage('Payment recorded against '+invoice.invoice_number+'.');setPayDraft(old=>({...old,[invoice.id]:{}}));await refresh();}setBusy(false);
+ };
+ const cancelInvoice=async invoice=>{
+  const reason=(cancelDraft[invoice.id]||'').trim();
+  if(reason.length<8||reason.length>500){setError('Enter a cancellation reason of 8–500 characters.');return;}
+  if(!window.confirm('Cancel '+invoice.invoice_number+'? This invoice will remain in the audit history and cannot receive payments.'))return;
+  setError('');setMessage('');setBusy(true);
+  const {error:e}=await supabase.rpc('hotel_other_income_cancel_invoice',{p_invoice_id:invoice.id,p_reason:reason});
+  if(e)setError(e.message);else{setMessage('Invoice '+invoice.invoice_number+' cancelled. Reason saved.');setCancelDraft(old=>({...old,[invoice.id]:''}));await refresh();}
+  setBusy(false);
  };
  const download=invoice=>{
   const chosen=selected[invoice.id]??accounts.filter(a=>a.show_on_invoice).map(a=>a.id);
@@ -119,18 +128,26 @@ export default function OtherInvestmentInvoices({supabase}){
    const checked=selected[invoice.id]??accounts.filter(a=>a.show_on_invoice).map(a=>a.id);
    return <article key={invoice.id} style={{border:'1px solid #ded0e8',borderRadius:12,padding:14}}>
     <strong>{invoice.invoice_number} · {invoice.category}</strong><p>Issuer: {invoice.issuer_entity==='investment'?'MWISHO MWISHO INVESTMENT LIMITED':'MWISHO TOURIST HOTEL'} · {invoice.bill_to} · {invoice.invoice_date} · <strong>{invoice.status.toUpperCase()}</strong></p>
-    <p>Invoiced: {money(invoice.total_kes)} | Paid: {money(paid)} | Balance: {money(balance)}</p>
+    <p>Invoiced: {money(invoice.total_kes)} | Paid: {money(paid)} | Outstanding: {money(invoice.status==='cancelled'?0:balance)}</p>
     <details><summary>Invoice PDF & Payment Accounts</summary><p>Current Admin invoice terms will appear on this newly downloaded PDF.</p>
      {accounts.map(a=><label key={a.id} style={{display:'block'}}><input type="checkbox" checked={checked.includes(a.id)} onChange={e=>setSelected(old=>({...old,[invoice.id]:e.target.checked?[...checked,a.id]:checked.filter(id=>id!==a.id)}))}/> {a.label}</label>)}
      <button type="button" onClick={()=>download(invoice)}>Download A4 Invoice PDF</button></details>
-    {balance>0&&<details><summary>Record Payment (Income Received)</summary>
+    {invoice.status==='cancelled'&&<p role="status" style={{color:'#9b2334'}}><strong>Cancelled:</strong> {invoice.cancellation_reason} {invoice.cancelled_at&&'· '+new Date(invoice.cancelled_at).toLocaleString('en-KE')}</p>}
+    {invoice.status!=='cancelled'&&balance>0&&<details><summary>Record Payment / Mark Invoice Paid</summary>
      <div style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'end'}}>
       <label>Amount (KSh)<input type="number" min="0.01" max={balance} step="0.01" value={draft.amount||''} onChange={e=>setPay(invoice.id,'amount',e.target.value)}/></label>
       <label>Method<select value={draft.method||'cash'} onChange={e=>setPay(invoice.id,'method',e.target.value)}><option value="cash">Cash</option><option value="mpesa">M-Pesa</option><option value="bank">Bank</option><option value="pdq">PDQ</option><option value="other">Other</option></select></label>
       <label>Reference<input value={draft.reference||''} onChange={e=>setPay(invoice.id,'reference',e.target.value)}/></label>
       <label>Payment Date<input type="date" value={draft.date||new Date().toLocaleDateString('en-CA')} onChange={e=>setPay(invoice.id,'date',e.target.value)}/></label>
       <button type="button" disabled={busy||!(Number(draft.amount)>0)||Number(draft.amount)>balance} onClick={()=>recordPayment(invoice)}>Confirm Received Payment</button>
+      <button type="button" disabled={busy} onClick={()=>recordPayment(invoice,balance)}>Mark Invoice Paid — {money(balance)}</button>
+      <small>Mark Paid records the full outstanding amount using the selected method, reference and date. Enter a reference for M-Pesa, Bank or PDQ.</small>
      </div></details>}
+    {invoice.status==='unpaid'&&paid===0&&<details><summary>Cancel Invoice</summary>
+     <p>A cancellation keeps the invoice in the records but excludes it from outstanding receivables. Invoices with recorded payments cannot be cancelled here.</p>
+     <label>Reason for Cancellation (required)<textarea rows={2} minLength={8} maxLength={500} value={cancelDraft[invoice.id]||''} onChange={e=>setCancelDraft(old=>({...old,[invoice.id]:e.target.value}))} placeholder="e.g. Issued to the wrong customer; replacement invoice required"/></label>
+     <button type="button" disabled={busy||(cancelDraft[invoice.id]||'').trim().length<8} onClick={()=>cancelInvoice(invoice)}>Confirm Cancel Invoice</button>
+    </details>}
     {!!payments.filter(p=>p.invoice_id===invoice.id).length&&<details><summary>Payment History</summary>{payments.filter(p=>p.invoice_id===invoice.id).map(p=><p key={p.id}>{p.payment_date} · {p.method} · {money(p.amount_kes)} · {p.payment_reference}</p>)}</details>}
    </article>})}{!invoices.length&&<p>No internal invoices have been created yet.</p>}</div>
  </section>;
