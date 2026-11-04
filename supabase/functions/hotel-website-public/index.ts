@@ -194,10 +194,12 @@ Deno.serve(async(req:Request)=>{
      event_start_time,event_end_date,event_end_time,
      package_id:package_id||null,package_name,requirements,organization_email,organization_phone,
      contact_person,contact_phone,cc_emails,status:'new'
-   }).select('id').single();
+   }).select('id,created_at').single();
    if(e||!created)return respond({error:'Could not submit the quotation request.'},503);
+   const referenceYear=new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'Africa/Nairobi'}).format(new Date(created.created_at));
+   const quotation_reference='MTH'+referenceYear+'-'+created.id.replace(/-/g,'').slice(0,10).toUpperCase();
    dispatchNotifications();
-   return respond({ok:true,request_id:created.id,status:'new',message:'Quotation request received for hotel Admin review.'});
+   return respond({ok:true,request_id:created.id,quotation_reference,status:'new',message:'Thank you! Your quotation request has been submitted successfully. We will review it and respond as soon as possible.'});
   }
   if(data?.action==='submit_food_payment'){
    const {data:settingsRows,error:settingsError}=await db.from('hotel_website_settings')
