@@ -1,5 +1,6 @@
 import {jsPDF} from 'jspdf';
 import websiteLogoSvg from '../hotel/assets/mwisho-logo.svg?raw';
+import {companyDetailsWithDefaults,companyContactLines} from './hotelCompanyDetails.js';
 
 const logo=websiteLogoSvg.match(/href="(data:image\/png;base64,[^"]+)"/)?.[1];
 const purple=[76,38,108],blue=[71,145,184],yellow=[252,219,92],red=[170,63,82];
@@ -8,24 +9,24 @@ const clean=value=>String(value??'').trim();
 
 // Shared document template: the photographed hotel invoice is a layout reference,
 // while tax, payment accounts and legal terms are supplied from actual records.
-export function printHotelInvoice({reference,invoiceDate,client,clientAddress='',clientPin='',deliveryDates='',purchaseOrder='',deliveryNote='',issuerPin='',category='',rows=[],subtotal,vatAmount=0,terms='',paymentDetails='',filename='MWISHO-Invoice.pdf'}){
+export function printHotelInvoice({reference,invoiceDate,client,clientAddress='',clientPin='',deliveryDates='',purchaseOrder='',deliveryNote='',issuerPin='',companyDetails={},category='',rows=[],subtotal,vatAmount=0,terms='',paymentDetails='',filename='MWISHO-Invoice.pdf'}){
  const doc=new jsPDF({format:'a4',unit:'mm'});
+ const company=companyDetailsWithDefaults(companyDetails);
  const frame=()=>{
   doc.setDrawColor(...purple);doc.setLineWidth(.45);doc.rect(9,9,192,279);
   if(logo)doc.addImage(logo,'PNG',15,13,39,18);
-  doc.setFont('times','bold');doc.setFontSize(19);doc.setTextColor(44,32,44);doc.text('MWISHO TOURIST HOTEL',122,21,{align:'center'});
+  doc.setFont('times','bold');doc.setFontSize(19);doc.setTextColor(44,32,44);doc.text(company.company_name||'MWISHO TOURIST HOTEL',122,21,{align:'center',maxWidth:145});
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(...purple);doc.text('BAR & RESTAURANTS : CONFERENCE : ACCOMMODATION',105,32,{align:'center'});
   doc.setFillColor(...blue);doc.roundedRect(59,34,92,10,2,2,'F');doc.setTextColor(255,255,255);doc.setFontSize(11);doc.text('PAYMENT INVOICE',105,41,{align:'center'});
   doc.setFillColor(...yellow);doc.roundedRect(13,47,80,8,2,2,'F');doc.roundedRect(118,47,79,8,2,2,'F');
-  doc.setTextColor(49,39,53);doc.setFontSize(8);doc.text(issuerPin?'PIN NO: '+clean(issuerPin):'MWISHO INVESTMENT',17,52.5);
+  doc.setTextColor(49,39,53);doc.setFontSize(8);doc.text(company.kra_pin||issuerPin?'PIN NO: '+clean(company.kra_pin||issuerPin):'MWISHO INVESTMENT',17,52.5);
   doc.text('REF: '+clean(reference).slice(0,30),121,52.5);
  };
  const footer=()=>{
+  const footerLines=companyContactLines(company);
   for(let p=1;p<=doc.getNumberOfPages();p++){
    doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(7.1);doc.setTextColor(...purple);
-   doc.text('Email: mwishotouristhotel@gmail.com  |  Phone: 0745396385',105,275,{align:'center'});
-   doc.text('P.O.BOX 35-40600 | Siaya Town, Along Kisumu-Luanda-Siaya Road',105,280,{align:'center'});
-   doc.text('Opposite Shell Petrol Station',105,284,{align:'center'});
+   footerLines.slice(0,3).forEach((line,i)=>doc.text(line,105,275+i*4.5,{align:'center',maxWidth:175}));
    if(doc.getNumberOfPages()>1)doc.text(`Page ${p} of ${doc.getNumberOfPages()}`,195,285,{align:'right'});
   }
  };
